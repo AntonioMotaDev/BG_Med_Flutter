@@ -1,7 +1,7 @@
 import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/patients/presentation/providers/patients_provider.dart';
-import 'package:bg_med/features/frap/presentation/screens/frap_records_list_screen.dart';
+import 'package:bg_med/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -175,10 +175,10 @@ class StatisticsSection extends ConsumerWidget {
   }
 
   void _navigateToFrapRecords(BuildContext context) {
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => const FrapRecordsListScreen(),
+        builder: (context) => const DashboardScreen(initialTabIndex: 2), // Tab de Registros
       ),
     );
   }

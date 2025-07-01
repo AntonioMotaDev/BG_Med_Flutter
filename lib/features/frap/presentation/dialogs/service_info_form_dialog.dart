@@ -20,15 +20,17 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
-  // Controladores de texto
-  final _horaLlamadaController = TextEditingController();
-  final _horaArriboController = TextEditingController();
+  // Controladores de texto para campos que no son de hora
   final _tiempoEsperaArriboController = TextEditingController();
-  final _horaLlegadaController = TextEditingController();
   final _tiempoEsperaLlegadaController = TextEditingController();
-  final _horaTerminoController = TextEditingController();
   final _ubicacionController = TextEditingController();
   final _tipoServicioEspecifiqueController = TextEditingController();
+
+  // Variables para los horarios (usando TimeOfDay)
+  TimeOfDay? _horaLlamada;
+  TimeOfDay? _horaArribo;
+  TimeOfDay? _horaLlegada;
+  TimeOfDay? _horaTermino;
 
   // Variables para checkboxes y selecciones
   String _tipoServicioSeleccionado = '';
@@ -59,12 +61,16 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
   void _initializeForm() {
     if (widget.initialData != null) {
       final data = widget.initialData!;
-      _horaLlamadaController.text = data['horaLlamada'] ?? '';
-      _horaArriboController.text = data['horaArribo'] ?? '';
+      
+      // Inicializar horarios desde strings
+      _horaLlamada = _parseTimeString(data['horaLlamada']);
+      _horaArribo = _parseTimeString(data['horaArribo']);
+      _horaLlegada = _parseTimeString(data['horaLlegada']);
+      _horaTermino = _parseTimeString(data['horaTermino']);
+      
+      // Inicializar otros campos
       _tiempoEsperaArriboController.text = data['tiempoEsperaArribo'] ?? '';
-      _horaLlegadaController.text = data['horaLlegada'] ?? '';
       _tiempoEsperaLlegadaController.text = data['tiempoEsperaLlegada'] ?? '';
-      _horaTerminoController.text = data['horaTermino'] ?? '';
       _ubicacionController.text = data['ubicacion'] ?? '';
       _tipoServicioSeleccionado = data['tipoServicio'] ?? '';
       _tipoServicioEspecifiqueController.text = data['tipoServicioEspecifique'] ?? '';
@@ -72,14 +78,32 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
     }
   }
 
+  // Función para parsear string de hora a TimeOfDay
+  TimeOfDay? _parseTimeString(String? timeString) {
+    if (timeString == null || timeString.isEmpty) return null;
+    try {
+      final parts = timeString.split(':');
+      if (parts.length == 2) {
+        final hour = int.parse(parts[0]);
+        final minute = int.parse(parts[1]);
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    } catch (e) {
+      // Si no se puede parsear, devolver null
+    }
+    return null;
+  }
+
+  // Función para convertir TimeOfDay a string
+  String _timeToString(TimeOfDay? time) {
+    if (time == null) return '';
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
   @override
   void dispose() {
-    _horaLlamadaController.dispose();
-    _horaArriboController.dispose();
     _tiempoEsperaArriboController.dispose();
-    _horaLlegadaController.dispose();
     _tiempoEsperaLlegadaController.dispose();
-    _horaTerminoController.dispose();
     _ubicacionController.dispose();
     _tipoServicioEspecifiqueController.dispose();
     super.dispose();
@@ -192,7 +216,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
                             ),
                           )
                         : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar'),
+                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
@@ -214,18 +238,18 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
         Row(
           children: [
             Expanded(
-              child: _buildTimeField(
+              child: _buildTimePickerField(
                 'Hora de llamada',
-                _horaLlamadaController,
-                'HH:MM',
+                _horaLlamada,
+                (time) => setState(() => _horaLlamada = time),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildTimeField(
+              child: _buildTimePickerField(
                 'Hora de arribo',
-                _horaArriboController,
-                'HH:MM',
+                _horaArribo,
+                (time) => setState(() => _horaArribo = time),
               ),
             ),
             const SizedBox(width: 12),
@@ -243,18 +267,18 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
         Row(
           children: [
             Expanded(
-              child: _buildTimeField(
+              child: _buildTimePickerField(
                 'Hora de llegada',
-                _horaLlegadaController,
-                'HH:MM',
+                _horaLlegada,
+                (time) => setState(() => _horaLlegada = time),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildTimeField(
+              child: _buildTimePickerField(
                 'Hora de término',
-                _horaTerminoController,
-                'HH:MM',
+                _horaTermino,
+                (time) => setState(() => _horaTermino = time),
               ),
             ),
             const SizedBox(width: 12),
@@ -271,6 +295,78 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
     );
   }
 
+  Widget _buildTimePickerField(String label, TimeOfDay? selectedTime, Function(TimeOfDay?) onTimeSelected) {
+    return InkWell(
+      onTap: () async {
+        final TimeOfDay? picked = await showTimePicker(
+          context: context,
+          initialTime: selectedTime ?? TimeOfDay.now(),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppTheme.primaryBlue,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) {
+          onTimeSelected(picked);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[400]!),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.access_time,
+                  size: 16,
+                  color: selectedTime != null ? AppTheme.primaryBlue : Colors.grey[400],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  selectedTime != null ? _timeToString(selectedTime) : 'Seleccionar hora',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: selectedTime != null ? Colors.black87 : Colors.grey[500],
+                    fontWeight: selectedTime != null ? FontWeight.w500 : FontWeight.normal,
+                  ),
+                ),
+                const Spacer(),
+                if (selectedTime != null)
+                  GestureDetector(
+                    onTap: () => onTimeSelected(null),
+                    child: Icon(
+                      Icons.clear,
+                      size: 16,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTimeField(String label, TextEditingController controller, String hint) {
     return TextFormField(
       controller: controller,
@@ -281,23 +377,16 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       style: const TextStyle(fontSize: 14),
-      inputFormatters: hint == 'HH:MM' 
-          ? [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
-              LengthLimitingTextInputFormatter(5),
-            ]
-          : [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(3),
-            ],
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(3),
+      ],
+      keyboardType: TextInputType.number,
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Campo requerido';
-        }
-        if (hint == 'HH:MM') {
-          final timeRegex = RegExp(r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$');
-          if (!timeRegex.hasMatch(value)) {
-            return 'Formato HH:MM';
+        if (value != null && value.isNotEmpty) {
+          final minutes = int.tryParse(value);
+          if (minutes == null || minutes < 0 || minutes > 999) {
+            return 'Minutos inválidos';
           }
         }
         return null;
@@ -453,12 +542,12 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
 
     try {
       final formData = {
-        'horaLlamada': _horaLlamadaController.text.trim(),
-        'horaArribo': _horaArriboController.text.trim(),
+        'horaLlamada': _timeToString(_horaLlamada),
+        'horaArribo': _timeToString(_horaArribo),
         'tiempoEsperaArribo': _tiempoEsperaArriboController.text.trim(),
-        'horaLlegada': _horaLlegadaController.text.trim(),
+        'horaLlegada': _timeToString(_horaLlegada),
         'tiempoEsperaLlegada': _tiempoEsperaLlegadaController.text.trim(),
-        'horaTermino': _horaTerminoController.text.trim(),
+        'horaTermino': _timeToString(_horaTermino),
         'ubicacion': _ubicacionController.text.trim(),
         'tipoServicio': _tipoServicioSeleccionado,
         'tipoServicioEspecifique': _tipoServicioEspecifiqueController.text.trim(),

@@ -2,6 +2,12 @@ import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/patient_info_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/service_info_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/registry_info_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/management_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/gyneco_obstetric_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/pathological_history_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/clinical_history_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/medications_form_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -39,156 +45,141 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Información del Servicio
-            _buildSectionCard(
-              title: 'INFORMACIÓN DEL SERVICIO',
-              icon: Icons.local_hospital,
-              filledFields: frapData.getFilledFieldsCount('service_info'),
-              totalFields: 8,
-              onTap: () => _openServiceInfoDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Información del Registro
-            _buildSectionCard(
-              title: 'INFORMACIÓN DEL REGISTRO',
-              icon: Icons.assignment,
-              filledFields: frapData.getFilledFieldsCount('registry_info'),
-              totalFields: 6,
-              onTap: () => _openRegistryInfoDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Información del Paciente
-            _buildSectionCard(
-              title: 'INFORMACIÓN DEL PACIENTE',
-              icon: Icons.person,
-              filledFields: frapData.getFilledFieldsCount('patient_info'),
-              totalFields: 12,
-              onTap: () => _openPatientInfoDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Manejo
-            _buildSectionCard(
-              title: 'MANEJO',
-              icon: Icons.medical_services,
-              filledFields: frapData.getFilledFieldsCount('management'),
-              totalFields: 10,
-              onTap: () => _openManagementDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Medicamentos
-            _buildSectionCard(
-              title: 'MEDICAMENTOS',
-              icon: Icons.medication,
-              filledFields: frapData.getFilledFieldsCount('medications'),
-              totalFields: 8,
-              onTap: () => _openMedicationsDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Gineco-Obstétrico
-            _buildSectionCard(
-              title: 'EMERGENCIAS GINECO-OBSTÉTRICAS',
-              icon: Icons.pregnant_woman,
-              filledFields: frapData.getFilledFieldsCount('gyneco_obstetric'),
-              totalFields: 6,
-              onTap: () => _openGynecoObstetricDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Negativa de Atención
-            _buildSectionCard(
-              title: 'NEGATIVA DE ATENCIÓN',
-              icon: Icons.cancel,
-              filledFields: frapData.getFilledFieldsCount('attention_negative'),
-              totalFields: 4,
-              onTap: () => _openAttentionNegativeDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Antecedentes Patológicos
-            _buildSectionCard(
-              title: 'ANTECEDENTES PATOLÓGICOS',
-              icon: Icons.history,
-              filledFields: frapData.getFilledFieldsCount('pathological_history'),
-              totalFields: 15,
-              onTap: () => _openPathologicalHistoryDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Historia Clínica
-            _buildSectionCard(
-              title: 'HISTORIA CLÍNICA',
-              icon: Icons.description,
-              filledFields: frapData.getFilledFieldsCount('clinical_history'),
-              totalFields: 8,
-              onTap: () => _openClinicalHistoryDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Examen Físico
-            _buildSectionCard(
-              title: 'EXAMEN FÍSICO',
-              icon: Icons.health_and_safety,
-              filledFields: frapData.getFilledFieldsCount('physical_exam'),
-              totalFields: 12,
-              onTap: () => _openPhysicalExamDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Justificación de Prioridad
-            _buildSectionCard(
-              title: 'JUSTIFICACIÓN DE PRIORIDAD',
-              icon: Icons.priority_high,
-              filledFields: frapData.getFilledFieldsCount('priority_justification'),
-              totalFields: 5,
-              onTap: () => _openPriorityJustificationDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Localización de Lesiones
-            _buildSectionCard(
-              title: 'LOCALIZACIÓN DE LESIONES',
-              icon: Icons.my_location,
-              filledFields: frapData.getFilledFieldsCount('injury_location'),
-              totalFields: 6,
-              onTap: () => _openInjuryLocationDialog(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Unidad Receptora
-            _buildSectionCard(
-              title: 'UNIDAD RECEPTORA',
-              icon: Icons.local_hospital,
-              filledFields: frapData.getFilledFieldsCount('receiving_unit'),
-              totalFields: 8,
-              onTap: () => _openReceivingUnitDialog(),
-            ),
-            
-                  const SizedBox(height: 16),
-            
-            // Recepción del Paciente
-            _buildSectionCard(
-              title: 'RECEPCIÓN DEL PACIENTE',
-              icon: Icons.how_to_reg,
-              filledFields: frapData.getFilledFieldsCount('patient_reception'),
-              totalFields: 6,
-              onTap: () => _openPatientReceptionDialog(),
+            // Grid de tarjetas en dos columnas
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 3,
+              children: [
+                // Información del Servicio
+                _buildSectionCard(
+                  title: 'INFORMACIÓN DEL SERVICIO',
+                  icon: Icons.local_hospital,
+                  filledFields: frapData.getFilledFieldsCount('service_info'),
+                  totalFields: 8,
+                  onTap: () => _openServiceInfoDialog(),
+                ),
+                
+                // Información del Registro
+                _buildSectionCard(
+                  title: 'INFORMACIÓN DEL REGISTRO',
+                  icon: Icons.assignment,
+                  filledFields: frapData.getFilledFieldsCount('registry_info'),
+                  totalFields: 5,
+                  onTap: () => _openRegistryInfoDialog(),
+                ),
+                
+                // Información del Paciente
+                _buildSectionCard(
+                  title: 'INFORMACIÓN DEL PACIENTE',
+                  icon: Icons.person,
+                  filledFields: frapData.getFilledFieldsCount('patient_info'),
+                  totalFields: 14,
+                  onTap: () => _openPatientInfoDialog(),
+                ),
+                
+                // Manejo
+                _buildSectionCard(
+                  title: 'MANEJO',
+                  icon: Icons.medical_services,
+                  filledFields: frapData.getFilledFieldsCount('management'),
+                  totalFields: 12,
+                  onTap: () => _openManagementDialog(),
+                ),
+                
+                // Antecedentes Patológicos
+                _buildSectionCard(
+                  title: 'ANTECEDENTES PATOLÓGICOS',
+                  icon: Icons.history,
+                  filledFields: frapData.getFilledFieldsCount('pathological_history'),
+                  totalFields: 8,
+                  onTap: () => _openPathologicalHistoryDialog(),
+                ),
+                
+                // Medicamentos
+                _buildSectionCard(
+                  title: 'MEDICAMENTOS',
+                  icon: Icons.medication,
+                  filledFields: frapData.getFilledFieldsCount('medications'),
+                  totalFields: 1,
+                  onTap: () => _openMedicationsDialog(),
+                ),
+                
+                // Historia Clínica
+                _buildSectionCard(
+                  title: 'ANTECEDENTES CLÍNICOS',
+                  icon: Icons.description,
+                  filledFields: frapData.getFilledFieldsCount('clinical_history'),
+                  totalFields: 14,
+                  onTap: () => _openClinicalHistoryDialog(),
+                ),
+                
+                // Gineco-Obstétrico
+                _buildSectionCard(
+                  title: 'URGENCIAS GINECO-OBSTÉTRICAS',
+                  icon: Icons.pregnant_woman,
+                  filledFields: frapData.getFilledFieldsCount('gyneco_obstetric'),
+                  totalFields: 10,
+                  onTap: () => _openGynecoObstetricDialog(),
+                ),
+                
+                // Examen Físico
+                _buildSectionCard(
+                  title: 'EXPLORACIÓN FÍSICA',
+                  icon: Icons.health_and_safety,
+                  filledFields: frapData.getFilledFieldsCount('physical_exam'),
+                  totalFields: 12,
+                  onTap: () => _openPhysicalExamDialog(),
+                ),
+                
+                // Negativa de Atención
+                _buildSectionCard(
+                  title: 'NEGATIVA DE ATENCIÓN',
+                  icon: Icons.cancel,
+                  filledFields: frapData.getFilledFieldsCount('attention_negative'),
+                  totalFields: 4,
+                  onTap: () => _openAttentionNegativeDialog(),
+                ),
+                
+                // Justificación de Prioridad
+                _buildSectionCard(
+                  title: 'JUSTIFICACIÓN DE PRIORIDAD',
+                  icon: Icons.priority_high,
+                  filledFields: frapData.getFilledFieldsCount('priority_justification'),
+                  totalFields: 5,
+                  onTap: () => _openPriorityJustificationDialog(),
+                ),
+                
+                // Unidad Receptora
+                _buildSectionCard(
+                  title: 'UNIDAD MEDICA RECEPTORA',
+                  icon: Icons.local_hospital,
+                  filledFields: frapData.getFilledFieldsCount('receiving_unit'),
+                  totalFields: 8,
+                  onTap: () => _openReceivingUnitDialog(),
+                ),
+                
+                // Localización de Lesiones
+                _buildSectionCard(
+                  title: 'LOCALIZACIÓN DE LESIONES',
+                  icon: Icons.my_location,
+                  filledFields: frapData.getFilledFieldsCount('injury_location'),
+                  totalFields: 6,
+                  onTap: () => _openInjuryLocationDialog(),
+                ),
+                
+                // Recepción del Paciente
+                _buildSectionCard(
+                  title: 'RECEPCIÓN DEL PACIENTE',
+                  icon: Icons.how_to_reg,
+                  filledFields: frapData.getFilledFieldsCount('patient_reception'),
+                  totalFields: 6,
+                  onTap: () => _openPatientReceptionDialog(),
+                ),
+              ],
             ),
             
             const SizedBox(height: 32),
@@ -339,7 +330,6 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
       builder: (context) => ServiceInfoFormDialog(
         onSave: (data) {
           ref.read(frapDataProvider.notifier).updateSectionData('service_info', data);
-          Navigator.of(context).pop();
         },
         initialData: ref.read(frapDataProvider).serviceInfo,
       ),
@@ -347,8 +337,16 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openRegistryInfoDialog() {
-    // TODO: Implementar diálogo de información del registro
-    _showComingSoonDialog('Información del Registro');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => RegistryInfoFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('registry_info', data);
+        },
+        initialData: ref.read(frapDataProvider).registryInfo,
+      ),
+    );
   }
 
   void _openPatientInfoDialog() {
@@ -358,7 +356,6 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
       builder: (context) => PatientInfoFormDialog(
         onSave: (data) {
           ref.read(frapDataProvider.notifier).updateSectionData('patient_info', data);
-          Navigator.of(context).pop();
         },
         initialData: ref.read(frapDataProvider).patientInfo,
       ),
@@ -366,15 +363,79 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openManagementDialog() {
-    _showComingSoonDialog('Manejo');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ManagementFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('management', data);
+        },
+        initialData: ref.read(frapDataProvider).management,
+      ),
+    );
   }
 
   void _openMedicationsDialog() {
-    _showComingSoonDialog('Medicamentos');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => MedicationsFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('medications', data);
+        },
+        initialData: ref.read(frapDataProvider).medications,
+      ),
+    );
   }
 
   void _openGynecoObstetricDialog() {
-    _showComingSoonDialog('Emergencias Gineco-Obstétricas');
+    final frapData = ref.read(frapDataProvider);
+    final patientSex = frapData.patientInfo['sexSelected'] as String?;
+    
+    // Verificar si el paciente es de sexo femenino
+    if (patientSex == null || patientSex.isEmpty) {
+      _showInfoDialog(
+        'Información requerida',
+        'Primero debe completar la información del paciente para acceder a esta sección.',
+      );
+      return;
+    }
+    
+    if (patientSex != 'Femenino') {
+      _showInfoDialog(
+        'Sección no disponible',
+        'Esta sección solo está disponible para pacientes de sexo femenino.',
+      );
+      return;
+    }
+    
+    // Si es femenino, mostrar el formulario
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => GynecoObstetricFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('gyneco_obstetric', data);
+        },
+        initialData: ref.read(frapDataProvider).gynecoObstetric,
+      ),
+    );
+  }
+
+  void _showInfoDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _openAttentionNegativeDialog() {
@@ -382,11 +443,29 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openPathologicalHistoryDialog() {
-    _showComingSoonDialog('Antecedentes Patológicos');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PathologicalHistoryFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('pathological_history', data);
+        },
+        initialData: ref.read(frapDataProvider).pathologicalHistory,
+      ),
+    );
   }
 
   void _openClinicalHistoryDialog() {
-    _showComingSoonDialog('Historia Clínica');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ClinicalHistoryFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('clinical_history', data);
+        },
+        initialData: ref.read(frapDataProvider).clinicalHistory,
+      ),
+    );
   }
 
   void _openPhysicalExamDialog() {

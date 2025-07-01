@@ -7,14 +7,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
-  const DashboardScreen({super.key});
+  final int initialTabIndex;
+  
+  const DashboardScreen({
+    super.key,
+    this.initialTabIndex = 0,
+  });
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   final List<Widget> _tabs = [
     const HomeTab(),
@@ -23,6 +28,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     const CalendarTab(),
     const SettingsTab(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Validar que el índice inicial esté dentro del rango válido
+    _currentIndex = widget.initialTabIndex.clamp(0, _tabs.length - 1);
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -106,7 +106,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       backgroundColor: Colors.transparent,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.95,
-        height: MediaQuery.of(context).size.height * 0.9,
+        height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -226,7 +226,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                             ),
                           )
                         : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar'),
+                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
@@ -351,7 +351,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Nombre *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _firstNameController.text.trim().isEmpty,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'El nombre es requerido';
@@ -368,7 +368,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Apellido Paterno *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _paternalLastNameController.text.trim().isEmpty,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'El apellido paterno es requerido';
@@ -390,7 +390,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Apellido Materno *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _maternalLastNameController.text.trim().isEmpty,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'El apellido materno es requerido';
@@ -407,7 +407,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Edad *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _ageController.text.trim().isEmpty,
                 keyboardType: TextInputType.number,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
@@ -445,7 +445,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     child: Text(sexo),
                   );
                 }).toList(),
-                onChanged: _selectedPatient == null ? (value) {
+                onChanged: (_selectedPatient == null || _sexSelected.isEmpty) ? (value) {
                   setState(() {
                     _sexSelected = value ?? '';
                   });
@@ -466,7 +466,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Teléfono *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _phoneController.text.trim().isEmpty,
                 keyboardType: TextInputType.phone,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -491,7 +491,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Calle *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _streetController.text.trim().isEmpty,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'La calle es requerida';
@@ -508,7 +508,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Núm. Ext. *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _exteriorNumberController.text.trim().isEmpty,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Número requerido';
@@ -531,7 +531,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Núm. Int.',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _interiorNumberController.text.trim().isEmpty,
               ),
             ),
             const SizedBox(width: 12),
@@ -542,7 +542,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Colonia *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _neighborhoodController.text.trim().isEmpty,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'La colonia es requerida';
@@ -565,7 +565,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Ciudad *',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _cityController.text.trim().isEmpty,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'La ciudad es requerida';
@@ -582,7 +582,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   labelText: 'Seguro Médico',
                   border: OutlineInputBorder(),
                 ),
-                enabled: _selectedPatient == null,
+                enabled: _selectedPatient == null || _insuranceController.text.trim().isEmpty,
               ),
             ),
           ],
