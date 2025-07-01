@@ -73,7 +73,7 @@ class _ManagementFormDialogState extends State<ManagementFormDialog> {
       backgroundColor: Colors.transparent,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.95,
-        height: MediaQuery.of(context).size.height * 0.85,
+        height: MediaQuery.of(context).size.height * 0.65,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),

@@ -8,6 +8,7 @@ import 'package:bg_med/features/frap/presentation/dialogs/gyneco_obstetric_form_
 import 'package:bg_med/features/frap/presentation/dialogs/pathological_history_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/clinical_history_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/medications_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/priority_justification_form_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -149,7 +150,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   title: 'JUSTIFICACIÓN DE PRIORIDAD',
                   icon: Icons.priority_high,
                   filledFields: frapData.getFilledFieldsCount('priority_justification'),
-                  totalFields: 5,
+                  totalFields: 7,
                   onTap: () => _openPriorityJustificationDialog(),
                 ),
                 
@@ -473,7 +474,16 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openPriorityJustificationDialog() {
-    _showComingSoonDialog('Justificación de Prioridad');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PriorityJustificationFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('priority_justification', data);
+        },
+        initialData: ref.read(frapDataProvider).priorityJustification,
+      ),
+    );
   }
 
   void _openInjuryLocationDialog() {
