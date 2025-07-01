@@ -1,0 +1,122 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Gradle
+build.gradle.kts
+
+# Firebase
+firebase.json
+
+# Google Services
+google-services.json
+
+# Xcode
+xcuserdata/
+xcuserdata/
+
+
+
+# Archivos generados por Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+flutter_*.png
+*.lock
+*.iml
+*.log
+*.json
+*.swp
+*.swo
+
+# Directorios de IDE y entornos
+.idea/
+.vscode/
+*.sw[pon]
+.DS_Store
+
+# Archivos de configuración local
+.flutter-plugins
+.flutter-plugins-dependencies
+.gradle/
+local.properties
+
+# Firebase y Google Services
+**/android/app/google-services.json  # Firebase Android
+**/ios/Runner/GoogleService-Info.plist  # Firebase iOS
+**/web/firebase-config.json  # Firebase Web
+**/lib/firebase_options.dart  # Opcional (se puede regenerar)
+
+# Archivos de configuración específicos de Firebase
+.firebase/
+.firebaserc
+
+# Archivos de entorno
+.env
+.env.*
+.env.local
+
+# Archivos generados por Flutter Web
+/web/**/*.map
+/web/**/*.js
+/web/**/*.js.map
+
+# Archivos de usuario y temporales
+*.tmproj
+*.userprefs
+*.orig
+
+# macOS
+.DS_Store
+._*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+*~
