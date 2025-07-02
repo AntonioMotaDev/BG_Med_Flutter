@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
 class AttentionNegativeFormDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onSave;
@@ -26,6 +28,9 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
   // Variables para almacenar las firmas
   String? _patientSignatureData;
   String? _witnessSignatureData;
+  
+  // Variable para verificar si ya hay una negativa guardada
+  bool _hasExistingNegative = false;
 
   @override
   void initState() {
@@ -49,13 +54,15 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
   }
 
   void _initializeForm() {
-    if (widget.initialData != null) {
+    if (widget.initialData != null && widget.initialData!.isNotEmpty) {
       final data = widget.initialData!;
       _patientSignatureData = data['patientSignature'];
       _witnessSignatureData = data['witnessSignature'];
-
-      // Si hay datos de firma, cargarlos (esto requeriría implementación adicional)
-      // Por simplicidad, las firmas se empezarán desde cero cada vez
+      
+      // Si hay datos, significa que ya existe una negativa
+      if (_patientSignatureData != null && _witnessSignatureData != null) {
+        _hasExistingNegative = true;
+      }
     }
   }
 
@@ -83,7 +90,7 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.red[600],
+                color: _hasExistingNegative ? Colors.orange[600] : Colors.red[600],
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -91,16 +98,16 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.cancel,
+                  Icon(
+                    _hasExistingNegative ? Icons.warning : Icons.cancel,
                     color: Colors.white,
                     size: 24,
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'NEGATIVA DE ATENCIÓN',
-                      style: TextStyle(
+                      _hasExistingNegative ? 'NEGATIVA DE ATENCIÓN REGISTRADA' : 'NEGATIVA DE ATENCIÓN',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -124,6 +131,38 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Mostrar estado si ya hay negativa
+                      if (_hasExistingNegative) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange[300]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.orange[600],
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Ya existe una negativa de atención registrada con firmas válidas.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Título del documento
                       Center(
                         child: Text(
@@ -131,7 +170,7 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.red[600],
+                            color: _hasExistingNegative ? Colors.orange[600] : Colors.red[600],
                           ),
                         ),
                       ),
@@ -167,12 +206,14 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
                             child: _buildSignatureSection(
                               title: 'Firma Paciente',
                               controller: _patientSignatureController,
+                              base64Data: _patientSignatureData,
                               onClear: () {
                                 _patientSignatureController.clear();
                                 setState(() {
                                   _patientSignatureData = null;
                                 });
                               },
+                              isReadOnly: _hasExistingNegative,
                             ),
                           ),
                           const SizedBox(width: 20),
@@ -181,12 +222,14 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
                             child: _buildSignatureSection(
                               title: 'Testigo',
                               controller: _witnessSignatureController,
+                              base64Data: _witnessSignatureData,
                               onClear: () {
                                 _witnessSignatureController.clear();
                                 setState(() {
                                   _witnessSignatureData = null;
                                 });
                               },
+                              isReadOnly: _hasExistingNegative,
                             ),
                           ),
                         ],
@@ -197,24 +240,26 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.blue[50],
+                          color: _hasExistingNegative ? Colors.orange[50] : Colors.blue[50],
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue[200]!),
+                          border: Border.all(color: _hasExistingNegative ? Colors.orange[200]! : Colors.blue[200]!),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              Icons.info_outline,
-                              color: Colors.blue[600],
+                              _hasExistingNegative ? Icons.info : Icons.info_outline,
+                              color: _hasExistingNegative ? Colors.orange[600] : Colors.blue[600],
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Las firmas son requeridas para completar la negativa de atención.',
+                                _hasExistingNegative
+                                    ? 'Para modificar las firmas, primero debe revertir la negativa de atención.'
+                                    : 'Las firmas son requeridas para completar la negativa de atención.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.blue[800],
+                                  color: _hasExistingNegative ? Colors.orange[800] : Colors.blue[800],
                                 ),
                               ),
                             ),
@@ -244,24 +289,45 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
                     child: const Text('Cancelar'),
                   ),
                   const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Negativa'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red[600],
-                      foregroundColor: Colors.white,
+                  if (_hasExistingNegative) ...[
+                    ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _revertNegative,
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.undo),
+                      label: Text(_isLoading ? 'Revirtiendo...' : 'Revertir Negativa'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[600],
+                        foregroundColor: Colors.white,
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _saveForm,
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.save),
+                      label: Text(_isLoading ? 'Guardando...' : 'Guardar Negativa'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red[600],
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -274,7 +340,9 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
   Widget _buildSignatureSection({
     required String title,
     required SignatureController controller,
+    String? base64Data,
     required VoidCallback onClear,
+    bool isReadOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,19 +359,34 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
         Container(
           height: 200,
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[400]!),
+            border: Border.all(color: isReadOnly ? Colors.orange[300]! : Colors.grey[400]!),
             borderRadius: BorderRadius.circular(8),
-            color: Colors.white,
+            color: isReadOnly ? Colors.orange[50] : Colors.white,
           ),
           child: Stack(
             children: [
-              // Área de firma
-              Signature(
-                controller: controller,
-                backgroundColor: Colors.white,
-              ),
-              // Texto de instrucción (solo visible cuando está vacía)
-              if (controller.isEmpty)
+              // Si hay datos base64 y es solo lectura, mostrar la imagen
+              if (isReadOnly && base64Data != null)
+                Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    image: DecorationImage(
+                      image: MemoryImage(_getImageBytesFromBase64(base64Data)),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                )
+              else
+                // Área de firma normal
+                Signature(
+                  controller: controller,
+                  backgroundColor: isReadOnly ? Colors.orange[50]! : Colors.white,
+                ),
+              
+              // Texto de instrucción
+              if (!isReadOnly && controller.isEmpty && base64Data == null)
                 const Center(
                   child: Text(
                     'Firme aquí',
@@ -313,37 +396,61 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
                     ),
                   ),
                 ),
-              // Botón de limpiar
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.clear,
-                      size: 16,
-                      color: Colors.red,
+              
+              // Indicador de solo lectura
+              if (isReadOnly)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[600],
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    onPressed: onClear,
-                    padding: const EdgeInsets.all(4),
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
+                    child: const Text(
+                      'FIRMADO',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
+              
+              // Botón de limpiar (solo si no es readonly)
+              if (!isReadOnly)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.clear,
+                        size: 16,
+                        color: Colors.red,
+                      ),
+                      onPressed: onClear,
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(
+                        minWidth: 24,
+                        minHeight: 24,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -364,6 +471,15 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
         ),
       ],
     );
+  }
+
+  Uint8List _getImageBytesFromBase64(String base64Data) {
+    try {
+      final base64String = base64Data.split(',').last;
+      return base64Decode(base64String);
+    } catch (e) {
+      return Uint8List(0);
+    }
   }
 
   Future<void> _saveForm() async {
@@ -388,8 +504,8 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
       final witnessSignatureBytes = await _witnessSignatureController.toPngBytes();
 
       if (patientSignatureBytes != null && witnessSignatureBytes != null) {
-        _patientSignatureData = 'data:image/png;base64,${String.fromCharCodes(patientSignatureBytes)}';
-        _witnessSignatureData = 'data:image/png;base64,${String.fromCharCodes(witnessSignatureBytes)}';
+        _patientSignatureData = 'data:image/png;base64,${base64Encode(patientSignatureBytes)}';
+        _witnessSignatureData = 'data:image/png;base64,${base64Encode(witnessSignatureBytes)}';
 
         final formData = {
           'patientSignature': _patientSignatureData,
@@ -397,6 +513,7 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
           'declarationText': 'Me he negado a recibir atención médica y a ser trasladado por los paramédicos '
               'de Ambulancias BgMed, habiéndoseme informado de los riesgos que conlleva mi decisión.',
           'timestamp': DateTime.now().toIso8601String(),
+          'isActive': true,
         };
 
         widget.onSave(formData);
@@ -418,6 +535,72 @@ class _AttentionNegativeFormDialogState extends State<AttentionNegativeFormDialo
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al guardar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _revertNegative() async {
+    // Mostrar diálogo de confirmación
+    final shouldRevert = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Revertir Negativa de Atención'),
+        content: const Text(
+          '¿Está seguro de que desea revertir la negativa de atención?\n\n'
+          'Esto eliminará las firmas registradas y permitirá que el paciente reciba atención médica.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[600],
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Revertir'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldRevert != true) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Limpiar todos los datos
+      final emptyData = <String, dynamic>{};
+      
+      widget.onSave(emptyData);
+      
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Negativa de atención revertida exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al revertir: $e'),
             backgroundColor: Colors.red,
           ),
         );

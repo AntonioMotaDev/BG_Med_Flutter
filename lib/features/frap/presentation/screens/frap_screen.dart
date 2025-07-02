@@ -12,6 +12,8 @@ import 'package:bg_med/features/frap/presentation/dialogs/priority_justification
 import 'package:bg_med/features/frap/presentation/dialogs/receiving_unit_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/physical_exam_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/attention_negative_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/patient_reception_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/injury_location_form_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -172,7 +174,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   title: 'LOCALIZACIÓN DE LESIONES',
                   icon: Icons.my_location,
                   filledFields: frapData.getFilledFieldsCount('injury_location'),
-                  totalFields: 6,
+                  totalFields: 2,
                   onTap: () => _openInjuryLocationDialog(),
                 ),
                 
@@ -527,7 +529,16 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openInjuryLocationDialog() {
-    _showComingSoonDialog('Localización de Lesiones');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => InjuryLocationFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('injury_location', data);
+        },
+        initialData: ref.read(frapDataProvider).injuryLocation,
+      ),
+    );
   }
 
   void _openReceivingUnitDialog() {
@@ -544,21 +555,14 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openPatientReceptionDialog() {
-    _showComingSoonDialog('Recepción del Paciente');
-  }
-
-  void _showComingSoonDialog(String sectionName) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(sectionName),
-        content: const Text('Esta sección estará disponible próximamente.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendido'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (context) => PatientReceptionFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('patient_reception', data);
+        },
+        initialData: ref.read(frapDataProvider).patientReception,
       ),
     );
   }
