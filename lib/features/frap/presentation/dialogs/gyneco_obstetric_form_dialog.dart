@@ -26,11 +26,16 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
   final _gestaController = TextEditingController();
   final _abortosController = TextEditingController();
   final _partosController = TextEditingController();
+  final _cesareasController = TextEditingController();
   final _metodosAnticonceptivosController = TextEditingController();
   final _horaController = TextEditingController();
-  final _cesareasController = TextEditingController();
 
-  // Variables para opciones seleccionables
+  // Variables para opciones seleccionables principales
+  bool _isParto = false;
+  bool _isAborto = false;
+  bool _isHxVaginal = false;
+
+  // Variables para otros dropdowns
   String _ruidosCardiacosFetales = '';
   String _expulsionPlacenta = '';
 
@@ -52,9 +57,13 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
       _gestaController.text = data['gesta'] ?? '';
       _abortosController.text = data['abortos'] ?? '';
       _partosController.text = data['partos'] ?? '';
+      _cesareasController.text = data['cesareas'] ?? '';
       _metodosAnticonceptivosController.text = data['metodosAnticonceptivos'] ?? '';
       _horaController.text = data['hora'] ?? '';
-      _cesareasController.text = data['cesareas'] ?? '';
+      
+      _isParto = data['isParto'] ?? false;
+      _isAborto = data['isAborto'] ?? false;
+      _isHxVaginal = data['isHxVaginal'] ?? false;
       
       _ruidosCardiacosFetales = data['ruidosCardiacosFetales'] ?? '';
       _expulsionPlacenta = data['expulsionPlacenta'] ?? '';
@@ -68,9 +77,9 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
     _gestaController.dispose();
     _abortosController.dispose();
     _partosController.dispose();
+    _cesareasController.dispose();
     _metodosAnticonceptivosController.dispose();
     _horaController.dispose();
-    _cesareasController.dispose();
     super.dispose();
   }
 
@@ -132,8 +141,44 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Sección PARTO
-                      _buildSectionTitle('PARTO'),
+                      // Tipo de Urgencia (Opciones principales)
+                      _buildSectionTitle('TIPO DE URGENCIA'),
+                      const SizedBox(height: 16),
+                      
+                      _buildCheckboxOption(
+                        title: 'Parto',
+                        value: _isParto,
+                        onChanged: (value) {
+                          setState(() {
+                            _isParto = value ?? false;
+                          });
+                        },
+                      ),
+                      
+                      _buildCheckboxOption(
+                        title: 'Aborto',
+                        value: _isAborto,
+                        onChanged: (value) {
+                          setState(() {
+                            _isAborto = value ?? false;
+                          });
+                        },
+                      ),
+                      
+                      _buildCheckboxOption(
+                        title: 'Hx Vaginal',
+                        value: _isHxVaginal,
+                        onChanged: (value) {
+                          setState(() {
+                            _isHxVaginal = value ?? false;
+                          });
+                        },
+                      ),
+                      
+                      const SizedBox(height: 24),
+
+                      // Información General
+                      _buildSectionTitle('INFORMACIÓN GENERAL'),
                       const SizedBox(height: 16),
                       
                       // F.U.M. y Semanas de Gestación
@@ -161,33 +206,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Ruidos Cardíacos Fetales
-                      _buildDropdownField(
-                        label: 'Ruidos Cardíacos Fetales',
-                        value: _ruidosCardiacosFetales,
-                        options: _ruidosOptions,
-                        onChanged: (value) {
-                          setState(() {
-                            _ruidosCardiacosFetales = value ?? '';
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Expulsión de placenta
-                      _buildDropdownField(
-                        label: 'Expulsión de placenta',
-                        value: _expulsionPlacenta,
-                        options: _expulsionOptions,
-                        onChanged: (value) {
-                          setState(() {
-                            _expulsionPlacenta = value ?? '';
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Gesta y Abortos
+                      // Gesta, Abortos, Partos, Cesáreas
                       Row(
                         children: [
                           Expanded(
@@ -213,42 +232,18 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-
-                      // Sección ABORTO
-                      _buildSectionTitle('ABORTO'),
                       const SizedBox(height: 16),
 
-                      // Partos
-                      _buildTextField(
-                        controller: _partosController,
-                        label: 'Partos',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Métodos Anticonceptivos
-                      _buildTextField(
-                        controller: _metodosAnticonceptivosController,
-                        label: 'Métodos Anticonceptivos',
-                        maxLines: 2,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Sección HX. VAGINAL
-                      _buildSectionTitle('HX. VAGINAL'),
-                      const SizedBox(height: 16),
-
-                      // Hora y Cesáreas
                       Row(
                         children: [
                           Expanded(
-                            child: _buildTimeField(
-                              controller: _horaController,
-                              label: 'Hora',
+                            child: _buildTextField(
+                              controller: _partosController,
+                              label: 'Partos',
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -263,6 +258,56 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Métodos Anticonceptivos
+                      _buildTextField(
+                        controller: _metodosAnticonceptivosController,
+                        label: 'Métodos Anticonceptivos',
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Evaluación Clínica
+                      _buildSectionTitle('EVALUACIÓN CLÍNICA'),
+                      const SizedBox(height: 16),
+
+                      // Ruidos Cardíacos Fetales
+                      _buildDropdownField(
+                        label: 'Ruidos Cardíacos Fetales',
+                        value: _ruidosCardiacosFetales,
+                        options: _ruidosOptions,
+                        onChanged: (value) {
+                          setState(() {
+                            _ruidosCardiacosFetales = value ?? '';
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Expulsión de placenta
+                      _buildDropdownField(
+                        label: 'Expulsión de placenta',
+                        value: _expulsionPlacenta,
+                        options: _expulsionOptions,
+                        onChanged: (value) {
+                          setState(() {
+                            _expulsionPlacenta = value ?? '';
+                            // Limpiar la hora si se cambia a "No" o se deselecciona
+                            if (_expulsionPlacenta != 'Si') {
+                              _horaController.clear();
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Hora de Expulsión de Placenta (solo si hay expulsión)
+                      _buildTimeField(
+                        controller: _horaController,
+                        label: 'Hora de Expulsión de Placenta',
+                        isEnabled: _expulsionPlacenta == 'Si',
                       ),
                     ],
                   ),
@@ -329,6 +374,33 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
           fontWeight: FontWeight.bold,
           color: Colors.pink,
         ),
+      ),
+    );
+  }
+
+  Widget _buildCheckboxOption({
+    required String title,
+    required bool value,
+    required Function(bool?) onChanged,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: CheckboxListTile(
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        value: value,
+        onChanged: onChanged,
+        activeColor: Colors.pink,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
     );
   }
@@ -402,20 +474,24 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
   Widget _buildTimeField({
     required TextEditingController controller,
     required String label,
-    bool isRequired = false,
+    bool isEnabled = true,
   }) {
     return TextFormField(
       controller: controller,
+      enabled: isEnabled,
       decoration: InputDecoration(
-        labelText: isRequired ? '$label *' : label,
+        labelText: label,
         border: const OutlineInputBorder(),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 16,
         ),
         suffixIcon: IconButton(
-          icon: const Icon(Icons.access_time),
-          onPressed: () async {
+          icon: Icon(
+            Icons.access_time,
+            color: isEnabled ? null : Colors.grey[400],
+          ),
+          onPressed: isEnabled ? () async {
             final TimeOfDay? time = await showTimePicker(
               context: context,
               initialTime: TimeOfDay.now(),
@@ -424,17 +500,25 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
               final formattedTime = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
               controller.text = formattedTime;
             }
-          },
+          } : null,
+        ),
+        helperText: isEnabled ? null : 'Disponible solo si hay expulsión de placenta',
+        helperStyle: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 12,
         ),
       ),
-      style: const TextStyle(fontSize: 14),
+      style: TextStyle(
+        fontSize: 14,
+        color: isEnabled ? null : Colors.grey[600],
+      ),
       readOnly: true,
-      validator: (value) {
-        if (isRequired && (value == null || value.trim().isEmpty)) {
-          return '$label es requerido';
+      validator: isEnabled ? (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'La hora es requerida cuando hay expulsión de placenta';
         }
         return null;
-      },
+      } : null,
     );
   }
 
@@ -449,16 +533,19 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
 
     try {
       final formData = {
+        'isParto': _isParto,
+        'isAborto': _isAborto,
+        'isHxVaginal': _isHxVaginal,
         'fum': _fumController.text.trim(),
         'semanasGestacion': _semanasGestacionController.text.trim(),
-        'ruidosCardiacosFetales': _ruidosCardiacosFetales,
-        'expulsionPlacenta': _expulsionPlacenta,
         'gesta': _gestaController.text.trim(),
         'abortos': _abortosController.text.trim(),
         'partos': _partosController.text.trim(),
-        'metodosAnticonceptivos': _metodosAnticonceptivosController.text.trim(),
-        'hora': _horaController.text.trim(),
         'cesareas': _cesareasController.text.trim(),
+        'metodosAnticonceptivos': _metodosAnticonceptivosController.text.trim(),
+        'ruidosCardiacosFetales': _ruidosCardiacosFetales,
+        'expulsionPlacenta': _expulsionPlacenta,
+        'hora': _horaController.text.trim(),
       };
 
       widget.onSave(formData);

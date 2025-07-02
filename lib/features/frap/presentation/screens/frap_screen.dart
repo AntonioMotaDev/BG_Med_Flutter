@@ -9,6 +9,9 @@ import 'package:bg_med/features/frap/presentation/dialogs/pathological_history_f
 import 'package:bg_med/features/frap/presentation/dialogs/clinical_history_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/medications_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/priority_justification_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/receiving_unit_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/physical_exam_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/attention_negative_form_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -78,7 +81,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   title: 'INFORMACIÓN DEL PACIENTE',
                   icon: Icons.person,
                   filledFields: frapData.getFilledFieldsCount('patient_info'),
-                  totalFields: 14,
+                  totalFields: 15,
                   onTap: () => _openPatientInfoDialog(),
                 ),
                 
@@ -125,6 +128,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   filledFields: frapData.getFilledFieldsCount('gyneco_obstetric'),
                   totalFields: 10,
                   onTap: () => _openGynecoObstetricDialog(),
+                  isDisabled: !_isGynecoObstetricEnabled(frapData),
                 ),
                 
                 // Examen Físico
@@ -216,26 +220,56 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     required int filledFields,
     required int totalFields,
     required VoidCallback onTap,
+    bool isDisabled = false,
   }) {
     final completionPercentage = totalFields > 0 ? (filledFields / totalFields) : 0.0;
     final isComplete = filledFields == totalFields;
     final isEmpty = filledFields == 0;
 
+    // Determinar colores basado en el estado
+    Color borderColor;
+    Color iconBackgroundColor;
+    Color iconColor;
+    Color titleColor;
+    Color progressColor;
+
+    if (isDisabled) {
+      borderColor = Colors.grey[300]!;
+      iconBackgroundColor = Colors.grey.withOpacity(0.1);
+      iconColor = Colors.grey[400]!;
+      titleColor = Colors.grey[400]!;
+      progressColor = Colors.grey[300]!;
+    } else if (isComplete) {
+      borderColor = Colors.green;
+      iconBackgroundColor = Colors.green.withOpacity(0.1);
+      iconColor = Colors.green;
+      titleColor = Colors.green[700]!;
+      progressColor = Colors.green;
+    } else if (isEmpty) {
+      borderColor = Colors.grey[300]!;
+      iconBackgroundColor = Colors.grey.withOpacity(0.1);
+      iconColor = Colors.grey[600]!;
+      titleColor = Colors.grey[600]!;
+      progressColor = Colors.grey[400]!;
+    } else {
+      borderColor = AppTheme.primaryBlue;
+      iconBackgroundColor = AppTheme.primaryBlue.withOpacity(0.1);
+      iconColor = AppTheme.primaryBlue;
+      titleColor = AppTheme.primaryBlue;
+      progressColor = AppTheme.primaryBlue;
+    }
+
     return Card(
-      elevation: 2,
+      elevation: isDisabled ? 0.5 : 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isComplete
-              ? Colors.green
-              : isEmpty
-                  ? Colors.grey[300]!
-                  : AppTheme.primaryBlue,
+          color: borderColor,
           width: isComplete ? 2 : 1,
         ),
       ),
       child: InkWell(
-        onTap: onTap,
+        onTap: isDisabled ? null : onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -246,20 +280,12 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isComplete
-                          ? Colors.green.withOpacity(0.1)
-                          : isEmpty
-                              ? Colors.grey.withOpacity(0.1)
-                              : AppTheme.primaryBlue.withOpacity(0.1),
+                      color: iconBackgroundColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       icon,
-                      color: isComplete
-                          ? Colors.green
-                          : isEmpty
-                              ? Colors.grey[600]
-                              : AppTheme.primaryBlue,
+                      color: iconColor,
                       size: 24,
                     ),
                   ),
@@ -267,55 +293,51 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                      children: [
                         Text(
                           title,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: isComplete
-                                ? Colors.green[700]
-                                : isEmpty
-                                    ? Colors.grey[600]
-                                    : AppTheme.primaryBlue,
+                            color: titleColor,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$filledFields de $totalFields campos completados',
+                          isDisabled 
+                              ? 'Requiere sexo femenino'
+                              : '$filledFields de $totalFields campos completados',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: isDisabled ? Colors.grey[500] : Colors.grey[600],
                           ),
                         ),
                       ],
                     ),
                   ),
                   Icon(
-                    isComplete
-                        ? Icons.check_circle
-                        : isEmpty
-                            ? Icons.radio_button_unchecked
-                            : Icons.edit,
-                    color: isComplete
-                        ? Colors.green
-                        : isEmpty
-                            ? Colors.grey[400]
-                            : AppTheme.primaryBlue,
+                    isDisabled
+                        ? Icons.lock
+                        : isComplete
+                            ? Icons.check_circle
+                            : isEmpty
+                                ? Icons.radio_button_unchecked
+                                : Icons.edit,
+                    color: isDisabled
+                        ? Colors.grey[400]
+                        : isComplete
+                            ? Colors.green
+                            : isEmpty
+                                ? Colors.grey[400]
+                                : AppTheme.primaryBlue,
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               LinearProgressIndicator(
-                value: completionPercentage,
+                value: isDisabled ? 0.0 : completionPercentage,
                 backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isComplete
-                      ? Colors.green
-                      : isEmpty
-                          ? Colors.grey[400]!
-                          : AppTheme.primaryBlue,
-                ),
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
               ),
             ],
           ),
@@ -391,7 +413,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
 
   void _openGynecoObstetricDialog() {
     final frapData = ref.read(frapDataProvider);
-    final patientSex = frapData.patientInfo['sexSelected'] as String?;
+    final patientSex = frapData.patientInfo['sex'] as String?;
     
     // Verificar si el paciente es de sexo femenino
     if (patientSex == null || patientSex.isEmpty) {
@@ -440,7 +462,16 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openAttentionNegativeDialog() {
-    _showComingSoonDialog('Negativa de Atención');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AttentionNegativeFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('attention_negative', data);
+        },
+        initialData: ref.read(frapDataProvider).attentionNegative,
+      ),
+    );
   }
 
   void _openPathologicalHistoryDialog() {
@@ -470,7 +501,16 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openPhysicalExamDialog() {
-    _showComingSoonDialog('Examen Físico');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PhysicalExamFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('physical_exam', data);
+        },
+        initialData: ref.read(frapDataProvider).physicalExam,
+      ),
+    );
   }
 
   void _openPriorityJustificationDialog() {
@@ -491,7 +531,16 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }
 
   void _openReceivingUnitDialog() {
-    _showComingSoonDialog('Unidad Receptora');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ReceivingUnitFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('receiving_unit', data);
+        },
+        initialData: ref.read(frapDataProvider).receivingUnit,
+      ),
+    );
   }
 
   void _openPatientReceptionDialog() {
@@ -531,5 +580,10 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     ref.read(frapDataProvider.notifier).clearAllData();
     
     Navigator.of(context).pop();
+  }
+
+  bool _isGynecoObstetricEnabled(FrapData frapData) {
+    final patientSex = frapData.patientInfo['sex'] as String?;
+    return patientSex != null && patientSex == 'Femenino';
   }
 } 

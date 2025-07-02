@@ -37,6 +37,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
   final _cityController = TextEditingController();
   final _insuranceController = TextEditingController();
   final _searchController = TextEditingController();
+  final _currentConditionController = TextEditingController();
 
   // Variables para dropdowns
   String _sexSelected = '';
@@ -64,6 +65,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _neighborhoodController.text = data['neighborhood'] ?? '';
       _cityController.text = data['city'] ?? '';
       _insuranceController.text = data['insurance'] ?? '';
+      _currentConditionController.text = data['currentCondition'] ?? '';
       
       // Si ya hay datos, probablemente es un paciente seleccionado
       if (data['patientId'] != null) {
@@ -95,6 +97,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     _cityController.dispose();
     _insuranceController.dispose();
     _searchController.dispose();
+    _currentConditionController.dispose();
     super.dispose();
   }
 
@@ -587,6 +590,19 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+
+        // Padecimiento Actual
+        TextFormField(
+          controller: _currentConditionController,
+          decoration: const InputDecoration(
+            labelText: 'Padecimiento Actual',
+            border: OutlineInputBorder(),
+            hintText: 'Describe el padecimiento o síntomas actuales del paciente',
+          ),
+          maxLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+        ),
       ],
     );
   }
@@ -619,6 +635,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _neighborhoodController.text = patient.neighborhood;
       _cityController.text = patient.city;
       _insuranceController.text = patient.insurance;
+      // No llenamos currentCondition porque es específico de cada consulta FRAP
       
       // Limpiar búsqueda
       _searchController.clear();
@@ -643,6 +660,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _cityController.clear();
       _insuranceController.clear();
       _searchController.clear();
+      _currentConditionController.clear();
     });
   }
 
@@ -670,6 +688,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         'neighborhood': _neighborhoodController.text.trim(),
         'city': _cityController.text.trim(),
         'insurance': _insuranceController.text.trim(),
+        'currentCondition': _currentConditionController.text.trim(),
         'isNewPatient': _selectedPatient == null,
       };
 
@@ -750,6 +769,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         neighborhood: _neighborhoodController.text.trim(),
         city: _cityController.text.trim(),
         insurance: _insuranceController.text.trim(),
+        interiorNumber: _interiorNumberController.text.trim().isEmpty 
+            ? null 
+            : _interiorNumberController.text.trim(),
       );
 
       await ref.read(patientsNotifierProvider.notifier).createPatient(newPatient);
