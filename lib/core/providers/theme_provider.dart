@@ -59,7 +59,6 @@ class ThemeNotifier extends StateNotifier<AppThemeMode> {
           themeString = 'dark';
           break;
         case AppThemeMode.system:
-        default:
           themeString = 'system';
           break;
       }
@@ -67,7 +66,7 @@ class ThemeNotifier extends StateNotifier<AppThemeMode> {
       await prefs.setString(_themeKey, themeString);
     } catch (e) {
       // Manejar error silenciosamente
-      print('Error al guardar tema: $e');
+      debugPrint('Error al guardar tema: $e');
     }
   }
 

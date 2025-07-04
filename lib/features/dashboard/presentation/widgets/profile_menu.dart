@@ -1,3 +1,5 @@
+import 'package:bg_med/core/providers/theme_provider.dart';
+import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,37 +11,40 @@ class ProfileMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
     final user = authState.user;
+    final isDarkMode = ref.watch(isDarkModeProvider);
+    final primaryColor = isDarkMode ? AppTheme.primaryBlueDark : AppTheme.primaryBlue;
+    final destructiveColor = isDarkMode ? AppTheme.accentRedDark : AppTheme.accentRed;
 
     return PopupMenuButton<String>(
       icon: const Icon(Icons.account_circle_outlined),
       onSelected: (String value) {
         switch (value) {
           case 'profile':
-            _showEditProfileDialog(context, ref, user);
+            _showEditProfileDialog(context, ref, user, isDarkMode);
             break;
           case 'logout':
-            _showLogoutDialog(context, ref);
+            _showLogoutDialog(context, ref, isDarkMode);
             break;
         }
       },
       itemBuilder: (BuildContext context) => [
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'profile',
           child: Row(
             children: [
-              Icon(Icons.edit, color: Color(0xFF008080)),
-              SizedBox(width: 12),
-              Text('Editar Perfil'),
+              Icon(Icons.edit, color: primaryColor),
+              const SizedBox(width: 12),
+              const Text('Editar Perfil'),
             ],
           ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'logout',
           child: Row(
             children: [
-              Icon(Icons.logout, color: Color(0xFFE53E3E)),
-              SizedBox(width: 12),
-              Text('Cerrar Sesión'),
+              Icon(Icons.logout, color: destructiveColor),
+              const SizedBox(width: 12),
+              const Text('Cerrar Sesión'),
             ],
           ),
         ),
@@ -47,7 +52,7 @@ class ProfileMenu extends ConsumerWidget {
     );
   }
 
-  void _showEditProfileDialog(BuildContext context, WidgetRef ref, dynamic user) {
+  void _showEditProfileDialog(BuildContext context, WidgetRef ref, dynamic user, bool isDarkMode) {
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No hay usuario autenticado')),
@@ -56,6 +61,7 @@ class ProfileMenu extends ConsumerWidget {
     }
 
     final nameController = TextEditingController(text: user.name);
+    final primaryColor = isDarkMode ? AppTheme.primaryBlueDark : AppTheme.primaryBlue;
     
     showDialog(
       context: context,
@@ -75,7 +81,7 @@ class ProfileMenu extends ConsumerWidget {
             Text(
               'Email: ${user.email}',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: isDarkMode ? AppTheme.textSecondaryDark : Colors.grey[600],
                 fontSize: 14,
               ),
             ),
@@ -91,14 +97,14 @@ class ProfileMenu extends ConsumerWidget {
               // TODO: Implementar actualización de perfil
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Perfil actualizado exitosamente'),
-                  backgroundColor: Color(0xFF008080),
+                SnackBar(
+                  content: const Text('Perfil actualizado exitosamente'),
+                  backgroundColor: primaryColor,
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF008080),
+              backgroundColor: primaryColor,
             ),
             child: const Text('Guardar'),
           ),
@@ -107,7 +113,10 @@ class ProfileMenu extends ConsumerWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+  void _showLogoutDialog(BuildContext context, WidgetRef ref, bool isDarkMode) {
+    final primaryColor = isDarkMode ? AppTheme.primaryBlueDark : AppTheme.primaryBlue;
+    final destructiveColor = isDarkMode ? AppTheme.accentRedDark : AppTheme.accentRed;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -125,9 +134,9 @@ class ProfileMenu extends ConsumerWidget {
                 await ref.read(authNotifierProvider.notifier).logout();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sesión cerrada exitosamente'),
-                      backgroundColor: Color(0xFF008080),
+                    SnackBar(
+                      content: const Text('Sesión cerrada exitosamente'),
+                      backgroundColor: primaryColor,
                     ),
                   );
                 }
@@ -136,14 +145,14 @@ class ProfileMenu extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error al cerrar sesión: $e'),
-                      backgroundColor: const Color(0xFFE53E3E),
+                      backgroundColor: destructiveColor,
                     ),
                   );
                 }
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE53E3E),
+              backgroundColor: destructiveColor,
             ),
             child: const Text('Cerrar Sesión'),
           ),

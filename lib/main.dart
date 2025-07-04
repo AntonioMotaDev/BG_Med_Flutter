@@ -2,6 +2,7 @@ import 'package:bg_med/core/models/clinical_history.dart';
 import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/models/patient.dart';
 import 'package:bg_med/core/models/physical_exam.dart';
+import 'package:bg_med/core/providers/theme_provider.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/auth/presentation/screens/auth_wrapper.dart';
 import 'package:bg_med/firebase_options.dart';
@@ -43,15 +44,19 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDarkMode = ref.watch(isDarkModeProvider);
+    
     return MaterialApp(
       title: 'BG Med',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -60,7 +65,7 @@ class MyApp extends StatelessWidget {
       supportedLocales: const [
         Locale('es', 'ES'),
         Locale('en', 'US'),
-          ],
+      ],
       locale: const Locale('es', 'ES'),
       home: const AuthWrapper(),
     );

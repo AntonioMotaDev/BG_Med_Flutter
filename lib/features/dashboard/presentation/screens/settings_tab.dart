@@ -1,5 +1,6 @@
 import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/providers/theme_provider.dart';
+import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ class SettingsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
     final user = authState.user;
+    final isDarkMode = ref.watch(isDarkModeProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -21,49 +23,53 @@ class SettingsTab extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              _buildHeader(context),
+              _buildHeader(context, isDarkMode),
               const SizedBox(height: 24),
 
               // User Profile Section
               if (user != null) ...[
-                _buildSectionTitle('Perfil de Usuario'),
-                _buildUserProfileCard(context, ref, user),
+                _buildSectionTitle('Perfil de Usuario', isDarkMode),
+                _buildUserProfileCard(context, ref, user, isDarkMode),
                 const SizedBox(height: 24),
               ],
 
               // App Settings Section
-              _buildSectionTitle('Configuración de la App'),
+              _buildSectionTitle('Configuración de la App', isDarkMode),
               _buildSettingsCard(context, ref, [
-                _buildThemeTile(context, ref),
+                _buildThemeTile(context, ref, isDarkMode),
                 _buildSettingsTile(
                   icon: Icons.notifications,
                   title: 'Notificaciones',
                   subtitle: 'Configurar alertas y recordatorios',
                   onTap: () => _showNotificationsDialog(context),
+                  isDarkMode: isDarkMode,
                 ),
                 _buildSettingsTile(
                   icon: Icons.language,
                   title: 'Idioma',
                   subtitle: 'Español (por defecto)',
                   onTap: () => _showLanguageDialog(context),
+                  isDarkMode: isDarkMode,
                 ),
               ]),
               const SizedBox(height: 24),
 
               // Data Management Section
-              _buildSectionTitle('Gestión de Datos'),
+              _buildSectionTitle('Gestión de Datos', isDarkMode),
               _buildSettingsCard(context, ref, [
                 _buildSettingsTile(
                   icon: Icons.backup,
                   title: 'Respaldo de Datos',
                   subtitle: 'Crear copia de seguridad',
                   onTap: () => _showBackupDialog(context),
+                  isDarkMode: isDarkMode,
                 ),
                 _buildSettingsTile(
                   icon: Icons.download,
                   title: 'Exportar Datos',
                   subtitle: 'Descargar registros en PDF',
                   onTap: () => _showExportDialog(context),
+                  isDarkMode: isDarkMode,
                 ),
                 _buildSettingsTile(
                   icon: Icons.delete_forever,
@@ -71,37 +77,41 @@ class SettingsTab extends ConsumerWidget {
                   subtitle: 'Eliminar registros guardados',
                   onTap: () => _showClearDataDialog(context),
                   isDestructive: true,
+                  isDarkMode: isDarkMode,
                 ),
               ]),
               const SizedBox(height: 24),
 
               // About Section
-              _buildSectionTitle('Acerca de'),
+              _buildSectionTitle('Acerca de', isDarkMode),
               _buildSettingsCard(context, ref, [
                 _buildSettingsTile(
                   icon: Icons.info,
                   title: 'Información de la App',
                   subtitle: 'BG Med v1.0.0',
                   onTap: () => _showAboutDialog(context),
+                  isDarkMode: isDarkMode,
                 ),
                 _buildSettingsTile(
                   icon: Icons.help,
                   title: 'Ayuda y Soporte',
                   subtitle: 'Guías y contacto',
                   onTap: () => _showHelpDialog(context),
+                  isDarkMode: isDarkMode,
                 ),
                 _buildSettingsTile(
                   icon: Icons.privacy_tip,
                   title: 'Política de Privacidad',
                   subtitle: 'Términos y condiciones',
                   onTap: () => _showPrivacyDialog(context),
+                  isDarkMode: isDarkMode,
                 ),
               ]),
               const SizedBox(height: 24),
 
               // Logout Section
               if (user != null) ...[
-                _buildLogoutCard(context, ref),
+                _buildLogoutCard(context, ref, isDarkMode),
                 const SizedBox(height: 24),
               ],
             ],
@@ -111,15 +121,11 @@ class SettingsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF008080), Color(0xFF7E84F2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppTheme.getHeaderGradient(isDarkMode),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -164,21 +170,26 @@ class SettingsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF2D3748),
+          color: isDarkMode ? Colors.white : Color(0xFF2D3748),
         ),
       ),
     );
   }
 
-  Widget _buildUserProfileCard(BuildContext context, WidgetRef ref, dynamic user) {
+  Widget _buildUserProfileCard(BuildContext context, WidgetRef ref, dynamic user, bool isDarkMode) {
+    final primaryColor = isDarkMode ? AppTheme.primaryBlueDark : AppTheme.primaryBlue;
+    final secondaryColor = isDarkMode ? AppTheme.primaryGreenDark : AppTheme.primaryGreen;
+    final textColor = isDarkMode ? AppTheme.textLightMode : AppTheme.textDark;
+    final secondaryTextColor = isDarkMode ? AppTheme.textSecondaryDark : AppTheme.textLight;
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -191,7 +202,7 @@ class SettingsTab extends ConsumerWidget {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: const Color(0xFF008080),
+                  backgroundColor: primaryColor,
                   child: Text(
                     user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
                     style: const TextStyle(
@@ -208,31 +219,31 @@ class SettingsTab extends ConsumerWidget {
                     children: [
                       Text(
                         user.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2D3748),
+                          color: textColor,
                         ),
                       ),
                       Text(
                         user.email,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF718096),
+                          color: secondaryTextColor,
                         ),
                       ),
                       Container(
                         margin: const EdgeInsets.only(top: 4),
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF7E84F2).withOpacity(0.1),
+                          color: secondaryColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           user.role,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF7E84F2),
+                            color: secondaryColor,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -242,7 +253,7 @@ class SettingsTab extends ConsumerWidget {
                 ),
                 IconButton(
                   onPressed: () => _showEditProfileDialog(context, ref, user),
-                  icon: const Icon(Icons.edit, color: Color(0xFF008080)),
+                  icon: Icon(Icons.edit, color: primaryColor),
                 ),
               ],
             ),
@@ -263,19 +274,20 @@ class SettingsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildThemeTile(BuildContext context, WidgetRef ref) {
+  Widget _buildThemeTile(BuildContext context, WidgetRef ref, bool isDarkMode) {
     final themeNotifier = ref.read(themeProvider.notifier);
+    final primaryColor = isDarkMode ? AppTheme.primaryBlueDark : AppTheme.primaryBlue;
 
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF008080).withOpacity(0.1),
+          color: primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           themeNotifier.themeIcon,
-          color: const Color(0xFF008080),
+          color: primaryColor,
           size: 20,
         ),
       ),
@@ -331,19 +343,23 @@ class SettingsTab extends ConsumerWidget {
     required String subtitle,
     required VoidCallback onTap,
     bool isDestructive = false,
+    bool isDarkMode = false,
   }) {
+    final primaryColor = isDarkMode ? AppTheme.primaryBlueDark : AppTheme.primaryBlue;
+    final destructiveColor = isDarkMode ? AppTheme.accentRedDark : AppTheme.accentRed;
+    final iconColor = isDestructive ? destructiveColor : primaryColor;
+    final titleColor = isDestructive ? destructiveColor : null;
+
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isDestructive 
-              ? const Color(0xFFE53E3E).withOpacity(0.1)
-              : const Color(0xFF008080).withOpacity(0.1),
+          color: iconColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           icon,
-          color: isDestructive ? const Color(0xFFE53E3E) : const Color(0xFF008080),
+          color: iconColor,
           size: 20,
         ),
       ),
@@ -351,7 +367,7 @@ class SettingsTab extends ConsumerWidget {
         title,
         style: TextStyle(
           fontWeight: FontWeight.w600,
-          color: isDestructive ? const Color(0xFFE53E3E) : null,
+          color: titleColor,
         ),
       ),
       subtitle: Text(subtitle),
@@ -360,7 +376,9 @@ class SettingsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildLogoutCard(BuildContext context, WidgetRef ref) {
+  Widget _buildLogoutCard(BuildContext context, WidgetRef ref, bool isDarkMode) {
+    final destructiveColor = isDarkMode ? AppTheme.accentRedDark : AppTheme.accentRed;
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -368,20 +386,20 @@ class SettingsTab extends ConsumerWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFE53E3E).withOpacity(0.1),
+            color: destructiveColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.logout,
-            color: Color(0xFFE53E3E),
+            color: destructiveColor,
             size: 20,
           ),
         ),
-        title: const Text(
+        title: Text(
           'Cerrar Sesión',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Color(0xFFE53E3E),
+            color: destructiveColor,
           ),
         ),
         subtitle: const Text('Salir de tu cuenta'),
