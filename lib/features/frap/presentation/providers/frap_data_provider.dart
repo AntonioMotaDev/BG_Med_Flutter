@@ -170,4 +170,8 @@ class FrapDataNotifier extends StateNotifier<FrapData> {
   void clearAllData() {
     state = const FrapData();
   }
+
+  void setAllData(FrapData data) {
+    state = data;
+  }
 } 
