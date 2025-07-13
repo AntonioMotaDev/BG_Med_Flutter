@@ -54,10 +54,14 @@ class AutoSyncService {
     final wasOnline = _isOnline;
     _isOnline = !results.contains(ConnectivityResult.none);
     
-    // Si se acaba de conectar a internet, sincronizar
-    if (!wasOnline && _isOnline && !_isSyncing) {
-      await _performAutoSync();
-    }
+    // COMENTADO: Si se acaba de conectar a internet, sincronizar
+    // Esto puede causar creación automática de registros
+    // if (!wasOnline && _isOnline && !_isSyncing) {
+    //   await _performAutoSync();
+    // }
+    
+    // Solo actualizar el estado de conectividad sin sincronizar automáticamente
+    print('Estado de conectividad actualizado: ${_isOnline ? "En línea" : "Sin conexión"}');
   }
 
   // Realizar sincronización automática
@@ -108,12 +112,12 @@ class AutoSyncService {
             result.savedToCloud = true;
             result.message = 'Registro guardado en la nube exitosamente';
             
-            // También guardar una copia local para backup
-            try {
-              await _localService.createFrapRecord(frapData: validatedData);
-            } catch (e) {
-              print('Advertencia: No se pudo crear backup local: $e');
-            }
+            // COMENTADO: También guardar una copia local para backup
+            // try {
+            //   await _localService.createFrapRecord(frapData: validatedData);
+            // } catch (e) {
+            //   print('Advertencia: No se pudo crear backup local: $e');
+            // }
           } else {
             throw Exception('No se pudo guardar en la nube');
           }

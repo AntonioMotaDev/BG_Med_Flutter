@@ -1,16 +1,16 @@
-import 'package:bg_med/core/models/clinical_history.dart';
-import 'package:bg_med/core/models/frap.dart';
-import 'package:bg_med/core/models/patient.dart';
-import 'package:bg_med/core/models/physical_exam.dart';
-import 'package:bg_med/core/providers/theme_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/auth/presentation/screens/auth_wrapper.dart';
-import 'package:bg_med/firebase_options.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:bg_med/core/providers/theme_provider.dart';
+import 'package:bg_med/core/models/frap.dart';
+import 'package:bg_med/core/models/patient.dart';
+import 'package:bg_med/core/models/clinical_history.dart';
+import 'package:bg_med/core/models/physical_exam.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,10 +35,15 @@ void main() async {
   Hive.registerAdapter(PhysicalExamAdapter());
   Hive.registerAdapter(FrapAdapter());
   
-  // Abrir boxes
-  await Hive.openBox<Patient>('patients');
-  await Hive.openBox<ClinicalHistory>('clinical_histories');
-  await Hive.openBox<PhysicalExam>('physical_exams'); 
+  // Limpiar base de datos Hive existente para evitar errores de compatibilidad
+  try {
+    await Hive.deleteBoxFromDisk('fraps');
+    print('Base de datos Hive limpiada exitosamente');
+  } catch (e) {
+    print('No se pudo limpiar la base de datos Hive: $e');
+  }
+  
+  // Abrir cajas de Hive
   await Hive.openBox<Frap>('fraps');
   
   runApp(const ProviderScope(child: MyApp()));

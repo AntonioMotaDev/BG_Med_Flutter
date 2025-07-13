@@ -22,13 +22,25 @@ class FrapAdapter extends TypeAdapter<Frap> {
       clinicalHistory: fields[2] as ClinicalHistory,
       physicalExam: fields[3] as PhysicalExam,
       createdAt: fields[4] as DateTime,
+      updatedAt: fields[5] as DateTime?,
+      serviceInfo: (fields[6] as Map).cast<String, dynamic>(),
+      registryInfo: (fields[7] as Map).cast<String, dynamic>(),
+      management: (fields[8] as Map).cast<String, dynamic>(),
+      medications: (fields[9] as Map).cast<String, dynamic>(),
+      gynecoObstetric: (fields[10] as Map).cast<String, dynamic>(),
+      attentionNegative: (fields[11] as Map).cast<String, dynamic>(),
+      pathologicalHistory: (fields[12] as Map).cast<String, dynamic>(),
+      priorityJustification: (fields[13] as Map).cast<String, dynamic>(),
+      injuryLocation: (fields[14] as Map).cast<String, dynamic>(),
+      receivingUnit: (fields[15] as Map).cast<String, dynamic>(),
+      patientReception: (fields[16] as Map).cast<String, dynamic>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Frap obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +50,31 @@ class FrapAdapter extends TypeAdapter<Frap> {
       ..writeByte(3)
       ..write(obj.physicalExam)
       ..writeByte(4)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(5)
+      ..write(obj.updatedAt)
+      ..writeByte(6)
+      ..write(obj.serviceInfo)
+      ..writeByte(7)
+      ..write(obj.registryInfo)
+      ..writeByte(8)
+      ..write(obj.management)
+      ..writeByte(9)
+      ..write(obj.medications)
+      ..writeByte(10)
+      ..write(obj.gynecoObstetric)
+      ..writeByte(11)
+      ..write(obj.attentionNegative)
+      ..writeByte(12)
+      ..write(obj.pathologicalHistory)
+      ..writeByte(13)
+      ..write(obj.priorityJustification)
+      ..writeByte(14)
+      ..write(obj.injuryLocation)
+      ..writeByte(15)
+      ..write(obj.receivingUnit)
+      ..writeByte(16)
+      ..write(obj.patientReception);
   }
 
   @override

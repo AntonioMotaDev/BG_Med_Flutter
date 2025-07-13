@@ -314,7 +314,7 @@ class FrapFirestore extends Equatable {
 
   // Obtener género del paciente
   String get patientGender {
-    return patientInfo['gender'] ?? '';
+    return patientInfo['sex'] ?? ''; // Cambiado de gender a sex
   }
 
   // Verificar si el registro está completo

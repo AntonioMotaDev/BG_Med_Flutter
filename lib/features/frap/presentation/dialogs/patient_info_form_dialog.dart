@@ -38,6 +38,8 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
   final _insuranceController = TextEditingController();
   final _searchController = TextEditingController();
   final _currentConditionController = TextEditingController();
+  final _emergencyContactController = TextEditingController();
+  final _responsiblePersonController = TextEditingController();
 
   // Variables para dropdowns
   String _sexSelected = '';
@@ -57,7 +59,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _paternalLastNameController.text = data['paternalLastName'] ?? '';
       _maternalLastNameController.text = data['maternalLastName'] ?? '';
       _ageController.text = data['age']?.toString() ?? '';
-      _sexSelected = data['sex'] ?? '';
+      _sexSelected = data['sex'] ?? ''; // Cambiado de gender a sex
       _phoneController.text = data['phone'] ?? '';
       _streetController.text = data['street'] ?? '';
       _exteriorNumberController.text = data['exteriorNumber'] ?? '';
@@ -66,6 +68,8 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _cityController.text = data['city'] ?? '';
       _insuranceController.text = data['insurance'] ?? '';
       _currentConditionController.text = data['currentCondition'] ?? '';
+      _emergencyContactController.text = data['emergencyContact'] ?? '';
+      _responsiblePersonController.text = data['responsiblePerson'] ?? '';
       
       // Si ya hay datos, probablemente es un paciente seleccionado
       if (data['patientId'] != null) {
@@ -98,6 +102,8 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     _insuranceController.dispose();
     _searchController.dispose();
     _currentConditionController.dispose();
+    _emergencyContactController.dispose();
+    _responsiblePersonController.dispose();
     super.dispose();
   }
 
@@ -603,6 +609,30 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
         ),
+        const SizedBox(height: 16),
+
+        // Contacto de Emergencia
+        TextFormField(
+          controller: _emergencyContactController,
+          decoration: const InputDecoration(
+            labelText: 'Contacto de Emergencia',
+            border: OutlineInputBorder(),
+            hintText: 'Nombre del contacto de emergencia',
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
+        const SizedBox(height: 16),
+
+        // Persona Responsable
+        TextFormField(
+          controller: _responsiblePersonController,
+          decoration: const InputDecoration(
+            labelText: 'Persona Responsable',
+            border: OutlineInputBorder(),
+            hintText: 'Ej: Padre, Madre, Tutor',
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
       ],
     );
   }
@@ -635,7 +665,8 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _neighborhoodController.text = patient.neighborhood;
       _cityController.text = patient.city;
       _insuranceController.text = patient.insurance;
-      // No llenamos currentCondition porque es específico de cada consulta FRAP
+      _responsiblePersonController.text = patient.responsiblePerson ?? '';
+      // No llenamos currentCondition y emergencyContact porque son específicos de cada consulta FRAP
       
       // Limpiar búsqueda
       _searchController.clear();
@@ -661,6 +692,8 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _insuranceController.clear();
       _searchController.clear();
       _currentConditionController.clear();
+      _emergencyContactController.clear();
+      _responsiblePersonController.clear();
     });
   }
 
@@ -689,6 +722,8 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         'city': _cityController.text.trim(),
         'insurance': _insuranceController.text.trim(),
         'currentCondition': _currentConditionController.text.trim(),
+        'emergencyContact': _emergencyContactController.text.trim(),
+        'responsiblePerson': _responsiblePersonController.text.trim(),
         'isNewPatient': _selectedPatient == null,
       };
 
@@ -772,6 +807,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         interiorNumber: _interiorNumberController.text.trim().isEmpty 
             ? null 
             : _interiorNumberController.text.trim(),
+        responsiblePerson: _responsiblePersonController.text.trim().isEmpty 
+            ? null 
+            : _responsiblePersonController.text.trim(),
       );
 
       await ref.read(patientsNotifierProvider.notifier).createPatient(newPatient);

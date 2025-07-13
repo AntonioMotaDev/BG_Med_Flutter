@@ -340,7 +340,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
                 Icon(Icons.person, size: 14, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  '${frap.patient.age} años • ${frap.patient.gender}',
+                  '${frap.patient.age} años • ${frap.patient.sex}',
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
@@ -465,7 +465,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
             children: [
               _buildDetailRow('Paciente', frap.patient.name),
               _buildDetailRow('Edad', '${frap.patient.age} años'),
-              _buildDetailRow('Género', frap.patient.gender),
+              _buildDetailRow('Sexo', frap.patient.sex),
               _buildDetailRow('Dirección', frap.patient.address),
               const SizedBox(height: 16),
               Text(

@@ -153,7 +153,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 3,
+              childAspectRatio: 2.8,
               children: [
                 // Información del Servicio
                 _buildSectionCard(
@@ -178,7 +178,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   title: 'INFORMACIÓN DEL PACIENTE',
                   icon: Icons.person,
                   filledFields: frapData.getFilledFieldsCount('patient_info'),
-                  totalFields: 15,
+                  totalFields: 14,
                   onTap: () => _openPatientInfoDialog(),
                 ),
                 
@@ -220,7 +220,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                 
                 // Gineco-Obstétrico
                 _buildSectionCard(
-                  title: 'URGENCIAS GINECO-OBSTÉTRICAS',
+                  title: 'GINECO-OBSTÉTRICAS',
                   icon: Icons.pregnant_woman,
                   filledFields: frapData.getFilledFieldsCount('gyneco_obstetric'),
                   totalFields: 10,
@@ -362,32 +362,26 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
             
             const SizedBox(height: 16),
             
-            // Botones de navegación a registros
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/frap-records');
-                    },
-                    icon: const Icon(Icons.folder),
-                    label: const Text('Ver Registros Locales'),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: _isSaving || autoSyncState.isSyncing
+                    ? null
+                    : _showClearConfirmationDialog,
+                icon: const Icon(Icons.delete_sweep_outlined),
+                label: const Text('Limpiar Formulario'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/frap-cloud-records');
-                    },
-                    icon: const Icon(Icons.cloud),
-                    label: const Text('Ver Registros en la Nube'),
-                  ),
-                ),
-              ],
+              ),
             ),
             
             const SizedBox(height: 16),
+            
           ],
         ),
       ),
@@ -476,6 +470,8 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                       children: [
                         Text(
                           title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -485,8 +481,10 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                         const SizedBox(height: 4),
                         Text(
                           isDisabled 
-                              ? 'Requiere sexo femenino'
+                              ? 'Requiere que el paciente sea de sexo femenino'
                               : '$filledFields de $totalFields campos completados',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
                             color: isDisabled ? Colors.grey[500] : Colors.grey[600],
@@ -891,5 +889,40 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   bool _isGynecoObstetricEnabled(FrapData frapData) {
     final patientSex = frapData.patientInfo['sex'] as String?;
     return patientSex != null && (patientSex.toLowerCase() == 'femenino' || patientSex.toLowerCase() == 'mujer');
+  }
+
+  void _showClearConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Limpieza'),
+        content: const Text(
+            '¿Estás seguro de que quieres limpiar todos los campos del formulario? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Cerrar el diálogo de confirmación
+              ref.read(frapDataProvider.notifier).clearAllData();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Formulario limpiado.'),
+                  duration: Duration(seconds: 3),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Limpiar'),
+          ),
+        ],
+      ),
+    );
   }
 } 

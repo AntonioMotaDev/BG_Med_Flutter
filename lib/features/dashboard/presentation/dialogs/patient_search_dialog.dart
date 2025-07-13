@@ -181,7 +181,7 @@ class _PatientSearchDialogState extends State<PatientSearchDialog> {
                         frap.patient.name.toLowerCase().contains(_searchQuery);
                     
                     final matchesGender = _selectedGenderFilter == 'Todos' ||
-                        frap.patient.gender == _selectedGenderFilter;
+                        frap.patient.sex == _selectedGenderFilter;
                     
                     bool matchesAge = true;
                     if (_selectedAgeFilter != 'Todos') {
@@ -306,9 +306,9 @@ class _PatientSearchDialogState extends State<PatientSearchDialog> {
         contentPadding: const EdgeInsets.all(12),
         leading: CircleAvatar(
           radius: 20,
-          backgroundColor: _getGenderColor(frap.patient.gender),
+          backgroundColor: _getGenderColor(frap.patient.sex),
           child: Icon(
-            frap.patient.gender == 'Male' ? Icons.male : Icons.female,
+            frap.patient.sex == 'Male' ? Icons.male : Icons.female,
             color: Colors.white,
             size: 18,
           ),
@@ -321,7 +321,7 @@ class _PatientSearchDialogState extends State<PatientSearchDialog> {
           ),
         ),
         subtitle: Text(
-          '${frap.patient.age} años • ${_getGenderText(frap.patient.gender)}',
+          '${frap.patient.age} años • ${_getGenderText(frap.patient.sex)}',
           style: const TextStyle(fontSize: 12),
         ),
         trailing: PopupMenuButton<String>(
@@ -394,9 +394,9 @@ class _PatientSearchDialogState extends State<PatientSearchDialog> {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: _getGenderColor(frap.patient.gender),
+              backgroundColor: _getGenderColor(frap.patient.sex),
               child: Icon(
-                frap.patient.gender == 'Male' ? Icons.male : Icons.female,
+                frap.patient.sex == 'Male' ? Icons.male : Icons.female,
                 color: Colors.white,
                 size: 16,
               ),
@@ -417,7 +417,7 @@ class _PatientSearchDialogState extends State<PatientSearchDialog> {
             children: [
               _buildDetailRow('Edad', '${frap.patient.age} años'),
               _buildDetailRow('Género', 
-                  frap.patient.gender == 'Male' ? 'Masculino' : 'Femenino'),
+                  frap.patient.sex == 'Male' ? 'Masculino' : 'Femenino'),
               if (frap.patient.address.isNotEmpty)
                 _buildDetailRow('Dirección', frap.patient.address),
               _buildDetailRow('Último registro', _formatFullDate(frap.createdAt)),

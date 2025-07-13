@@ -1,119 +1,429 @@
-import 'package:bg_med/core/models/frap.dart';
-import 'package:bg_med/core/theme/app_theme.dart';
-import 'package:bg_med/features/frap/presentation/screens/frap_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:uuid/uuid.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bg_med/core/theme/app_theme.dart';
+import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
+import 'package:bg_med/features/frap/presentation/widgets/pagination_widget.dart';
+import 'package:bg_med/features/frap/presentation/screens/frap_screen.dart';
+import 'package:bg_med/features/frap/presentation/screens/frap_record_details_screen.dart';
+import 'package:intl/intl.dart';
 
-class FrapRecordsListScreen extends StatefulWidget {
-  const FrapRecordsListScreen({super.key});
+class FrapRecordsListScreen extends ConsumerStatefulWidget {
+  const FrapRecordsListScreen({Key? key}) : super(key: key);
 
   @override
-  State<FrapRecordsListScreen> createState() => _FrapRecordsListScreenState();
+  ConsumerState<FrapRecordsListScreen> createState() => _FrapRecordsListScreenState();
 }
 
-class _FrapRecordsListScreenState extends State<FrapRecordsListScreen> {
-  final TextEditingController _searchController = TextEditingController();
+class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
+  final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+  
+  // Estados de filtrado y paginación
+  String _sortBy = 'date';
+  bool _sortAscending = false;
   String _searchQuery = '';
-  String _selectedSortBy = 'Más reciente';
-  DateTimeRange? _selectedDateRange;
-  bool _showFilters = false;
+  DateTime? _startDate;
+  DateTime? _endDate;
+  String _filterType = 'all'; // all, local, cloud
+  
+  // Paginación
+  int _currentPage = 1;
+  int _itemsPerPage = 25;
+  final List<int> _itemsPerPageOptions = [10, 25, 50, 100];
+  
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+    // Cargar registros al inicializar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(unifiedFrapProvider.notifier).loadAllRecords();
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text(
-          'Registros FRAP',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryBlue,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(
-              _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
-              color: _showFilters ? AppTheme.primaryBlue : Colors.grey[600],
-            ),
-            onPressed: () {
+  void _onSearchChanged() {
               setState(() {
-                _showFilters = !_showFilters;
-              });
-            },
-            tooltip: 'Filtros',
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _createNewRecord(context),
-            tooltip: 'Nuevo Registro',
+      _searchQuery = _searchController.text;
+      _currentPage = 1;
+    });
+    _applyFilter();
+  }
+
+  Future<void> _applyFilter() async {
+    final notifier = ref.read(unifiedFrapProvider.notifier);
+    
+    if (_searchQuery.isNotEmpty) {
+      await notifier.searchRecords(_searchQuery);
+    } else if (_startDate != null && _endDate != null) {
+      await notifier.filterByDateRange(_startDate!, _endDate!);
+    } else {
+      await notifier.loadAllRecords();
+    }
+    
+    setState(() {
+      _currentPage = 1; // Reset pagination when filter changes
+    });
+  }
+
+  List<UnifiedFrapRecord> _getFilteredAndSortedRecords(List<UnifiedFrapRecord> allRecords) {
+    List<UnifiedFrapRecord> filtered = allRecords;
+
+    // Filtrar por tipo (local/cloud)
+    if (_filterType == 'local') {
+      filtered = filtered.where((record) => record.isLocal).toList();
+    } else if (_filterType == 'cloud') {
+      filtered = filtered.where((record) => !record.isLocal).toList();
+    }
+
+    // Ordenar
+    filtered.sort((a, b) {
+      int result;
+      switch (_sortBy) {
+        case 'date':
+          result = a.createdAt.compareTo(b.createdAt);
+          break;
+        case 'patient':
+          result = a.patientName.compareTo(b.patientName);
+          break;
+        case 'age':
+          result = a.patientAge.compareTo(b.patientAge);
+          break;
+        case 'completion':
+          result = a.completionPercentage.compareTo(b.completionPercentage);
+          break;
+        default:
+          result = a.createdAt.compareTo(b.createdAt);
+      }
+      return _sortAscending ? result : -result;
+    });
+
+    return filtered;
+  }
+
+  List<UnifiedFrapRecord> _getPaginatedRecords(List<UnifiedFrapRecord> records) {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final endIndex = startIndex + _itemsPerPage;
+    
+    if (startIndex >= records.length) return [];
+    
+    return records.sublist(
+      startIndex,
+      endIndex > records.length ? records.length : endIndex,
+    );
+  }
+
+  void _goToPage(int page) {
+                              setState(() {
+      _currentPage = page;
+    });
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  Future<void> _selectDateRange() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _startDate != null && _endDate != null
+          ? DateTimeRange(start: _startDate!, end: _endDate!)
+                        : null,
+    );
+
+    if (picked != null) {
+                    setState(() {
+        _startDate = picked.start;
+        _endDate = picked.end;
+        _currentPage = 1;
+      });
+      await _applyFilter();
+    }
+  }
+
+  void _clearDateFilter() {
+    setState(() {
+      _startDate = null;
+      _endDate = null;
+      _currentPage = 1;
+    });
+    _applyFilter();
+  }
+
+  Future<void> _refreshRecords() async {
+    await ref.read(unifiedFrapProvider.notifier).loadAllRecords();
+  }
+
+  void _showRecordDetails(UnifiedFrapRecord record) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FrapRecordDetailsScreen(record: record),
+      ),
+    );
+  }
+
+  Widget _buildRecordCard(UnifiedFrapRecord record) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: InkWell(
+        onTap: () => _showRecordDetails(record),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+              child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              record.patientName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: record.isLocal ? AppTheme.primaryBlue : AppTheme.primaryGreen,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                record.isLocal ? 'LOCAL' : 'NUBE',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Edad: ${record.patientAge} años • ${record.patientGender}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        if (record.patientAddress.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            record.patientAddress,
+                            style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'view':
+                          _showRecordDetails(record);
+                    break;
+                        case 'edit':
+                          _editRecord(record);
+                    break;
+                        case 'duplicate':
+                          _duplicateRecord(record);
+                    break;
+                        case 'delete':
+                          _deleteRecord(record);
+                    break;
+                }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'view', child: Text('Ver detalles')),
+                      const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                      const PopupMenuItem(value: 'duplicate', child: Text('Duplicar')),
+                      const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                    ],
           ),
         ],
       ),
-      body: Column(
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Header con estadísticas y búsqueda
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Estadísticas rápidas
-                ValueListenableBuilder(
-                  valueListenable: Hive.box<Frap>('fraps').listenable(),
-                  builder: (context, Box<Frap> box, _) {
-                    final totalRecords = box.values.length;
-                    final todayRecords = box.values
-                        .where((frap) =>
-                            frap.createdAt.day == DateTime.now().day &&
-                            frap.createdAt.month == DateTime.now().month &&
-                            frap.createdAt.year == DateTime.now().year)
-                        .length;
+                  Text(
+                    DateFormat('dd/MM/yyyy HH:mm').format(record.createdAt),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+          Row(
+            children: [
+              Text(
+                        'Completitud: ${record.completionPercentage.toStringAsFixed(1)}%',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 60,
+                        height: 4,
+                        child: LinearProgressIndicator(
+                          value: record.completionPercentage / 100,
+                          backgroundColor: Colors.grey.withValues(alpha: 0.3),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            record.completionPercentage >= 80
+                                ? Colors.green
+                                : record.completionPercentage >= 50
+                                    ? Colors.orange
+                                    : Colors.red,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: _buildQuickStatCard(
-                            'Total',
-                            totalRecords.toString(),
-                            Icons.assignment,
-                            AppTheme.primaryBlue,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildQuickStatCard(
-                            'Hoy',
-                            todayRecords.toString(),
-                            Icons.today,
-                            AppTheme.primaryGreen,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildQuickStatCard(
-                            'Esta semana',
-                            _getWeeklyCount(box.values).toString(),
-                            Icons.date_range,
-                            Colors.orange[600]!,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+  Widget _buildStatisticsRow(Map<String, dynamic> stats) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Primera fila: Estadísticas básicas
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Total',
+                  stats['total']?.toString() ?? '0',
+                  Icons.assignment,
+                  Colors.blue,
                 ),
-                const SizedBox(height: 16),
-                
-                // Barra de búsqueda
-                TextField(
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard(
+                  'Locales',
+                  stats['local']?.toString() ?? '0',
+                  Icons.storage,
+                  AppTheme.primaryBlue,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard(
+                  'Nube',
+                  stats['cloud']?.toString() ?? '0',
+                  Icons.cloud,
+                  AppTheme.primaryGreen,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard(
+                  'Hoy',
+                  stats['today']?.toString() ?? '0',
+                  Icons.today,
+                  Colors.orange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Segunda fila: Información de sincronización y duplicados
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Sincronizados',
+                  stats['syncedCount']?.toString() ?? '0',
+                  Icons.sync,
+                  Colors.green,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard(
+                  'Solo Local',
+                  stats['localOnlyCount']?.toString() ?? '0',
+                  Icons.storage_outlined,
+                  Colors.blue[300]!,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard(
+                  'Duplicados',
+                  stats['duplicateCount']?.toString() ?? '0',
+                  Icons.warning,
+                  Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard(
+                  'Completitud',
+                  '${(stats['averageCompletion'] ?? 0.0).toStringAsFixed(1)}%',
+                  Icons.assessment,
+                  Colors.purple,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 4),
+          Text(
+              value,
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          Text(
+              title,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFiltersSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+          children: [
+          // Barra de búsqueda
+            Row(
+              children: [
+              Expanded(
+                child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar por nombre del paciente...',
@@ -123,880 +433,459 @@ class _FrapRecordsListScreenState extends State<FrapRecordsListScreen> {
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                              });
                             },
                           )
                         : null,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.primaryBlue),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.toLowerCase();
-                    });
-                  },
                 ),
-              ],
-            ),
-          ),
-
-          // Filtros avanzados (expandible)
-          if (_showFilters)
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                children: [
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      // Ordenar por
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _selectedSortBy,
-                          decoration: InputDecoration(
-                            labelText: 'Ordenar por',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          items: [
-                            'Más reciente',
-                            'Más antiguo',
-                            'Nombre A-Z',
-                            'Nombre Z-A'
-                          ].map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            setState(() {
-                              _selectedSortBy = newValue!;
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Filtro por fecha
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showDateRangeFilter(context),
-                          icon: const Icon(Icons.date_range),
-                          label: Text(
-                            _selectedDateRange == null
-                                ? 'Filtrar por fecha'
-                                : 'Fechas seleccionadas',
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_selectedDateRange != null) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_today, size: 16, color: AppTheme.primaryBlue),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)}',
-                            style: TextStyle(color: AppTheme.primaryBlue, fontSize: 12),
-                          ),
-                          const Spacer(),
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                _selectedDateRange = null;
-                              });
-                            },
-                            child: Icon(Icons.close, size: 16, color: AppTheme.primaryBlue),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
               ),
-            ),
-
-          // Lista de registros
-          Expanded(
-            child: ValueListenableBuilder(
-              valueListenable: Hive.box<Frap>('fraps').listenable(),
-              builder: (context, Box<Frap> box, _) {
-                if (box.values.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                // Filtrar y ordenar registros
-                var filteredRecords = box.values.where((frap) {
-                  final matchesSearch = _searchQuery.isEmpty ||
-                      frap.patient.name.toLowerCase().contains(_searchQuery);
-                  
-                  final matchesDateRange = _selectedDateRange == null ||
-                      (frap.createdAt.isAfter(_selectedDateRange!.start) &&
-                       frap.createdAt.isBefore(_selectedDateRange!.end.add(
-                         const Duration(days: 1))));
-                  
-                  return matchesSearch && matchesDateRange;
-                }).toList();
-
-                // Ordenar registros
-                switch (_selectedSortBy) {
-                  case 'Más reciente':
-                    filteredRecords.sort((a, b) => 
-                        b.createdAt.compareTo(a.createdAt));
-                    break;
-                  case 'Más antiguo':
-                    filteredRecords.sort((a, b) => 
-                        a.createdAt.compareTo(b.createdAt));
-                    break;
-                  case 'Nombre A-Z':
-                    filteredRecords.sort((a, b) => 
-                        a.patient.name.compareTo(b.patient.name));
-                    break;
-                  case 'Nombre Z-A':
-                    filteredRecords.sort((a, b) => 
-                        b.patient.name.compareTo(a.patient.name));
-                    break;
-                }
-
-                if (filteredRecords.isEmpty) {
-                  return _buildNoResultsState();
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filteredRecords.length,
-                  itemBuilder: (context, index) {
-                    final frap = filteredRecords[index];
-                    return _buildRecordCard(frap, index);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createNewRecord(context),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo FRAP'),
-      ),
-    );
-  }
-
-  Widget _buildQuickStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 6),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+              const SizedBox(width: 8),
+              // Filtro por tipo
+              DropdownButton<String>(
+                value: _filterType,
+                items: const [
+                  DropdownMenuItem(value: 'all', child: Text('Todos')),
+                  DropdownMenuItem(value: 'local', child: Text('Locales')),
+                  DropdownMenuItem(value: 'cloud', child: Text('Nube')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _filterType = value ?? 'all';
+                    _currentPage = 1;
+                  });
+                },
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.assignment_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No hay registros FRAP',
-            style: TextStyle(
-              fontSize: 20,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          
           const SizedBox(height: 8),
-          Text(
-            'Crea tu primer registro para comenzar',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => _createNewRecord(context),
-            icon: const Icon(Icons.add),
-            label: const Text('Crear Primer Registro'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          
+          // Filtros de fecha y ordenamiento
+          Row(
+                children: [
+              // Filtro de fechas
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.date_range),
+                  label: Text(_startDate != null && _endDate != null
+                      ? '${DateFormat('dd/MM/yy').format(_startDate!)} - ${DateFormat('dd/MM/yy').format(_endDate!)}'
+                      : 'Filtrar por fecha'),
+                  onPressed: _selectDateRange,
+                ),
               ),
-            ),
+              
+              if (_startDate != null && _endDate != null) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: _clearDateFilter,
+                ),
+              ],
+              
+              const SizedBox(width: 8),
+              
+              // Orden ascendente/descendente
+              IconButton(
+                icon: Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
+                onPressed: () {
+                  setState(() {
+                    _sortAscending = !_sortAscending;
+                  });
+                },
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNoResultsState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No se encontraron registros',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Intenta ajustar los filtros de búsqueda',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecordCard(Frap frap, int index) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ExpansionTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppTheme.primaryBlue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              '${index + 1}',
-              style: TextStyle(
-                color: AppTheme.primaryBlue,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-        title: Text(
-          frap.patient.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  _formatDateTime(frap.createdAt),
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                Icon(Icons.person, size: 14, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${frap.patient.age} años • ${_getGenderText(frap.patient.gender)}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-              ],
-            ),
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) => _handleRecordAction(value, frap),
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'view',
-              child: Row(
-                children: [
-                  Icon(Icons.visibility, size: 16),
-                  SizedBox(width: 8),
-                  Text('Ver detalles'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit, size: 16),
-                  SizedBox(width: 8),
-                  Text('Editar'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'duplicate',
-              child: Row(
-                children: [
-                  Icon(Icons.copy, size: 16),
-                  SizedBox(width: 8),
-                  Text('Duplicar'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'export',
-              child: Row(
-                children: [
-                  Icon(Icons.share, size: 16),
-                  SizedBox(width: 8),
-                  Text('Exportar'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete, size: 16, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Eliminar', style: TextStyle(color: Colors.red)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDetailSection('Información del Paciente', [
-                  'Nombre: ${frap.patient.name}',
-                  'Edad: ${frap.patient.age} años',
-                  'Género: ${_getGenderText(frap.patient.gender)}',
-                  if (frap.patient.address.isNotEmpty)
-                    'Dirección: ${frap.patient.address}',
-                ]),
-                const SizedBox(height: 16),
-                _buildDetailSection('Historia Clínica', [
-                  'Alergias: ${frap.clinicalHistory.allergies.isEmpty ? "Ninguna" : frap.clinicalHistory.allergies}',
-                  'Medicamentos: ${frap.clinicalHistory.medications.isEmpty ? "Ninguno" : frap.clinicalHistory.medications}',
-                  'Antecedentes patológicos: ${frap.clinicalHistory.previousIllnesses.isEmpty ? "Ninguna" : frap.clinicalHistory.previousIllnesses}',
-                ]),
-                const SizedBox(height: 16),
-                _buildDetailSection('Examen Físico', [
-                  'Signos vitales: ${frap.physicalExam.vitalSigns.isEmpty ? "No registrado" : frap.physicalExam.vitalSigns}',
-                  'Cabeza: ${frap.physicalExam.head.isEmpty ? "Normal" : frap.physicalExam.head}',
-                  'Cuello: ${frap.physicalExam.neck.isEmpty ? "Normal" : frap.physicalExam.neck}',
-                  'Tórax: ${frap.physicalExam.thorax.isEmpty ? "Normal" : frap.physicalExam.thorax}',
-                  'Abdomen: ${frap.physicalExam.abdomen.isEmpty ? "Normal" : frap.physicalExam.abdomen}',
-                  'Extremidades: ${frap.physicalExam.extremities.isEmpty ? "Normal" : frap.physicalExam.extremities}',
-                ]),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildActionButton('Ver', Icons.visibility, AppTheme.primaryBlue, () => _viewFullRecord(frap)),
-                    _buildActionButton('Editar', Icons.edit, Colors.orange, () => _editRecord(frap)),
-                    _buildActionButton('Duplicar', Icons.copy, Colors.green, () => _duplicateRecord(frap)),
-                    _buildActionButton('Exportar', Icons.share, Colors.purple, () => _exportRecord(frap)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailSection(String title, List<String> details) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildPaginationInfo(int totalRecords) {
+    final startIndex = (_currentPage - 1) * _itemsPerPage + 1;
+    final endIndex = (_currentPage * _itemsPerPage > totalRecords)
+        ? totalRecords
+        : _currentPage * _itemsPerPage;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryBlue,
-            fontSize: 14,
+            'Mostrando $startIndex-$endIndex de $totalRecords registros',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-        ),
-        const SizedBox(height: 4),
-        ...details.map((detail) => Padding(
-          padding: const EdgeInsets.only(bottom: 2),
-          child: Text(
-            detail,
-            style: const TextStyle(fontSize: 12),
-          ),
-        )),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onPressed) {
-    return TextButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 16, color: color),
-      label: Text(
-        label,
-        style: TextStyle(color: color, fontSize: 12),
-      ),
-    );
-  }
-
-  // Utility functions
-  int _getWeeklyCount(Iterable<Frap> fraps) {
-    final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final weekEnd = weekStart.add(const Duration(days: 6));
-    
-    return fraps.where((frap) =>
-        frap.createdAt.isAfter(weekStart) &&
-        frap.createdAt.isBefore(weekEnd.add(const Duration(days: 1)))
-    ).length;
-  }
-
-  String _formatDateTime(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  String _getGenderText(String gender) {
-    switch (gender) {
-      case 'Male':
-        return 'Masculino';
-      case 'Female':
-        return 'Femenino';
-      default:
-        return gender;
-    }
-  }
-
-  // CRUD Operations
-  void _createNewRecord(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const FrapScreen(),
-      ),
-    );
-  }
-
-  void _handleRecordAction(String action, Frap frap) {
-    switch (action) {
-      case 'view':
-        _viewFullRecord(frap);
-        break;
-      case 'edit':
-        _editRecord(frap);
-        break;
-      case 'duplicate':
-        _duplicateRecord(frap);
-        break;
-      case 'export':
-        _exportRecord(frap);
-        break;
-      case 'delete':
-        _deleteRecord(frap);
-        break;
-    }
-  }
-
-  void _viewFullRecord(Frap frap) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.assignment, color: AppTheme.primaryBlue),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'FRAP - ${frap.patient.name}',
-                style: TextStyle(color: AppTheme.primaryBlue),
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailSection('Información del Paciente', [
-                'Nombre: ${frap.patient.name}',
-                'Edad: ${frap.patient.age} años',
-                'Género: ${_getGenderText(frap.patient.gender)}',
-                if (frap.patient.address.isNotEmpty)
-                  'Dirección: ${frap.patient.address}',
-              ]),
-              const SizedBox(height: 16),
-              _buildDetailSection('Historia Clínica', [
-                'Alergias: ${frap.clinicalHistory.allergies.isEmpty ? "Ninguna" : frap.clinicalHistory.allergies}',
-                'Medicamentos: ${frap.clinicalHistory.medications.isEmpty ? "Ninguno" : frap.clinicalHistory.medications}',
-                'Antecedentes patológicos: ${frap.clinicalHistory.previousIllnesses.isEmpty ? "Ninguna" : frap.clinicalHistory.previousIllnesses}',
-              ]),
-              const SizedBox(height: 16),
-              _buildDetailSection('Examen Físico', [
-                'Signos vitales: ${frap.physicalExam.vitalSigns.isEmpty ? "No registrado" : frap.physicalExam.vitalSigns}',
-                'Cabeza: ${frap.physicalExam.head.isEmpty ? "Normal" : frap.physicalExam.head}',
-                'Cuello: ${frap.physicalExam.neck.isEmpty ? "Normal" : frap.physicalExam.neck}',
-                'Tórax: ${frap.physicalExam.thorax.isEmpty ? "Normal" : frap.physicalExam.thorax}',
-                'Abdomen: ${frap.physicalExam.abdomen.isEmpty ? "Normal" : frap.physicalExam.abdomen}',
-                'Extremidades: ${frap.physicalExam.extremities.isEmpty ? "Normal" : frap.physicalExam.extremities}',
-              ]),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Registro creado: ${_formatDateTime(frap.createdAt)}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _editRecord(frap);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-            ),
-            child: const Text('Editar'),
+          Text(
+            'Página $_currentPage de ${(totalRecords / _itemsPerPage).ceil()}',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
     );
   }
 
-  void _editRecord(Frap frap) {
-    // TODO: Implementar navegación a pantalla de edición
+  void _editRecord(UnifiedFrapRecord record) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Editando registro de ${frap.patient.name}...'),
+        content: Text('Función de edición para ${record.patientName} próximamente disponible'),
         backgroundColor: Colors.orange,
-        action: SnackBarAction(
-          label: 'Próximamente',
-          textColor: Colors.white,
-          onPressed: () {},
+      ),
+    );
+  }
+
+  Future<void> _duplicateRecord(UnifiedFrapRecord record) async {
+    final notifier = ref.read(unifiedFrapProvider.notifier);
+    final messenger = ScaffoldMessenger.of(context); // Store messenger locally
+    final newRecordId = await notifier.duplicateRecord(record);
+    
+    if (newRecordId != null && mounted) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Registro duplicado exitosamente'),
+          backgroundColor: Colors.green,
         ),
-      ),
-    );
+      );
+    }
   }
 
-  void _duplicateRecord(Frap frap) {
-    showDialog(
+  Future<void> _deleteRecord(UnifiedFrapRecord record) async {
+    final context = this.context; // Store context locally
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Duplicar Registro'),
-        content: Text('¿Deseas crear una copia del registro de ${frap.patient.name}?'),
+        title: const Text('Confirmar eliminación'),
+        content: Text('¿Está seguro de eliminar el registro de ${record.patientName}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                final newFrap = Frap(
-                  id: const Uuid().v4(),
-                  patient: frap.patient,
-                  clinicalHistory: frap.clinicalHistory,
-                  physicalExam: frap.physicalExam,
-                  createdAt: DateTime.now(),
-                );
-                
-                final frapBox = Hive.box<Frap>('fraps');
-                await frapBox.add(newFrap);
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Registro duplicado exitosamente'),
-                    backgroundColor: AppTheme.primaryGreen,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error al duplicar registro: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryGreen,
-            ),
-            child: const Text('Duplicar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _exportRecord(Frap frap) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Exportar Registro'),
-        content: Text('¿Cómo deseas exportar el registro de ${frap.patient.name}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _exportToPDF(frap);
-            },
-            child: const Text('PDF'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _exportToText(frap);
-            },
-            child: const Text('Texto'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _exportToPDF(Frap frap) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Exportando ${frap.patient.name} a PDF...'),
-        backgroundColor: Colors.red,
-        action: SnackBarAction(
-          label: 'Próximamente',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
-    );
-  }
-
-  void _exportToText(Frap frap) {
-    final textData = '''
-REGISTRO FRAP - ${frap.patient.name}
-=====================================
-
-INFORMACIÓN DEL PACIENTE:
-- Nombre: ${frap.patient.name}
-- Edad: ${frap.patient.age} años
-- Género: ${_getGenderText(frap.patient.gender)}
-- Dirección: ${frap.patient.address.isEmpty ? "No especificada" : frap.patient.address}
-
-HISTORIA CLÍNICA:
-- Alergias: ${frap.clinicalHistory.allergies.isEmpty ? "Ninguna" : frap.clinicalHistory.allergies}
-- Medicamentos: ${frap.clinicalHistory.medications.isEmpty ? "Ninguno" : frap.clinicalHistory.medications}
-- Antecedentes patológicos: ${frap.clinicalHistory.previousIllnesses.isEmpty ? "Ninguna" : frap.clinicalHistory.previousIllnesses}
-
-EXAMEN FÍSICO:
-- Signos vitales: ${frap.physicalExam.vitalSigns.isEmpty ? "No registrado" : frap.physicalExam.vitalSigns}
-- Cabeza: ${frap.physicalExam.head.isEmpty ? "Normal" : frap.physicalExam.head}
-- Cuello: ${frap.physicalExam.neck.isEmpty ? "Normal" : frap.physicalExam.neck}
-- Tórax: ${frap.physicalExam.thorax.isEmpty ? "Normal" : frap.physicalExam.thorax}
-- Abdomen: ${frap.physicalExam.abdomen.isEmpty ? "Normal" : frap.physicalExam.abdomen}
-- Extremidades: ${frap.physicalExam.extremities.isEmpty ? "Normal" : frap.physicalExam.extremities}
-
-REGISTRO:
-- Fecha: ${_formatDateTime(frap.createdAt)}
-- ID: ${frap.id}
-''';
-
-    Clipboard.setData(ClipboardData(text: textData));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Registro de ${frap.patient.name} copiado al portapapeles'),
-        backgroundColor: AppTheme.primaryGreen,
-      ),
-    );
-  }
-
-  void _deleteRecord(Frap frap) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Registro'),
-        content: Text('¿Estás seguro de que deseas eliminar el registro de ${frap.patient.name}?\n\nEsta acción no se puede deshacer.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                final frapBox = Hive.box<Frap>('fraps');
-                final key = frapBox.values
-                    .toList()
-                    .indexWhere((f) => f.id == frap.id);
-                
-                if (key != -1) {
-                  await frapBox.deleteAt(key);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Registro de ${frap.patient.name} eliminado'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error al eliminar registro: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Eliminar'),
           ),
         ],
       ),
     );
+
+    if (confirmed == true) {
+      final notifier = ref.read(unifiedFrapProvider.notifier);
+      final messenger = ScaffoldMessenger.of(context); // Store messenger locally
+      final success = await notifier.deleteRecord(record);
+      
+      if (mounted) {
+        messenger.showSnackBar(
+      SnackBar(
+            content: Text(success 
+              ? 'Registro eliminado exitosamente' 
+              : 'Error al eliminar el registro'
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _showDateRangeFilter(BuildContext context) async {
-    final DateTimeRange? picked = await showDateRangePicker(
+  void _showSyncDialog() {
+    final context = this.context; // Store context locally to avoid async gap
+    showDialog(
       context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDateRange: _selectedDateRange,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppTheme.primaryBlue,
-            ),
+      builder: (context) => AlertDialog(
+        title: const Text('Sincronizar y Limpiar Registros'),
+        content: const Text(
+          'Esta acción realizará:\n\n'
+          '1. Sincronizar registros locales con la nube\n'
+          '2. Detectar registros duplicados\n'
+          '3. Eliminar duplicados del almacenamiento local\n\n'
+          '¿Desea continuar?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
           ),
-          child: child!,
-        );
-      },
+          ElevatedButton(
+            onPressed: () async {
+              final navigator = Navigator.of(context); // Store navigator locally
+              final messenger = ScaffoldMessenger.of(context); // Store messenger locally
+              navigator.pop();
+              
+              // Mostrar indicador de progreso
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Text('Sincronizando y limpiando registros...'),
+                    ],
+                  ),
+                  duration: Duration(seconds: 30), // Duración larga para operación
+                ),
+              );
+              
+              try {
+                final result = await ref.read(unifiedFrapProvider.notifier).syncAndCleanup();
+                
+                if (mounted) {
+                  // Cerrar el snackbar de progreso
+                  messenger.hideCurrentSnackBar();
+                  
+                  if (result['success'] == true) {
+                    final cleanupResult = result['cleanupResult'] as Map<String, dynamic>;
+                    final removedCount = cleanupResult['removedCount'] ?? 0;
+                    final statistics = cleanupResult['statistics'] as Map<String, dynamic>;
+                    final spaceFreed = statistics['estimatedSpaceFreedMB'] ?? '0.00';
+                    
+                    String message = 'Sincronización completada';
+                    if (removedCount > 0) {
+                      message += '\nSe eliminaron $removedCount registros duplicados';
+                      message += '\nEspacio liberado: ${spaceFreed} MB';
+                    } else {
+                      message += '\nNo se encontraron duplicados para eliminar';
+                    }
+                    
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(result['message'] ?? 'Error durante la sincronización'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (mounted) {
+                  // Cerrar el snackbar de progreso
+                  messenger.hideCurrentSnackBar();
+                  
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 5),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Sincronizar y Limpiar'),
+          ),
+        ],
+      ),
     );
+  }
 
-    if (picked != null) {
-      setState(() {
-        _selectedDateRange = picked;
-      });
-    }
+  @override
+  Widget build(BuildContext context) {
+    final unifiedState = ref.watch(unifiedFrapProvider);
+    final statistics = ref.watch(unifiedFrapStatisticsProvider);
+    
+    final filteredRecords = _getFilteredAndSortedRecords(unifiedState.records);
+    final paginatedRecords = _getPaginatedRecords(filteredRecords);
+    final totalPages = (filteredRecords.length / _itemsPerPage).ceil();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Registros FRAP'),
+        actions: [
+          // Indicador de duplicados si existen
+          if (unifiedState.duplicateCount > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.warning,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${unifiedState.localDuplicatesCount} duplicados',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshRecords,
+          ),
+          IconButton(
+            icon: const Icon(Icons.cloud_sync),
+            onPressed: _showSyncDialog,
+            tooltip: unifiedState.localDuplicatesCount > 0 
+                ? 'Sincronizar y limpiar duplicados' 
+                : 'Sincronizar registros',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              setState(() {
+                _sortBy = value;
+                _currentPage = 1;
+              });
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'date', child: Text('Ordenar por fecha')),
+              const PopupMenuItem(value: 'patient', child: Text('Ordenar por paciente')),
+              const PopupMenuItem(value: 'age', child: Text('Ordenar por edad')),
+              const PopupMenuItem(value: 'completion', child: Text('Ordenar por completitud')),
+            ],
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Estadísticas
+          _buildStatisticsRow(statistics),
+          
+          // Filtros
+          _buildFiltersSection(),
+          
+          // Lista de registros
+          Expanded(
+            child: unifiedState.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : unifiedState.error != null
+                    ? _buildErrorView(unifiedState.error!)
+                    : filteredRecords.isEmpty
+                        ? _buildEmptyView()
+                        : Column(
+                            children: [
+                              // Información de paginación
+                              _buildPaginationInfo(filteredRecords.length),
+                              
+                              // Lista de registros
+                              Expanded(
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  itemCount: paginatedRecords.length,
+                                  itemBuilder: (context, index) {
+                                    final record = paginatedRecords[index];
+                                    return _buildRecordCard(record);
+                                  },
+                                ),
+                              ),
+                              
+                              // Controles de paginación
+                              if (totalPages > 1)
+                                PaginationWidget(
+                                  currentPage: _currentPage,
+                                  totalPages: totalPages,
+                                  onPageChanged: _goToPage,
+                                  itemsPerPage: _itemsPerPage,
+                                  itemsPerPageOptions: _itemsPerPageOptions,
+                                  onItemsPerPageChanged: (value) {
+                                    setState(() {
+                                      _itemsPerPage = value;
+                                      _currentPage = 1;
+                                    });
+                                  },
+                                  totalItems: filteredRecords.length,
+                                ),
+                            ],
+                          ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Navegar a la pantalla de creación de registro FRAP
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const FrapScreen(),
+            ),
+          );
+        },
+        child: const Icon(Icons.add),
+                  ),
+                );
+              }
+
+  Widget _buildErrorView(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              'Error al cargar los registros',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _refreshRecords,
+              child: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.assignment, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              'No hay registros FRAP',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Crea tu primer registro FRAP presionando el botón +',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 } 

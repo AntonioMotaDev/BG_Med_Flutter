@@ -389,7 +389,7 @@ class _RecordsManagementDialogState extends State<RecordsManagementDialog> {
                 Icon(Icons.person, size: 14, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  '${frap.patient.age} años • ${_getGenderText(frap.patient.gender)}',
+                  '${frap.patient.age} años • ${_getGenderText(frap.patient.sex)}',
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
@@ -460,7 +460,7 @@ class _RecordsManagementDialogState extends State<RecordsManagementDialog> {
                 _buildDetailSection('Información del Paciente', [
                   'Nombre: ${frap.patient.name}',
                   'Edad: ${frap.patient.age} años',
-                  'Género: ${_getGenderText(frap.patient.gender)}',
+                  'Género: ${_getGenderText(frap.patient.sex)}',
                   if (frap.patient.address.isNotEmpty)
                     'Dirección: ${frap.patient.address}',
                 ]),
@@ -541,14 +541,14 @@ class _RecordsManagementDialogState extends State<RecordsManagementDialog> {
     return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  String _getGenderText(String gender) {
-    switch (gender) {
+  String _getGenderText(String sex) {
+    switch (sex) {
       case 'Male':
         return 'Masculino';
       case 'Female':
         return 'Femenino';
       default:
-        return gender;
+        return sex;
     }
   }
 
@@ -597,7 +597,7 @@ class _RecordsManagementDialogState extends State<RecordsManagementDialog> {
               _buildDetailSection('Paciente', [
                 'Nombre: ${frap.patient.name}',
                 'Edad: ${frap.patient.age} años',
-                'Género: ${_getGenderText(frap.patient.gender)}',
+                'Género: ${_getGenderText(frap.patient.sex)}',
                 if (frap.patient.address.isNotEmpty)
                   'Dirección: ${frap.patient.address}',
               ]),
@@ -796,7 +796,7 @@ REGISTRO FRAP - ${frap.patient.name}
 INFORMACIÓN DEL PACIENTE:
 - Nombre: ${frap.patient.name}
 - Edad: ${frap.patient.age} años
-- Género: ${_getGenderText(frap.patient.gender)}
+- Género: ${_getGenderText(frap.patient.sex)}
 - Dirección: ${frap.patient.address.isEmpty ? "No especificada" : frap.patient.address}
 
 HISTORIA CLÍNICA:

@@ -12,6 +12,11 @@ class FrapLocalService {
   // Obtener la caja de Hive
   Box<Frap> get _frapBox => Hive.box<Frap>(_boxName);
 
+  // Generar ID único para registros FRAP
+  String _generateId() {
+    return const Uuid().v4();
+  }
+
   // CREAR un nuevo registro FRAP local
   Future<String?> createFrapRecord({
     required FrapData frapData,
@@ -246,41 +251,112 @@ class FrapLocalService {
   }) {
     // Extraer información del paciente
     final patientInfo = frapData.patientInfo;
+    
+    // Construir el nombre completo del paciente
+    final firstName = patientInfo['firstName'] ?? '';
+    final paternalLastName = patientInfo['paternalLastName'] ?? '';
+    final maternalLastName = patientInfo['maternalLastName'] ?? '';
+    final fullName = '$firstName $paternalLastName $maternalLastName'.trim();
+    
+    // Construir la dirección completa
+    final street = patientInfo['street'] ?? '';
+    final exteriorNumber = patientInfo['exteriorNumber'] ?? '';
+    final interiorNumber = patientInfo['interiorNumber'] ?? '';
+    final neighborhood = patientInfo['neighborhood'] ?? '';
+    final city = patientInfo['city'] ?? '';
+    
+    String fullAddress = '';
+    if (street.isNotEmpty) {
+      fullAddress = street;
+      if (exteriorNumber.isNotEmpty) {
+        fullAddress += ' $exteriorNumber';
+      }
+      if (interiorNumber != null && interiorNumber.isNotEmpty) {
+        fullAddress += ', Int. $interiorNumber';
+      }
+      if (neighborhood.isNotEmpty) {
+        fullAddress += ', $neighborhood';
+      }
+      if (city.isNotEmpty) {
+        fullAddress += ', $city';
+      }
+    }
+    
     final patient = Patient(
-      name: patientInfo['name'] ?? '',
+      name: fullName.isNotEmpty ? fullName : 'Sin nombre',
       age: patientInfo['age'] ?? 0,
-      gender: patientInfo['sex'] ?? '',
-      address: patientInfo['address'] ?? '',
+      sex: patientInfo['sex'] ?? '', // Cambiado de gender a sex
+      address: fullAddress,
+      firstName: firstName,
+      paternalLastName: paternalLastName,
+      maternalLastName: maternalLastName,
+      phone: patientInfo['phone'] ?? '',
+      street: street,
+      exteriorNumber: exteriorNumber,
+      interiorNumber: interiorNumber,
+      neighborhood: neighborhood,
+      city: city,
+      insurance: patientInfo['insurance'] ?? '',
+      responsiblePerson: patientInfo['responsiblePerson'],
     );
 
     // Extraer historia clínica
     final clinicalHistoryData = frapData.clinicalHistory;
-    final pathologicalHistoryData = frapData.pathologicalHistory;
-    final medicationsData = frapData.medications;
-    
     final clinicalHistory = ClinicalHistory(
-      allergies: clinicalHistoryData['allergies'] ?? pathologicalHistoryData['allergies'] ?? '',
-      medications: medicationsData['current_medications'] ?? clinicalHistoryData['medications'] ?? '',
-      previousIllnesses: pathologicalHistoryData['previous_illnesses'] ?? clinicalHistoryData['previous_illnesses'] ?? '',
+      allergies: clinicalHistoryData['allergies'] ?? '',
+      medications: clinicalHistoryData['medications'] ?? '',
+      previousIllnesses: clinicalHistoryData['previous_illnesses'] ?? clinicalHistoryData['previousIllnesses'] ?? '',
+      currentSymptoms: clinicalHistoryData['currentSymptoms'] ?? '',
+      pain: clinicalHistoryData['pain'] ?? '',
+      painScale: clinicalHistoryData['painScale'] ?? '',
+      dosage: clinicalHistoryData['dosage'] ?? '',
+      frequency: clinicalHistoryData['frequency'] ?? '',
+      route: clinicalHistoryData['route'] ?? '',
+      time: clinicalHistoryData['time'] ?? '',
+      previousSurgeries: clinicalHistoryData['previousSurgeries'] ?? '',
+      hospitalizations: clinicalHistoryData['hospitalizations'] ?? '',
+      transfusions: clinicalHistoryData['transfusions'] ?? '',
     );
 
     // Extraer examen físico
     final physicalExamData = frapData.physicalExam;
     final physicalExam = PhysicalExam(
-      vitalSigns: physicalExamData['vital_signs'] ?? '',
+      vitalSigns: physicalExamData['vital_signs'] ?? physicalExamData['vitalSigns'] ?? '',
       head: physicalExamData['head'] ?? '',
       neck: physicalExamData['neck'] ?? '',
       thorax: physicalExamData['thorax'] ?? '',
       abdomen: physicalExamData['abdomen'] ?? '',
       extremities: physicalExamData['extremities'] ?? '',
+      bloodPressure: physicalExamData['bloodPressure'] ?? '',
+      heartRate: physicalExamData['heartRate'] ?? '',
+      respiratoryRate: physicalExamData['respiratoryRate'] ?? '',
+      temperature: physicalExamData['temperature'] ?? '',
+      oxygenSaturation: physicalExamData['oxygenSaturation'] ?? '',
+      neurological: physicalExamData['neurological'] ?? '',
     );
 
+    final now = DateTime.now();
+    final id = existingId ?? _generateId();
+    final createdAt = existingCreatedAt ?? now;
+
     return Frap(
-      id: existingId ?? const Uuid().v4(),
+      id: id,
       patient: patient,
       clinicalHistory: clinicalHistory,
       physicalExam: physicalExam,
-      createdAt: existingCreatedAt ?? DateTime.now(),
+      createdAt: createdAt,
+      updatedAt: now,
+      serviceInfo: frapData.serviceInfo,
+      registryInfo: frapData.registryInfo,
+      management: frapData.management,
+      medications: frapData.medications,
+      gynecoObstetric: frapData.gynecoObstetric,
+      attentionNegative: frapData.attentionNegative,
+      pathologicalHistory: frapData.pathologicalHistory,
+      priorityJustification: frapData.priorityJustification,
+      injuryLocation: frapData.injuryLocation,
+      receivingUnit: frapData.receivingUnit,
+      patientReception: frapData.patientReception,
     );
   }
 
@@ -291,7 +367,7 @@ class FrapLocalService {
       'patient': {
         'name': frap.patient.name,
         'age': frap.patient.age,
-        'gender': frap.patient.gender,
+        'sex': frap.patient.sex, // Cambiado de gender a sex
         'address': frap.patient.address,
       },
       'clinicalHistory': {
@@ -322,7 +398,7 @@ class FrapLocalService {
       patient: Patient(
         name: patientData['name'] as String,
         age: patientData['age'] as int,
-        gender: patientData['gender'] as String,
+        sex: patientData['sex'] as String,
         address: patientData['address'] as String,
       ),
       clinicalHistory: ClinicalHistory(
@@ -345,28 +421,50 @@ class FrapLocalService {
   // CONVERTIR Frap a FrapData para edición
   FrapData convertFrapToFrapData(Frap frap) {
     return FrapData(
-      serviceInfo: {}, // No disponible en el modelo Frap actual
-      registryInfo: {}, // No disponible en el modelo Frap actual
+      serviceInfo: frap.serviceInfo,
+      registryInfo: frap.registryInfo,
       patientInfo: {
-        'name': frap.patient.name,
+        'firstName': frap.patient.firstName,
+        'paternalLastName': frap.patient.paternalLastName,
+        'maternalLastName': frap.patient.maternalLastName,
         'age': frap.patient.age,
-        'sex': frap.patient.gender,
-        'address': frap.patient.address,
+        'sex': frap.patient.sex, // Cambiado de gender a sex
+        'phone': frap.patient.phone,
+        'street': frap.patient.street,
+        'exteriorNumber': frap.patient.exteriorNumber,
+        'interiorNumber': frap.patient.interiorNumber,
+        'neighborhood': frap.patient.neighborhood,
+        'city': frap.patient.city,
+        'insurance': frap.patient.insurance,
+        'responsiblePerson': frap.patient.responsiblePerson,
+        'currentCondition': frap.serviceInfo['currentCondition'] ?? '',
+        'emergencyContact': frap.serviceInfo['emergencyContact'] ?? '',
+        'address': frap.patient.fullAddress, // Mantener también la dirección completa
       },
-      management: {}, // No disponible en el modelo Frap actual
-      medications: {
+      management: frap.management,
+      medications: frap.medications.isNotEmpty ? frap.medications : {
         'current_medications': frap.clinicalHistory.medications,
+        'dosage': frap.clinicalHistory.dosage,
+        'frequency': frap.clinicalHistory.frequency,
+        'route': frap.clinicalHistory.route,
+        'time': frap.clinicalHistory.time,
       },
-      gynecoObstetric: {}, // No disponible en el modelo Frap actual
-      attentionNegative: {}, // No disponible en el modelo Frap actual
-      pathologicalHistory: {
+      gynecoObstetric: frap.gynecoObstetric,
+      attentionNegative: frap.attentionNegative,
+      pathologicalHistory: frap.pathologicalHistory.isNotEmpty ? frap.pathologicalHistory : {
         'allergies': frap.clinicalHistory.allergies,
         'previous_illnesses': frap.clinicalHistory.previousIllnesses,
+        'previousSurgeries': frap.clinicalHistory.previousSurgeries,
+        'hospitalizations': frap.clinicalHistory.hospitalizations,
+        'transfusions': frap.clinicalHistory.transfusions,
       },
       clinicalHistory: {
         'allergies': frap.clinicalHistory.allergies,
         'medications': frap.clinicalHistory.medications,
         'previous_illnesses': frap.clinicalHistory.previousIllnesses,
+        'currentSymptoms': frap.clinicalHistory.currentSymptoms,
+        'pain': frap.clinicalHistory.pain,
+        'painScale': frap.clinicalHistory.painScale,
       },
       physicalExam: {
         'vital_signs': frap.physicalExam.vitalSigns,
@@ -375,11 +473,17 @@ class FrapLocalService {
         'thorax': frap.physicalExam.thorax,
         'abdomen': frap.physicalExam.abdomen,
         'extremities': frap.physicalExam.extremities,
+        'bloodPressure': frap.physicalExam.bloodPressure,
+        'heartRate': frap.physicalExam.heartRate,
+        'respiratoryRate': frap.physicalExam.respiratoryRate,
+        'temperature': frap.physicalExam.temperature,
+        'oxygenSaturation': frap.physicalExam.oxygenSaturation,
+        'neurological': frap.physicalExam.neurological,
       },
-      priorityJustification: {}, // No disponible en el modelo Frap actual
-      injuryLocation: {}, // No disponible en el modelo Frap actual
-      receivingUnit: {}, // No disponible en el modelo Frap actual
-      patientReception: {}, // No disponible en el modelo Frap actual
+      priorityJustification: frap.priorityJustification,
+      injuryLocation: frap.injuryLocation,
+      receivingUnit: frap.receivingUnit,
+      patientReception: frap.patientReception,
     );
   }
 
