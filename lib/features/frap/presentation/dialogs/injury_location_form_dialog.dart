@@ -36,6 +36,12 @@ class _InjuryLocationFormDialogState extends State<InjuryLocationFormDialog> {
   // Imagen de la silueta humana
   ui.Image? _humanSilhouetteImage;
 
+  // Tamaño del canvas/imagen original donde se dibujaron las lesiones
+  Size? _originalCanvasSize;
+
+  // Rectángulo de la imagen dentro del canvas original
+  Rect? _originalImageRect;
+
   @override
   void initState() {
     super.initState();
@@ -449,6 +455,16 @@ class _InjuryLocationFormDialogState extends State<InjuryLocationFormDialog> {
     final RenderBox renderBox = _paintKey.currentContext!.findRenderObject() as RenderBox;
     final localPosition = renderBox.globalToLocal(details.globalPosition);
     
+    // Capturar el tamaño del canvas la primera vez que se dibuja
+    if (_originalCanvasSize == null) {
+      _originalCanvasSize = renderBox.size;
+      
+      // También calcular el rectángulo de la imagen original
+      if (_humanSilhouetteImage != null) {
+        _originalImageRect = _calculateImageRect(_originalCanvasSize!);
+      }
+    }
+    
     // Crear nueva lesión
     final newInjury = DrawnInjury(
       points: [localPosition],
@@ -458,6 +474,36 @@ class _InjuryLocationFormDialogState extends State<InjuryLocationFormDialog> {
     setState(() {
       _drawnInjuries.add(newInjury);
     });
+  }
+
+  // Calcular el rectángulo donde se dibuja la imagen (igual que en el display widget)
+  Rect _calculateImageRect(Size canvasSize) {
+    if (_humanSilhouetteImage == null) {
+      return Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height);
+    }
+
+    final imageWidth = _humanSilhouetteImage!.width.toDouble();
+    final imageHeight = _humanSilhouetteImage!.height.toDouble();
+    final imageAspectRatio = imageWidth / imageHeight;
+    
+    // Calcular dimensiones manteniendo aspect ratio (igual lógica que InjuryMapPainter)
+    double targetWidth, targetHeight;
+    
+    if (canvasSize.width / canvasSize.height > imageAspectRatio) {
+      // Ajustar por altura
+      targetHeight = canvasSize.height * 0.9;
+      targetWidth = targetHeight * imageAspectRatio;
+    } else {
+      // Ajustar por anchura
+      targetWidth = canvasSize.width * 0.9;
+      targetHeight = targetWidth / imageAspectRatio;
+    }
+
+    // Centrar la imagen
+    final offsetX = (canvasSize.width - targetWidth) / 2;
+    final offsetY = (canvasSize.height - targetHeight) / 2;
+
+    return Rect.fromLTWH(offsetX, offsetY, targetWidth, targetHeight);
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
@@ -495,10 +541,31 @@ class _InjuryLocationFormDialogState extends State<InjuryLocationFormDialog> {
     });
 
     try {
+      // Obtener el tamaño actual del canvas si no se ha guardado ya
+      if (_originalCanvasSize == null && _paintKey.currentContext != null) {
+        final RenderBox renderBox = _paintKey.currentContext!.findRenderObject() as RenderBox;
+        _originalCanvasSize = renderBox.size;
+        
+        // También calcular el rectángulo de la imagen original
+        if (_humanSilhouetteImage != null) {
+          _originalImageRect = _calculateImageRect(_originalCanvasSize!);
+        }
+      }
+
       final formData = {
         'drawnInjuries': _drawnInjuries.map((injury) => injury.toMap()).toList(),
         'notes': _notesController.text.trim(),
         'timestamp': DateTime.now().toIso8601String(),
+        'originalImageSize': _originalCanvasSize != null ? {
+          'width': _originalCanvasSize!.width,
+          'height': _originalCanvasSize!.height,
+        } : null,
+        'originalImageRect': _originalImageRect != null ? {
+          'left': _originalImageRect!.left,
+          'top': _originalImageRect!.top,
+          'width': _originalImageRect!.width,
+          'height': _originalImageRect!.height,
+        } : null,
       };
 
       widget.onSave(formData);

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:bg_med/features/frap/presentation/widgets/injury_location_display_widget.dart';
 
 class FrapRecordDetailsScreen extends ConsumerStatefulWidget {
   final UnifiedFrapRecord record;
@@ -338,14 +340,16 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (serviceInfoMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Tipo de servicio', 'value': serviceInfoMap['serviceType']},
-      {'label': 'Número de ambulancia', 'value': serviceInfoMap['ambulanceNumber']},
-      {'label': 'Equipo', 'value': serviceInfoMap['crew']},
-      {'label': 'Prioridad', 'value': serviceInfoMap['priority']},
-      {'label': 'Fecha del servicio', 'value': serviceInfoMap['date']},
-      {'label': 'Hora de inicio', 'value': serviceInfoMap['startTime']},
-      {'label': 'Hora de fin', 'value': serviceInfoMap['endTime']},
-      {'label': 'Ubicación', 'value': serviceInfoMap['location']},
+      {'label': 'Hora de llamada', 'value': serviceInfoMap['horaLlamada']},
+      {'label': 'Hora de arribo', 'value': serviceInfoMap['horaArribo']},
+      {'label': 'Tiempo de espera arribo', 'value': serviceInfoMap['tiempoEsperaArribo']},
+      {'label': 'Hora de llegada', 'value': serviceInfoMap['horaLlegada']},
+      {'label': 'Tiempo de espera llegada', 'value': serviceInfoMap['tiempoEsperaLlegada']},
+      {'label': 'Hora de terminación', 'value': serviceInfoMap['horaTermino']},
+      {'label': 'Ubicacion', 'value': serviceInfoMap['ubicacion']},
+      {'label': 'Tipo de servicio', 'value': serviceInfoMap['tipoServicio']},
+      {'label': 'Especifique', 'value': serviceInfoMap['tipoServicioEspecifique']},
+      {'label': 'Lugar de ocurrencia', 'value': serviceInfoMap['lugarOcurrencia']},
     ];
 
     return _buildSectionCard(
@@ -365,12 +369,11 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (registryInfoMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
+      {'label': 'Convenio', 'value': registryInfoMap['convenio']},
       {'label': 'Folio', 'value': registryInfoMap['folio']},
-      {'label': 'Fecha de registro', 'value': registryInfoMap['registrationDate']},
-      {'label': 'Hora de registro', 'value': registryInfoMap['registrationTime']},
-      {'label': 'Registrado por', 'value': registryInfoMap['registeredBy']},
-      {'label': 'Unidad operativa', 'value': registryInfoMap['operativeUnit']},
-      {'label': 'Turno', 'value': registryInfoMap['shift']},
+      {'label': 'Episodio', 'value': registryInfoMap['episodio']},
+      {'label': 'Fecha de registro', 'value': registryInfoMap['fecha']},
+      {'label': 'Solicitado por', 'value': registryInfoMap['solicitadoPor']},
     ];
 
     return _buildSectionCard(
@@ -395,7 +398,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
       {'label': 'Dirección', 'value': patientInfoMap['address'] ?? widget.record.patientAddress},
       {'label': 'Teléfono', 'value': patientInfoMap['phone']},
       {'label': 'Seguro médico', 'value': patientInfoMap['insurance']},
-      {'label': 'Condición actual', 'value': patientInfoMap['currentCondition']},
+      {'label': 'Padecimiento actual', 'value': patientInfoMap['currentCondition']},
       {'label': 'Contacto de emergencia', 'value': patientInfoMap['emergencyContact']},
       {'label': 'Persona responsable', 'value': patientInfoMap['responsiblePerson']},
     ];
@@ -417,10 +420,22 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (managementMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Procedimientos realizados', 'value': managementMap['procedures']},
-      {'label': 'Medicamentos administrados', 'value': managementMap['medications']},
-      {'label': 'Respuesta al tratamiento', 'value': managementMap['response']},
-      {'label': 'Observaciones', 'value': managementMap['observations']},
+      ...[
+        if (managementMap['viaAerea'] == true) {'label': 'Vía aérea', 'value': 'Sí'},
+        if (managementMap['canalizacion'] == true) {'label': 'Canalización', 'value': 'Sí'},
+        if (managementMap['empaquetamiento'] == true) {'label': 'Empaquetamiento', 'value': 'Sí'},
+        if (managementMap['inmovilizacion'] == true) {'label': 'Inmovilización', 'value': ''},
+        if (managementMap['monitor'] == true) {'label': 'Monitor', 'value': 'Sí'},
+        if (managementMap['rcpBasica'] == true) {'label': 'RCP básica', 'value': 'Sí'},
+        if (managementMap['mastPna'] == true) {'label': 'MAST/PNA', 'value': 'Sí'},
+        if (managementMap['collarinCervical'] == true) {'label': 'Collarín cervical', 'value': 'Sí'},
+        if (managementMap['desfibrilacion'] == true) {'label': 'Desfibrilación', 'value': 'Sí'},
+        if (managementMap['apoyoVent'] == true) {'label': 'Apoyo ventilatorio', 'value': 'Sí'},
+        if (managementMap['oxigeno'] != null)
+          {'label': 'Oxígeno', 'value': managementMap['oxigeno'] == true ? 'Sí' : 'No'},
+        if (managementMap['oxigeno'] == true && managementMap['ltMin'] != null && managementMap['ltMin'].toString().isNotEmpty)
+          {'label': 'Lt/min', 'value': managementMap['ltMin']},
+      ],
     ];
 
     return _buildSectionCard(
@@ -440,11 +455,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (medicationsMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Medicamentos actuales', 'value': medicationsMap['current_medications']},
-      {'label': 'Dosis', 'value': medicationsMap['dosage']},
-      {'label': 'Frecuencia', 'value': medicationsMap['frequency']},
-      {'label': 'Vía de administración', 'value': medicationsMap['route']},
-      {'label': 'Hora de administración', 'value': medicationsMap['time']},
+      {'label': 'Medicamentos', 'value': medicationsMap['medications']},
     ];
 
     return _buildSectionCard(
@@ -464,16 +475,20 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (gynecoObstetricMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Embarazo', 'value': gynecoObstetricMap['pregnancy']},
-      {'label': 'Semanas de gestación', 'value': gynecoObstetricMap['gestationWeeks']},
-      {'label': 'Partos previos', 'value': gynecoObstetricMap['previousDeliveries']},
-      {'label': 'Cesáreas', 'value': gynecoObstetricMap['cesareans']},
-      {'label': 'Abortos', 'value': gynecoObstetricMap['abortions']},
-      {'label': 'Última menstruación', 'value': gynecoObstetricMap['lastMenstruation']},
+      {'label': 'Última menstruación', 'value': gynecoObstetricMap['fum']},
+      {'label': 'Semanas de gestación', 'value': gynecoObstetricMap['semanasGestacion']},
+      {'label': 'Gesta', 'value': gynecoObstetricMap['gesta']},
+      {'label': 'Abortos', 'value': gynecoObstetricMap['abortos']},
+      {'label': 'Partos', 'value': gynecoObstetricMap['partos']},
+      {'label': 'Cesáreas', 'value': gynecoObstetricMap['cesareas']},
+      {'label': 'Métodos anticonceptivos', 'value': gynecoObstetricMap['metodosAnticonceptivos']},
+      {'label': 'Ruidos cardiacos fetales', 'value': gynecoObstetricMap['ruidosCardiacosFetales']},
+      {'label': 'Expulsión de placenta', 'value': gynecoObstetricMap['expulsionPlacenta']},
+      {'label': 'Hora', 'value': gynecoObstetricMap['hora']},
     ];
 
     return _buildSectionCard(
-      title: 'Gineco-Obstétrica',
+      title: 'Urgencias Gineco-Obstétricas',
       icon: Icons.pregnant_woman,
       color: Colors.pink,
       child: _buildTwoColumnDetails(details),
@@ -489,14 +504,60 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (attentionNegativeMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Motivo', 'value': attentionNegativeMap['reason']},
-      {'label': 'Observaciones', 'value': attentionNegativeMap['observations']},
-      {'label': 'Fecha', 'value': attentionNegativeMap['date']},
-      {'label': 'Hora', 'value': attentionNegativeMap['time']},
+      {
+        'label': 'Firma paciente',
+        'value': (() {
+          try {
+            final signatureData = attentionNegativeMap['patientSignature'];
+            if (signatureData != null && signatureData.toString().isNotEmpty) {
+              // Verificar que los datos base64 sean válidos
+              final decodedBytes = base64Decode(signatureData.toString());
+              if (decodedBytes.isNotEmpty) {
+                return Image.memory(
+                  decodedBytes,
+                  height: 60,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                );
+              }
+            }
+            return const Text('No registrada');
+          } catch (e) {
+            // Si hay error decodificando base64, mostrar mensaje de error
+            return const Text('Firma corrupta');
+          }
+        })(),
+        'isSignature': true,
+      },
+      {
+        'label': 'Firma Testigo',
+        'value': (() {
+          try {
+            final signatureData = attentionNegativeMap['witnessSignature'];
+            if (signatureData != null && signatureData.toString().isNotEmpty) {
+              // Verificar que los datos base64 sean válidos
+              final decodedBytes = base64Decode(signatureData.toString());
+              if (decodedBytes.isNotEmpty) {
+                return Image.memory(
+                  decodedBytes,
+                  height: 60,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                );
+              }
+            }
+            return const Text('No registrada');
+          } catch (e) {
+            // Si hay error decodificando base64, mostrar mensaje de error
+            return const Text('Firma corrupta');
+          }
+        })(),
+        'isSignature': true,
+      },
     ];
 
     return _buildSectionCard(
-      title: 'Atención Negativa',
+      title: 'Negativa de atención',
       icon: Icons.cancel,
       color: Colors.red,
       child: _buildTwoColumnDetails(details),
@@ -512,15 +573,23 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (pathologicalHistoryMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Enfermedades previas', 'value': pathologicalHistoryMap['previous_illnesses']},
-      {'label': 'Alergias', 'value': pathologicalHistoryMap['allergies']},
-      {'label': 'Cirugías previas', 'value': pathologicalHistoryMap['previousSurgeries']},
-      {'label': 'Hospitalizaciones', 'value': pathologicalHistoryMap['hospitalizations']},
-      {'label': 'Transfusiones', 'value': pathologicalHistoryMap['transfusions']},
+      {'label': 'Respiratoria', 'value': pathologicalHistoryMap['respiratoria'] == true ? 'Sí' : 'No'},
+      {'label': 'Emocional', 'value': pathologicalHistoryMap['emocional'] == true ? 'Sí' : 'No'},
+      {'label': 'Traumática', 'value': pathologicalHistoryMap['traumatica'] == true ? 'Sí' : 'No'},
+      {'label': 'Cardiovascular', 'value': pathologicalHistoryMap['cardiovascular'] == true ? 'Sí' : 'No'},
+      {'label': 'Neurológica', 'value': pathologicalHistoryMap['neurologica'] == true ? 'Sí' : 'No'},
+      {'label': 'Alérgico', 'value': pathologicalHistoryMap['alergico'] == true ? 'Sí' : 'No'},
+      {
+        'label': 'Otro',
+        'value': pathologicalHistoryMap['otro'] == true
+            ? (pathologicalHistoryMap['otherDescription'] ?? '')
+            : 'No'
+      },
+      {'label': 'Metabólica', 'value': pathologicalHistoryMap['metabolica'] == true ? 'Sí' : 'No'},
     ];
 
     return _buildSectionCard(
-      title: 'Historia Patológica',
+      title: 'Antecedentes Patológicos',
       icon: Icons.history,
       color: Colors.brown,
       child: _buildTwoColumnDetails(details),
@@ -536,16 +605,31 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (clinicalHistoryMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Alergias', 'value': clinicalHistoryMap['allergies']},
-      {'label': 'Medicamentos', 'value': clinicalHistoryMap['medications']},
-      {'label': 'Enfermedades previas', 'value': clinicalHistoryMap['previousIllnesses']},
-      {'label': 'Síntomas actuales', 'value': clinicalHistoryMap['currentSymptoms']},
-      {'label': 'Dolor', 'value': clinicalHistoryMap['pain']},
-      {'label': 'Escala de dolor', 'value': clinicalHistoryMap['painScale']},
+      ...[
+        if (clinicalHistoryMap['atropellado'] == true) {'label': 'Atropellado', 'value': 'Sí'},
+        if (clinicalHistoryMap['lxPorCaida'] == true) {'label': 'Lx por caída', 'value': 'Sí'},
+        if (clinicalHistoryMap['intoxicacion'] == true) {'label': 'Intoxicación', 'value': 'Sí'},
+        if (clinicalHistoryMap['amputacion'] == true) {'label': 'Amputación', 'value': 'Sí'},
+        if (clinicalHistoryMap['choque'] == true) {'label': 'Choque', 'value': 'Sí'},
+        if (clinicalHistoryMap['agresion'] == true) {'label': 'Agresión', 'value': 'Sí'},
+        if (clinicalHistoryMap['hpaf'] == true) {'label': 'HPAF', 'value': 'Sí'},
+        if (clinicalHistoryMap['hpab'] == true) {'label': 'HPAB', 'value': 'Sí'},
+        if (clinicalHistoryMap['volcadura'] == true) {'label': 'Volcadura', 'value': 'Sí'},
+        if (clinicalHistoryMap['quemadura'] == true) {'label': 'Quemadura', 'value': 'Sí'},
+      ],
+      {
+        'label': 'Otro tipo',
+        'value': clinicalHistoryMap['otroTipo'] == true
+            ? (clinicalHistoryMap['otherTypeDescription'] ?? '')
+            : 'No'
+      },
+      {'label': 'Agente causal', 'value': clinicalHistoryMap['agenteCausal'] ?? ''},
+      {'label': 'Cinemática', 'value': clinicalHistoryMap['cinematica'] ?? ''},
+      {'label': 'Medida de Seguridad', 'value': clinicalHistoryMap['medidaSeguridad'] ?? ''},
     ];
 
     return _buildSectionCard(
-      title: 'Historia Clínica',
+      title: 'Antecedentes Clínicos',
       icon: Icons.medical_services,
       color: Colors.teal,
       child: _buildTwoColumnDetails(details),
@@ -561,22 +645,35 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (physicalExamMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Signos vitales', 'value': physicalExamMap['vitalSigns']},
-      {'label': 'Presión arterial', 'value': physicalExamMap['bloodPressure']},
-      {'label': 'Frecuencia cardíaca', 'value': physicalExamMap['heartRate']},
-      {'label': 'Frecuencia respiratoria', 'value': physicalExamMap['respiratoryRate']},
-      {'label': 'Temperatura', 'value': physicalExamMap['temperature']},
-      {'label': 'Saturación de oxígeno', 'value': physicalExamMap['oxygenSaturation']},
-      {'label': 'Cabeza', 'value': physicalExamMap['head']},
-      {'label': 'Cuello', 'value': physicalExamMap['neck']},
-      {'label': 'Tórax', 'value': physicalExamMap['thorax']},
-      {'label': 'Abdomen', 'value': physicalExamMap['abdomen']},
-      {'label': 'Extremidades', 'value': physicalExamMap['extremities']},
-      {'label': 'Neurológico', 'value': physicalExamMap['neurological']},
+      for (final vitalSign in [
+        {'label': 'T/A', 'key': 'T/A'},
+        {'label': 'FC', 'key': 'FC'},
+        {'label': 'FR', 'key': 'FR'},
+        {'label': 'Temp.', 'key': 'Temp.'},
+        {'label': 'Sat. O2', 'key': 'Sat. O2'},
+        {'label': 'LLC', 'key': 'LLC'},
+        {'label': 'Glu', 'key': 'Glu'},
+        {'label': 'Glasgow', 'key': 'Glasgow'},
+      ])
+        {
+          'label': vitalSign['label'],
+          'value': (() {
+            // Si hay columnas de tiempo, mostrar los valores por hora
+            if (physicalExamMap['timeColumns'] != null && physicalExamMap[vitalSign['key']] != null) {
+              final timeColumns = List<String>.from(physicalExamMap['timeColumns']);
+              final values = Map<String, dynamic>.from(physicalExamMap[vitalSign['key']]);
+              return timeColumns
+                  .map((col) => '${col}: ${values[col] ?? ''}')
+                  .join('\n');
+            }
+            // Si no, mostrar el valor directo (por compatibilidad)
+            return physicalExamMap[vitalSign['key']];
+          })(),
+        },
     ];
 
     return _buildSectionCard(
-      title: 'Examen Físico',
+      title: 'Exploración Física',
       icon: Icons.health_and_safety,
       color: Colors.cyan,
       child: _buildTwoColumnDetails(details),
@@ -593,8 +690,17 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
 
     final details = [
       {'label': 'Prioridad', 'value': priorityJustificationMap['priority']},
-      {'label': 'Justificación', 'value': priorityJustificationMap['justification']},
-      {'label': 'Criterios', 'value': priorityJustificationMap['criteria']},
+      {'label': 'Pupilas', 'value': priorityJustificationMap['pupils']},
+      {'label': 'Color piel', 'value': priorityJustificationMap['skinColor']},
+      {'label': 'Piel', 'value': priorityJustificationMap['skin']},
+      {'label': 'Temperatura', 'value': priorityJustificationMap['temperature']},
+      {
+        'label': 'Influenciado por',
+        'value': (priorityJustificationMap['influence'] == 'Otro' &&
+                  (priorityJustificationMap['especifique'] != null && priorityJustificationMap['especifique'].toString().trim().isNotEmpty))
+            ? priorityJustificationMap['especifique']
+            : priorityJustificationMap['influence'],
+      },
     ];
 
     return _buildSectionCard(
@@ -613,18 +719,346 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     }
     if (injuryLocationMap.isEmpty) return const SizedBox.shrink();
 
-    final details = [
-      {'label': 'Ubicación', 'value': injuryLocationMap['location']},
-      {'label': 'Tipo de lesión', 'value': injuryLocationMap['injuryType']},
-      {'label': 'Gravedad', 'value': injuryLocationMap['severity']},
-      {'label': 'Descripción', 'value': injuryLocationMap['description']},
-    ];
+    List<Map<String, dynamic>> details = [];
+    List<DrawnInjuryDisplay> drawnInjuries = [];
+
+    // Procesar lesiones dibujadas si existen
+    if (injuryLocationMap['drawnInjuries'] != null) {
+      final List<dynamic> injuriesData = injuryLocationMap['drawnInjuries'];
+      
+      if (injuriesData.isNotEmpty) {
+        // Convertir datos a objetos DrawnInjuryDisplay
+        drawnInjuries = injuriesData.map((injury) {
+          final List<dynamic> pointsData = injury['points'];
+          final points = pointsData.map((point) => Offset(point['dx'], point['dy'])).toList();
+          final injuryType = injury['injuryType'] as int;
+          
+          return DrawnInjuryDisplay(
+            points: points,
+            injuryType: injuryType,
+          );
+        }).toList();
+        
+        // Agrupar lesiones por tipo para mostrar resumen
+        Map<int, int> injuriesByType = {};
+        for (var injury in drawnInjuries) {
+          injuriesByType[injury.injuryType] = (injuriesByType[injury.injuryType] ?? 0) + 1;
+        }
+        
+        // Crear detalles para cada tipo de lesión
+        injuriesByType.forEach((typeIndex, count) {
+          final typeName = _getInjuryTypeName(typeIndex);
+          details.add({
+            'label': typeName,
+            'value': '$count ${count == 1 ? 'lesión marcada' : 'lesiones marcadas'}',
+          });
+        });
+        
+        // Mostrar total de lesiones
+        details.add({
+          'label': 'Total de lesiones',
+          'value': '${drawnInjuries.length} ${drawnInjuries.length == 1 ? 'lesión' : 'lesiones'} dibujadas',
+        });
+      }
+    }
+
+    // Mostrar notas adicionales
+    if (injuryLocationMap['notes'] != null && injuryLocationMap['notes'].toString().trim().isNotEmpty) {
+      details.add({
+        'label': 'Notas adicionales',
+        'value': injuryLocationMap['notes'],
+        'isFullWidth': true,
+      });
+    }
 
     return _buildSectionCard(
       title: 'Localización de Lesiones',
-      icon: Icons.location_on,
+      icon: Icons.my_location,
       color: Colors.red,
-      child: _buildTwoColumnDetails(details),
+      child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Layout horizontal: Lista de lesiones + Mapa visual
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Panel izquierdo - Lista de lesiones
+                  Container(
+                    width: 250,
+                    margin: const EdgeInsets.only(right: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Lesiones registradas:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Lista de lesiones
+                        if (drawnInjuries.isNotEmpty) ...[
+                          ...drawnInjuries.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final injury = entry.value;
+                            final typeName = _getInjuryTypeName(injury.injuryType);
+                            final color = _getInjuryTypeColor(injury.injuryType);
+                            final number = injury.injuryType + 1;
+                            
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: color.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Número de la lesión
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '$number',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  
+                                  // Información de la lesión
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          typeName,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: color.withOpacity(0.8),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${injury.points.length} ${injury.points.length == 1 ? 'punto' : 'puntos'} marcados',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Resumen
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Total: ${drawnInjuries.length} ${drawnInjuries.length == 1 ? 'lesión' : 'lesiones'}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'No se han registrado lesiones',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  
+                  // Panel derecho - Mapa visual del cuerpo humano
+                  Expanded(
+                    child: Container(
+                      height: 400,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: InjuryLocationDisplayWidget(
+                          drawnInjuries: drawnInjuries,
+                          originalImageSize: injuryLocationMap['originalImageSize'] != null
+                              ? Size(
+                                  injuryLocationMap['originalImageSize']['width']?.toDouble() ?? 400.0,
+                                  injuryLocationMap['originalImageSize']['height']?.toDouble() ?? 600.0,
+                                )
+                              : null, // Para registros antiguos sin esta información
+                          originalImageRect: injuryLocationMap['originalImageRect'] != null
+                              ? Rect.fromLTWH(
+                                  injuryLocationMap['originalImageRect']['left']?.toDouble() ?? 0.0,
+                                  injuryLocationMap['originalImageRect']['top']?.toDouble() ?? 0.0,
+                                  injuryLocationMap['originalImageRect']['width']?.toDouble() ?? 400.0,
+                                  injuryLocationMap['originalImageRect']['height']?.toDouble() ?? 600.0,
+                                )
+                              : null, // Para registros antiguos sin esta información
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Leyenda de tipos de lesiones (ahora más compacta)
+              if (drawnInjuries.isNotEmpty) ...[
+                const Text(
+                  'Leyenda de tipos:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 6,
+                  children: _buildInjuryLegend(drawnInjuries),
+                ),
+                const SizedBox(height: 16),
+              ],
+              
+              // Detalles en texto
+              ...details.map((detail) {
+                if (detail['isFullWidth'] == true) {
+                  return _buildFullWidthDetail(detail['label'], detail['value']);
+                }
+                return _buildDetailRow(detail['label'], detail['value']);
+              }).toList(),
+            ],
+          ),
+    );
+  }
+
+  // Método auxiliar para obtener el nombre del tipo de lesión
+  String _getInjuryTypeName(int typeIndex) {
+    const injuryTypes = [
+      'Hemorragia',           // 0
+      'Herida',               // 1
+      'Contusión',            // 2
+      'Fractura',             // 3
+      'Luxación/Esguince',    // 4
+      'Objeto extraño',       // 5
+      'Quemadura',            // 6
+      'Picadura/Mordedura',   // 7
+      'Edema/Hematoma',       // 8
+      'Otro',                 // 9
+    ];
+    
+    if (typeIndex >= 0 && typeIndex < injuryTypes.length) {
+      return injuryTypes[typeIndex];
+    }
+    return 'Tipo desconocido';
+  }
+
+  // Método auxiliar para mostrar detalles de ancho completo (como notas)
+  Widget _buildFullWidthDetail(String label, dynamic value) {
+    if (value == null || value.toString().trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label:',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Text(
+              value.toString(),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -637,14 +1071,17 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (receivingUnitMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Hospital', 'value': receivingUnitMap['hospital']},
-      {'label': 'Servicio', 'value': receivingUnitMap['service']},
-      {'label': 'Médico receptor', 'value': receivingUnitMap['receivingDoctor']},
-      {'label': 'Hora de entrega', 'value': receivingUnitMap['deliveryTime']},
+      {'label': 'Lugar de origen', 'value': receivingUnitMap['originPlace']},
+      {'label': 'Lugar de consulta', 'value': receivingUnitMap['consultPlace']},
+      {'label': 'Lugar de destino', 'value': receivingUnitMap['destinationPlace']},
+      {'label': 'Numero de ambulancia', 'value': receivingUnitMap['ambulanceNumber']},
+      {'label': 'Placa', 'value': receivingUnitMap['plate']},
+      {'label': 'Personal', 'value': receivingUnitMap['personal']},
+      {'label': 'Doctor responsable', 'value': receivingUnitMap['responsibleDoctor']},
     ];
 
     return _buildSectionCard(
-      title: 'Unidad Receptora',
+      title: 'Unidad Medica que Recibe',
       icon: Icons.local_hospital,
       color: Colors.indigo,
       child: _buildTwoColumnDetails(details),
@@ -660,10 +1097,32 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (patientReceptionMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Estado al ingreso', 'value': patientReceptionMap['admissionStatus']},
-      {'label': 'Signos vitales al ingreso', 'value': patientReceptionMap['admissionVitals']},
-      {'label': 'Diagnóstico inicial', 'value': patientReceptionMap['initialDiagnosis']},
-      {'label': 'Tratamiento inicial', 'value': patientReceptionMap['initialTreatment']},
+      {'label': 'Medico que recibe', 'value': patientReceptionMap['receivingDoctor']},
+      {
+        'label': 'Firma del medico',
+        'value': (() {
+          try {
+            final signatureData = patientReceptionMap['doctorSignature'];
+            if (signatureData != null && signatureData.toString().isNotEmpty) {
+              // Verificar que los datos base64 sean válidos
+              final decodedBytes = base64Decode(signatureData.toString());
+              if (decodedBytes.isNotEmpty) {
+                return Image.memory(
+                  decodedBytes,
+                  height: 60,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                );
+              }
+            }
+            return const Text('No registrada');
+          } catch (e) {
+            // Si hay error decodificando base64, mostrar mensaje de error
+            return const Text('Firma corrupta');
+          }
+        })(),
+        'isSignature': true,
+      },
     ];
 
     return _buildSectionCard(
@@ -726,7 +1185,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     // Filtrar detalles que tienen valor
     final detailsWithData = details.where((detail) => 
       detail['value'] != null && 
-      detail['value'].toString().trim().isNotEmpty
+      (detail['value'] is Widget || (detail['value'] is String && detail['value'].toString().trim().isNotEmpty))
     ).toList();
     
     // Si no hay datos, mostrar mensaje
@@ -748,31 +1207,41 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     
     List<Widget> rows = [];
     
-    for (int i = 0; i < details.length; i += 2) {
-      Widget leftColumn = _buildDetailRow(details[i]['label'], details[i]['value']);
-      Widget? rightColumn;
+    for (int i = 0; i < details.length; i++) {
+      final detail = details[i];
+      final isFullWidth = detail['isFullWidth'] == true || detail['value'] is Widget;
       
-      if (i + 1 < details.length) {
-        rightColumn = _buildDetailRow(details[i + 1]['label'], details[i + 1]['value']);
+      if (isFullWidth) {
+        // Para campos que necesitan ancho completo (como firmas)
+        rows.add(_buildDetailRow(detail['label'], detail['value']));
+      } else {
+        // Para campos normales, intentar poner dos en una fila
+        Widget leftColumn = _buildDetailRow(detail['label'], detail['value']);
+        Widget? rightColumn;
+        
+        if (i + 1 < details.length && details[i + 1]['isFullWidth'] != true && details[i + 1]['value'] is! Widget) {
+          rightColumn = _buildDetailRow(details[i + 1]['label'], details[i + 1]['value']);
+          i++; // Saltar el siguiente elemento ya que lo usamos aquí
+        }
+        
+        rows.add(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: leftColumn),
+              const SizedBox(width: 16),
+              Expanded(child: rightColumn ?? const SizedBox()),
+            ],
+          ),
+        );
       }
-      
-      rows.add(
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: leftColumn),
-            const SizedBox(width: 16),
-            Expanded(child: rightColumn ?? const SizedBox()),
-          ],
-        ),
-      );
     }
     
     return Column(children: rows);
   }
 
   Widget _buildDetailRow(String label, dynamic value) {
-    if (value == null || value.toString().trim().isEmpty) {
+    if (value == null || (value is String && value.trim().isEmpty)) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
@@ -820,13 +1289,15 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
           ),
           Expanded(
             flex: 3,
-            child: Text(
-              value.toString(),
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
-            ),
+            child: value is Widget 
+                ? value 
+                : Text(
+                    value.toString(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -915,5 +1386,80 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         backgroundColor: Colors.blue,
       ),
     );
+  }
+
+  // Construir leyenda visual de tipos de lesiones
+  List<Widget> _buildInjuryLegend(List<DrawnInjuryDisplay> injuries) {
+    // Obtener tipos únicos
+    Set<int> uniqueTypes = injuries.map((injury) => injury.injuryType).toSet();
+    
+    return uniqueTypes.map((typeIndex) {
+      final typeName = _getInjuryTypeName(typeIndex);
+      final color = _getInjuryTypeColor(typeIndex);
+      final number = typeIndex + 1; // Los números van de 1-10
+      
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+              child: Center(
+                child: Text(
+                  '$number',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              typeName,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: color.withOpacity(0.8),
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  // Obtener color del tipo de lesión
+  Color _getInjuryTypeColor(int typeIndex) {
+    const colors = [
+      Colors.red,           // Hemorragia
+      Color(0xFF8D6E63),   // Herida (brown)
+      Colors.purple,        // Contusión
+      Colors.orange,        // Fractura
+      Colors.yellow,        // Luxación/Esguince
+      Colors.pink,          // Objeto extraño
+      Colors.deepOrange,    // Quemadura
+      Colors.green,         // Picadura/Mordedura
+      Colors.indigo,        // Edema/Hematoma
+      Colors.grey,          // Otro
+    ];
+    
+    if (typeIndex >= 0 && typeIndex < colors.length) {
+      return colors[typeIndex];
+    }
+    return Colors.grey;
   }
 } 
