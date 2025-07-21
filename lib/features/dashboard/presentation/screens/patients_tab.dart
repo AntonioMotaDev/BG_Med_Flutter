@@ -32,20 +32,16 @@ class _PatientsTabState extends ConsumerState<PatientsTab> {
     final patientsNotifier = ref.read(patientsNotifierProvider.notifier);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(
           'Pacientes',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryBlue,
         elevation: 0,
         actions: [
           IconButton(
             icon: Icon(
               _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
-              color: _showFilters ? Colors.yellow : Colors.white,
             ),
             onPressed: () {
               setState(() {
@@ -67,7 +63,6 @@ class _PatientsTabState extends ConsumerState<PatientsTab> {
         children: [
           // Barra de búsqueda
           Container(
-            color: Colors.white,
             padding: const EdgeInsets.all(16),
             child: PatientsSearchBar(
               controller: _searchController,
@@ -88,7 +83,6 @@ class _PatientsTabState extends ConsumerState<PatientsTab> {
           // Barra de filtros (mostrar/ocultar)
           if (_showFilters)
             Container(
-              color: Colors.white,
               child: PatientsFilterBar(
                 currentFilters: patientsState.filters,
                 onFilterChanged: (filters) {
@@ -110,22 +104,21 @@ class _PatientsTabState extends ConsumerState<PatientsTab> {
           // Estadísticas rápidas
           if (patientsState.status == PatientsStatus.success)
             Container(
-              color: Colors.white,
+              color: AppTheme.primaryBlue,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   Icon(
                     Icons.people,
                     size: 16,
-                    color: AppTheme.primaryBlue,
+                    color: Colors.white,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '${patientsState.patients.length} paciente(s)',
                     style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
                       fontWeight: FontWeight.w500,
+                      color: Colors.white,
                     ),
                   ),
                   if (patientsState.isSearching || patientsState.filters.isNotEmpty) ...[

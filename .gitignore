@@ -57,8 +57,6 @@ google-services.json
 xcuserdata/
 xcuserdata/
 
-
-
 # Archivos generados por Flutter
 .dart_tool/
 .packages
@@ -100,6 +98,9 @@ local.properties
 .env.*
 .env.local
 
+# Imagenes de ejemplo 
+/assets/images/personal
+
 # Archivos generados por Flutter Web
 /web/**/*.map
 /web/**/*.js
@@ -109,6 +110,7 @@ local.properties
 *.tmproj
 *.userprefs
 *.orig
+NotasDeLaReunion.md
 
 # macOS
 .DS_Store

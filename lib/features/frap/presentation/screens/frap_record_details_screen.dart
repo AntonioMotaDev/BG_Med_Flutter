@@ -5,6 +5,8 @@ import 'package:bg_med/features/frap/presentation/providers/frap_unified_provide
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:bg_med/features/frap/presentation/widgets/injury_location_display_widget.dart';
+import 'dart:typed_data'; // Added for Uint8List
+import 'package:bg_med/features/frap/presentation/screens/pdf_preview_screen.dart'; // Added for PdfPreviewScreen
 
 class FrapRecordDetailsScreen extends ConsumerStatefulWidget {
   final UnifiedFrapRecord record;
@@ -41,26 +43,156 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     });
   }
 
+  // Método auxiliar para decodificar firmas base64 correctamente
+  Uint8List _getImageBytesFromBase64(String base64Data) {
+    try {
+      // Remover el prefijo 'data:image/png;base64,' si existe
+      final base64String = base64Data.split(',').last;
+      return base64Decode(base64String);
+    } catch (e) {
+      return Uint8List(0);
+    }
+  }
+
+  // Método para mostrar firma en tamaño grande
+  void _showSignatureFullScreen(String title, String base64Data, {String? doctorName}) {
+    try {
+      final decodedBytes = _getImageBytesFromBase64(base64Data);
+      if (decodedBytes.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: MediaQuery.of(context).size.height * 0.8,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            // title,
+                            '',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close, color: Colors.black),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Contenido de la firma
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: InteractiveViewer(
+                          child: Image.memory(
+                            decodedBytes,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const Center(
+                              child: Text(
+                                'Error al cargar la firma',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Footer con información
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(16),
+                        bottomRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            doctorName != null ? 'Médico: $doctorName' : 'Medico que recibe el paciente',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al mostrar la firma: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
           'Registro de Atencion Prehospitalaria',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: widget.record.isLocal ? AppTheme.primaryBlue : AppTheme.primaryGreen,
-        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => _editRecord(),
-            color: Colors.white,
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               switch (value) {
                 case 'pdf':
@@ -178,10 +310,9 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
-            colors: [
-              widget.record.isLocal ? AppTheme.primaryBlue : AppTheme.primaryGreen,
-              (widget.record.isLocal ? AppTheme.primaryBlue : AppTheme.primaryGreen).withOpacity(0.8),
-            ],
+            colors: widget.record.patientGender.toLowerCase() == 'femenino'
+                ? [AppTheme.primaryGreen, AppTheme.primaryGreen]
+                : [AppTheme.primaryBlue, AppTheme.primaryBlue],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -510,14 +641,22 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
           try {
             final signatureData = attentionNegativeMap['patientSignature'];
             if (signatureData != null && signatureData.toString().isNotEmpty) {
-              // Verificar que los datos base64 sean válidos
-              final decodedBytes = base64Decode(signatureData.toString());
+              final decodedBytes = _getImageBytesFromBase64(signatureData.toString());
               if (decodedBytes.isNotEmpty) {
-                return Image.memory(
-                  decodedBytes,
-                  height: 60,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                return GestureDetector(
+                  onTap: () => _showSignatureFullScreen('Firma del Paciente', signatureData.toString()),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Image.memory(
+                      decodedBytes,
+                      height: 60,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                    ),
+                  ),
                 );
               }
             }
@@ -535,14 +674,22 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
           try {
             final signatureData = attentionNegativeMap['witnessSignature'];
             if (signatureData != null && signatureData.toString().isNotEmpty) {
-              // Verificar que los datos base64 sean válidos
-              final decodedBytes = base64Decode(signatureData.toString());
+              final decodedBytes = _getImageBytesFromBase64(signatureData.toString());
               if (decodedBytes.isNotEmpty) {
-                return Image.memory(
-                  decodedBytes,
-                  height: 60,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                return GestureDetector(
+                  onTap: () => _showSignatureFullScreen('Firma del Testigo', signatureData.toString()),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Image.memory(
+                      decodedBytes,
+                      height: 60,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                    ),
+                  ),
                 );
               }
             }
@@ -1104,14 +1251,23 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
           try {
             final signatureData = patientReceptionMap['doctorSignature'];
             if (signatureData != null && signatureData.toString().isNotEmpty) {
-              // Verificar que los datos base64 sean válidos
-              final decodedBytes = base64Decode(signatureData.toString());
+              final decodedBytes = _getImageBytesFromBase64(signatureData.toString());
               if (decodedBytes.isNotEmpty) {
-                return Image.memory(
-                  decodedBytes,
-                  height: 60,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                final doctorName = patientReceptionMap['receivingDoctor'] ?? '';
+                return GestureDetector(
+                  onTap: () => _showSignatureFullScreen('Firma del Médico', signatureData.toString(), doctorName: doctorName),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Image.memory(
+                      decodedBytes,
+                      height: 60,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
+                    ),
+                  ),
                 );
               }
             }
@@ -1314,10 +1470,10 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
   }
 
   void _generatePDF() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Generando PDF para ${widget.record.patientName}...'),
-        backgroundColor: Colors.blue,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfPreviewScreen(record: widget.record),
       ),
     );
   }

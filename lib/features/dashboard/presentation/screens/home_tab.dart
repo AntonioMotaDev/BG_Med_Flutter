@@ -17,12 +17,9 @@ class HomeTab extends ConsumerWidget {
     final user = authState.user;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Inicio'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
         elevation: 0,
         actions: const [
           ConnectivityIndicator(),

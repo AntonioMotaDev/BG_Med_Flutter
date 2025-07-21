@@ -6,7 +6,7 @@ class AppTheme {
 //   static const Color primaryGreen = Color(0xFF52C41A);     // Verde salud
   
   // colores de BG Med
-  static const Color primaryBlue = Color(0xFF008080);      // Azul teal profesional
+  static const Color primaryBlue = Color(0xFF009EBD);      // Azul teal profesional
   static const Color primaryGreen = Color(0xFF7E84F2);     // lilac salud
   static const Color accentRed = Color(0xFFE53E3E);        // Rojo emergencia
   static const Color accentOrange = Color(0xFFFD7F28);     // Naranja alerta

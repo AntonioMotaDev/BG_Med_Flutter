@@ -51,8 +51,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             _currentIndex = index;
           });
         },
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),

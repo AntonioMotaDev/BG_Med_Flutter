@@ -32,7 +32,6 @@ class _PatientsManagementScreenState extends ConsumerState<PatientsManagementScr
     final patientsNotifier = ref.read(patientsNotifierProvider.notifier);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppTheme.primaryBlue,

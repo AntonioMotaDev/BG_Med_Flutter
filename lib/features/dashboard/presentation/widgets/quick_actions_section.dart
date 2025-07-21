@@ -19,7 +19,6 @@ class QuickActionsSection extends ConsumerWidget {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
           ),
         ),
         const SizedBox(height: 16),
@@ -115,9 +114,9 @@ class QuickActionsSection extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withOpacity(0.2),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: Colors.grey[100]!),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,3 +1,4 @@
+import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/core/models/frap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,15 +18,13 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(
           'Agenda',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white,
         elevation: 0,
-        foregroundColor: Colors.black87,
+        foregroundColor: AppTheme.primaryBlue,
         actions: [
           IconButton(
             icon: const Icon(Icons.today),
@@ -42,7 +41,6 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
         children: [
           // Calendar Widget
           Container(
-            color: Colors.white,
             child: _buildCalendar(),
           ),
           
@@ -141,7 +139,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
                         day,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: AppTheme.primaryBlue,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -157,82 +155,142 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
     );
   }
 
+  /// Calendario mejorado, visualmente atractivo y compatible con tema claro/oscuro
   Widget _buildCalendarDays() {
     final daysInMonth = DateTime(_focusedDate.year, _focusedDate.month + 1, 0).day;
     final firstDayOfMonth = DateTime(_focusedDate.year, _focusedDate.month, 1);
-    final firstWeekday = firstDayOfMonth.weekday % 7;
-    
-    List<Widget> dayWidgets = [];
-    
-    // Empty cells for days before the first day of the month
-    for (int i = 0; i < firstWeekday; i++) {
-      dayWidgets.add(const SizedBox(width: 40, height: 40));
+    final firstWeekday = (firstDayOfMonth.weekday + 6) % 7; // Lunes=0, Domingo=6
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    Color getSelectedColor() => isDark ? AppTheme.primaryBlue.withOpacity(0.85) : AppTheme.primaryBlue;
+    Color getTodayBgColor() => isDark ? AppTheme.primaryBlue.withOpacity(0.18) : AppTheme.primaryBlue.withOpacity(0.12);
+    Color getDayTextColor({required bool isSelected, required bool isToday}) {
+      if (isSelected) return Colors.white;
+      if (isToday) return AppTheme.primaryBlue;
+      return isDark ? Colors.white : Colors.black87;
     }
-    
-    // Days of the month
+    Color getBorderColor({required bool isSelected, required bool hasActivity}) {
+      if (isSelected) return getSelectedColor();
+      if (hasActivity) return AppTheme.primaryBlue.withOpacity(isDark ? 0.9 : 0.7);
+      return isDark ? Colors.grey[700]! : Colors.grey[300]!;
+    }
+    Color getDotColor({required bool isSelected}) =>
+        isSelected ? Colors.white : AppTheme.primaryBlue;
+
+    List<Widget> dayWidgets = [];
+
+    // Celdas vacías antes del primer día del mes
+    for (int i = 0; i < firstWeekday; i++) {
+      dayWidgets.add(const SizedBox(width: 48, height: 48));
+    }
+
+    // Días del mes
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_focusedDate.year, _focusedDate.month, day);
       final isSelected = _isSameDay(date, _selectedDate);
       final isToday = _isSameDay(date, DateTime.now());
       final hasActivity = _hasActivityOnDate(date);
-      
+
       dayWidgets.add(
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedDate = date;
-            });
-          },
-          child: Container(
-            width: 40,
-            height: 40,
-            margin: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Colors.blue[600]
-                  : isToday
-                      ? Colors.blue[100]
-                      : null,
-              borderRadius: BorderRadius.circular(8),
-              border: hasActivity
-                  ? Border.all(color: Colors.orange, width: 2)
-                  : null,
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? getSelectedColor()
+                : isToday
+                    ? getTodayBgColor()
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: getBorderColor(isSelected: isSelected, hasActivity: hasActivity),
+              width: isSelected ? 2.5 : hasActivity ? 2 : 1,
             ),
-            child: Center(
-              child: Text(
-                day.toString(),
-                style: TextStyle(
-                  color: isSelected
-                      ? Colors.white
-                      : isToday
-                          ? Colors.blue[600]
-                          : Colors.black87,
-                  fontWeight: isSelected || isToday
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: getSelectedColor().withOpacity(0.18),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                setState(() {
+                  _selectedDate = date;
+                });
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Text(
+                    day.toString(),
+                    style: TextStyle(
+                      fontWeight: isSelected || isToday
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: getDayTextColor(isSelected: isSelected, isToday: isToday),
+                      fontSize: 18,
+                    ),
+                  ),
+                  if (hasActivity)
+                    Positioned(
+                      bottom: 6,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: getDotColor(isSelected: isSelected),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? theme.scaffoldBackgroundColor : Colors.white,
+                            width: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
         ),
       );
     }
-    
-    // Create rows of 7 days each
+
+    // Completar la última fila con celdas vacías si es necesario
+    int totalCells = dayWidgets.length;
+    int remainder = totalCells % 7;
+    if (remainder != 0) {
+      for (int i = 0; i < 7 - remainder; i++) {
+        dayWidgets.add(const SizedBox(width: 48, height: 48));
+      }
+    }
+
+    // Crear filas de 7 días cada una
     List<Widget> rows = [];
     for (int i = 0; i < dayWidgets.length; i += 7) {
       rows.add(
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: dayWidgets.sublist(
-            i,
-            i + 7 > dayWidgets.length ? dayWidgets.length : i + 7,
-          ),
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: dayWidgets.sublist(i, i + 7),
         ),
       );
     }
-    
-    return Column(children: rows);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+      child: Column(
+        children: rows,
+      ),
+    );
   }
 
   Widget _buildActivitiesList() {
