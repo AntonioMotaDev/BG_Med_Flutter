@@ -6,10 +6,18 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/auth/presentation/screens/auth_wrapper.dart';
 import 'package:bg_med/core/providers/theme_provider.dart';
+import 'package:bg_med/core/providers/connectivity_provider.dart';
 import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/models/patient.dart';
 import 'package:bg_med/core/models/clinical_history.dart';
 import 'package:bg_med/core/models/physical_exam.dart';
+import 'package:bg_med/core/services/duplicate_detection_service.dart';
+import 'package:bg_med/core/services/data_cleanup_service.dart';
+import 'package:bg_med/core/services/frap_local_service.dart';
+import 'package:bg_med/core/services/frap_firestore_service.dart';
+import 'package:bg_med/core/services/validation_service.dart';
+import 'package:bg_med/core/services/search_service.dart';
+import 'package:bg_med/core/services/notification_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -75,4 +83,41 @@ class MyApp extends ConsumerWidget {
       home: const AuthWrapper(),
     );
   }
-} 
+}
+
+// Providers para servicios
+final duplicateDetectionServiceProvider = Provider<DuplicateDetectionService>((ref) {
+  return DuplicateDetectionService();
+});
+
+final dataCleanupServiceProvider = Provider<DataCleanupService>((ref) {
+  final duplicateDetection = ref.watch(duplicateDetectionServiceProvider);
+  final localService = ref.watch(frapLocalServiceProvider);
+  final cloudService = ref.watch(frapFirestoreServiceProvider);
+  
+  return DataCleanupService(
+    duplicateDetection: duplicateDetection,
+    localService: localService,
+    cloudService: cloudService,
+  );
+});
+
+final frapLocalServiceProvider = Provider<FrapLocalService>((ref) {
+  return FrapLocalService();
+});
+
+final frapFirestoreServiceProvider = Provider<FrapFirestoreService>((ref) {
+  return FrapFirestoreService();
+});
+
+final validationServiceProvider = Provider<ValidationService>((ref) {
+  return ValidationService();
+});
+
+final searchServiceProvider = Provider<SearchService>((ref) {
+  return SearchService();
+});
+
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService();
+}); 
