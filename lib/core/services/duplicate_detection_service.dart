@@ -91,9 +91,9 @@ class DuplicateDetectionService {
     final content = [
       record.patient.name,
       record.patient.age.toString(),
-      record.patient.gender,
+      record.patient.sex,
       record.createdAt.toIso8601String(),
-      record.clinicalHistory.allergies.join(','),
+      record.clinicalHistory.allergies,
       record.physicalExam.vitalSigns,
     ].join('|');
     
@@ -104,7 +104,7 @@ class DuplicateDetectionService {
     final patientData = [
       patient.name.toLowerCase().trim(),
       patient.age.toString(),
-      patient.gender,
+      patient.sex,
     ].join('|');
     
     return _hashString(patientData);
@@ -126,12 +126,12 @@ class DuplicateDetectionService {
   bool _arePatientsEquivalent(Patient p1, Patient p2) {
     return p1.name.toLowerCase().trim() == p2.name.toLowerCase().trim() &&
            p1.age == p2.age &&
-           p1.gender == p2.gender;
+           p1.sex == p2.sex;
   }
   
   bool _areSectionsEquivalent(Frap f1, Frap f2) {
     // Comparar secciones principales
-    return f1.clinicalHistory.allergies.join(',') == f2.clinicalHistory.allergies.join(',') &&
+    return f1.clinicalHistory.allergies == f2.clinicalHistory.allergies &&
            f1.physicalExam.vitalSigns == f2.physicalExam.vitalSigns;
   }
   
@@ -177,19 +177,16 @@ class DuplicateDetectionService {
   
   double _calculateSimilarity(Frap r1, Frap r2) {
     double similarity = 0.0;
-    int factors = 0;
     
     // Similitud de paciente (40% del peso)
     if (r1.patient.name.toLowerCase().trim() == r2.patient.name.toLowerCase().trim()) {
       similarity += 0.4;
     }
-    factors++;
     
     // Similitud de edad (20% del peso)
     if (r1.patient.age == r2.patient.age) {
       similarity += 0.2;
     }
-    factors++;
     
     // Similitud de tiempo (30% del peso)
     final timeDiff = r1.createdAt.difference(r2.createdAt).abs();
@@ -198,13 +195,11 @@ class DuplicateDetectionService {
     } else if (timeDiff.inMinutes <= 30) {
       similarity += 0.15;
     }
-    factors++;
     
     // Similitud de contenido (10% del peso)
-    if (r1.clinicalHistory.allergies.join(',') == r2.clinicalHistory.allergies.join(',')) {
+    if (r1.clinicalHistory.allergies == r2.clinicalHistory.allergies) {
       similarity += 0.1;
     }
-    factors++;
     
     return similarity;
   }

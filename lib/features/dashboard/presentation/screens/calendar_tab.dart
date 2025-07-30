@@ -297,22 +297,27 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
     return ValueListenableBuilder(
       valueListenable: Hive.box<Frap>('fraps').listenable(),
       builder: (context, Box<Frap> box, _) {
-        final activitiesOnDate = box.values
-            .where((frap) => _isSameDay(frap.createdAt, _selectedDate))
-            .toList()
-          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        try {
+          final activitiesOnDate = box.values
+              .where((frap) => _isSameDay(frap.createdAt, _selectedDate))
+              .toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-        if (activitiesOnDate.isEmpty) {
+          if (activitiesOnDate.isEmpty) {
+            return _buildEmptyDayState();
+          }
+
+          return ListView.builder(
+            itemCount: activitiesOnDate.length,
+            itemBuilder: (context, index) {
+              final frap = activitiesOnDate[index];
+              return _buildActivityCard(frap);
+            },
+          );
+        } catch (e) {
+          // Si hay error con la caja de Hive, mostrar estado vacío
           return _buildEmptyDayState();
         }
-
-        return ListView.builder(
-          itemCount: activitiesOnDate.length,
-          itemBuilder: (context, index) {
-            final frap = activitiesOnDate[index];
-            return _buildActivityCard(frap);
-          },
-        );
       },
     );
   }

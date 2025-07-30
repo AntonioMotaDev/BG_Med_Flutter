@@ -34,6 +34,10 @@ class ClinicalHistory extends Equatable {
   final String hospitalizations;
   @HiveField(12)
   final String transfusions;
+  @HiveField(13)
+  final String horaUltimoAlimento; // SAMPLE: hora de último alimento
+  @HiveField(14)
+  final String eventosPrevios; // SAMPLE: eventos previos
 
   const ClinicalHistory({
     // Campos existentes
@@ -51,6 +55,8 @@ class ClinicalHistory extends Equatable {
     this.previousSurgeries = '',
     this.hospitalizations = '',
     this.transfusions = '',
+    this.horaUltimoAlimento = '',
+    this.eventosPrevios = '',
   });
 
   // Método copyWith para crear copias con cambios
@@ -68,6 +74,8 @@ class ClinicalHistory extends Equatable {
     String? previousSurgeries,
     String? hospitalizations,
     String? transfusions,
+    String? horaUltimoAlimento,
+    String? eventosPrevios,
   }) {
     return ClinicalHistory(
       allergies: allergies ?? this.allergies,
@@ -83,7 +91,29 @@ class ClinicalHistory extends Equatable {
       previousSurgeries: previousSurgeries ?? this.previousSurgeries,
       hospitalizations: hospitalizations ?? this.hospitalizations,
       transfusions: transfusions ?? this.transfusions,
+      horaUltimoAlimento: horaUltimoAlimento ?? this.horaUltimoAlimento,
+      eventosPrevios: eventosPrevios ?? this.eventosPrevios,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'allergies': allergies,
+      'medications': medications,
+      'previousIllnesses': previousIllnesses,
+      'currentSymptoms': currentSymptoms,
+      'pain': pain,
+      'painScale': painScale,
+      'dosage': dosage,
+      'frequency': frequency,
+      'route': route,
+      'time': time,
+      'previousSurgeries': previousSurgeries,
+      'hospitalizations': hospitalizations,
+      'transfusions': transfusions,
+      'horaUltimoAlimento': horaUltimoAlimento,
+      'eventosPrevios': eventosPrevios,
+    };
   }
 
   @override
@@ -101,5 +131,7 @@ class ClinicalHistory extends Equatable {
         previousSurgeries,
         hospitalizations,
         transfusions,
+        horaUltimoAlimento,
+        eventosPrevios,
       ];
 } 

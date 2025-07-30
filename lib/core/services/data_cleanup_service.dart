@@ -1,270 +1,299 @@
 import 'package:bg_med/core/models/frap.dart';
-import 'package:bg_med/core/services/duplicate_detection_service.dart';
 import 'package:bg_med/core/services/frap_local_service.dart';
 import 'package:bg_med/core/services/frap_firestore_service.dart';
 
 class CleanupResult {
   final bool success;
-  final int recordsRemoved;
-  final int spaceFreed;
+  final String message;
+  final int removedCount;
   final List<String> errors;
   final List<String> warnings;
 
   CleanupResult({
     required this.success,
-    required this.recordsRemoved,
-    required this.spaceFreed,
+    required this.message,
+    required this.removedCount,
     required this.errors,
     required this.warnings,
   });
 }
 
+class DataIntegrityResult {
+  final bool isValid;
+  final String message;
+
+  DataIntegrityResult({
+    required this.isValid,
+    required this.message,
+  });
+}
+
+class CleanupStatistics {
+  final int totalLocalRecords;
+  final int totalCloudRecords;
+  final int duplicateGroups;
+  final int totalDuplicates;
+  final int estimatedSpaceSaved;
+
+  CleanupStatistics({
+    required this.totalLocalRecords,
+    required this.totalCloudRecords,
+    required this.duplicateGroups,
+    required this.totalDuplicates,
+    required this.estimatedSpaceSaved,
+  });
+}
+
 class DataCleanupService {
-  final DuplicateDetectionService _duplicateDetection;
   final FrapLocalService _localService;
   final FrapFirestoreService _cloudService;
 
   DataCleanupService({
-    required DuplicateDetectionService duplicateDetection,
     required FrapLocalService localService,
     required FrapFirestoreService cloudService,
-  }) : _duplicateDetection = duplicateDetection,
-       _localService = localService,
+  }) : _localService = localService,
        _cloudService = cloudService;
 
-  // Eliminar registros locales duplicados de forma segura
   Future<CleanupResult> removeDuplicateLocalRecords() async {
-    final List<String> errors = [];
-    final List<String> warnings = [];
-    int recordsRemoved = 0;
-    int spaceFreed = 0;
-
     try {
-      // 1. Obtener todos los registros locales y de la nube
-      final localRecords = await _localService.getAllFraps();
-      final cloudRecords = await _cloudService.getAllFraps();
-
-      // 2. Detectar duplicados
-      final allRecords = [...localRecords, ...cloudRecords];
-      final duplicateGroups = await _duplicateDetection.detectDuplicates(allRecords);
-
-      // 3. Crear backup antes de eliminar
-      await _createBackup(localRecords);
-
-      // 4. Procesar cada grupo de duplicados
-      for (final group in duplicateGroups) {
-        final result = await _processDuplicateGroup(group);
-        recordsRemoved += result.recordsRemoved;
-        spaceFreed += result.spaceFreed;
-        errors.addAll(result.errors);
-        warnings.addAll(result.warnings);
-      }
-
-      // 5. Verificar integridad después de limpieza
-      final integrityCheck = await verifyDataIntegrity();
-      if (!integrityCheck) {
-        // Rollback si hay problemas de integridad
-        await _rollbackCleanup();
-        errors.add('Se detectaron problemas de integridad. Se realizó rollback automático.');
+      final localRecords = await _localService.getAllFrapRecords();
+      
+      if (localRecords.isEmpty) {
         return CleanupResult(
-          success: false,
-          recordsRemoved: 0,
-          spaceFreed: 0,
-          errors: errors,
-          warnings: warnings,
+          success: true,
+          message: 'No hay registros locales para limpiar',
+          removedCount: 0,
+          errors: [],
+          warnings: [],
         );
       }
 
+      final duplicates = _findDuplicates(localRecords);
+      
+      if (duplicates.isEmpty) {
+        return CleanupResult(
+          success: true,
+          message: 'No se encontraron duplicados',
+          removedCount: 0,
+          errors: [],
+          warnings: [],
+        );
+      }
+
+      int removedCount = 0;
+      List<String> errors = [];
+      List<String> warnings = [];
+
+      for (final group in duplicates) {
+        try {
+          final result = await _processDuplicateGroup(group);
+          removedCount += result.removedCount;
+          errors.addAll(result.errors);
+          warnings.addAll(result.warnings);
+        } catch (e) {
+          errors.add('Error procesando grupo de duplicados: $e');
+        }
+      }
+
+      // Verificar integridad de datos después de la limpieza
+      final integrityResult = await verifyDataIntegrity();
+      if (!integrityResult.isValid) {
+        warnings.add('Se detectaron problemas de integridad de datos: ${integrityResult.message}');
+      }
+
       return CleanupResult(
-        success: true,
-        recordsRemoved: recordsRemoved,
-        spaceFreed: spaceFreed,
+        success: errors.isEmpty,
+        message: 'Limpieza completada. $removedCount registros duplicados removidos.',
+        removedCount: removedCount,
         errors: errors,
         warnings: warnings,
       );
-
     } catch (e) {
-      // Rollback en caso de error
-      await _rollbackCleanup();
-      errors.add('Error durante la limpieza: $e');
-      
       return CleanupResult(
         success: false,
-        recordsRemoved: 0,
-        spaceFreed: 0,
-        errors: errors,
-        warnings: warnings,
+        message: 'Error durante la limpieza: $e',
+        removedCount: 0,
+        errors: [e.toString()],
+        warnings: [],
       );
     }
   }
 
-  // Procesar un grupo específico de duplicados
-  Future<CleanupResult> _processDuplicateGroup(DuplicateGroup group) async {
-    final List<String> errors = [];
-    final List<String> warnings = [];
-    int recordsRemoved = 0;
-    int spaceFreed = 0;
+  List<List<Frap>> _findDuplicates(List<Frap> localRecords) {
+    // Simple duplicate detection based on patient name and date
+    final Map<String, List<Frap>> groups = {};
+    
+    for (final record in localRecords) {
+      final key = '${record.patient.name}_${record.createdAt.toIso8601String().split('T')[0]}';
+      groups.putIfAbsent(key, () => []).add(record);
+    }
+    
+    // Return only groups with more than one record
+    return groups.values.where((group) => group.length > 1).toList();
+  }
 
-    try {
-      // Separar registros locales y de la nube
-      final localRecords = group.records.where((r) => r.id.startsWith('local_')).toList();
-      final cloudRecords = group.records.where((r) => !r.id.startsWith('local_')).toList();
+  Future<CleanupResult> _processDuplicateGroup(List<Frap> group) async {
+    if (group.isEmpty) {
+      return CleanupResult(
+        success: true,
+        message: 'Grupo vacío',
+        removedCount: 0,
+        errors: [],
+        warnings: [],
+      );
+    }
 
-      // Priorizar registros de la nube sobre locales
-      if (cloudRecords.isNotEmpty && localRecords.isNotEmpty) {
-        // Eliminar registros locales duplicados
-        for (final localRecord in localRecords) {
-          final removed = await _localService.deleteFrap(localRecord.id);
-          if (removed) {
-            recordsRemoved++;
-            spaceFreed += _estimateRecordSize(localRecord);
-          } else {
-            errors.add('No se pudo eliminar el registro local: ${localRecord.id}');
-          }
-        }
-      } else if (localRecords.length > 1) {
-        // Múltiples registros locales, mantener el más reciente
-        localRecords.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        final toRemove = localRecords.skip(1); // Mantener el primero (más reciente)
+    // Mantener el registro más reciente
+    group.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recordsToDelete = group.skip(1).toList();
 
-        for (final record in toRemove) {
-          final removed = await _localService.deleteFrap(record.id);
-          if (removed) {
-            recordsRemoved++;
-            spaceFreed += _estimateRecordSize(record);
-          } else {
-            errors.add('No se pudo eliminar el registro local: ${record.id}');
-          }
-        }
+    int removedCount = 0;
+    List<String> errors = [];
+    List<String> warnings = [];
+
+    for (final record in recordsToDelete) {
+      try {
+        await _localService.deleteFrapRecord(record.id);
+        removedCount++;
+      } catch (e) {
+        errors.add('Error eliminando registro ${record.id}: $e');
       }
-
-      // Advertencias para registros potencialmente duplicados
-      if (group.type == DuplicateType.potential) {
-        warnings.add('Grupo de duplicados potenciales detectado con confianza ${(group.confidence * 100).toStringAsFixed(1)}%');
-      }
-
-    } catch (e) {
-      errors.add('Error procesando grupo ${group.groupId}: $e');
     }
 
     return CleanupResult(
       success: errors.isEmpty,
-      recordsRemoved: recordsRemoved,
-      spaceFreed: spaceFreed,
+      message: 'Procesado grupo de ${group.length} registros',
+      removedCount: removedCount,
       errors: errors,
       warnings: warnings,
     );
   }
 
-  // Verificar integridad después de limpieza
-  Future<bool> verifyDataIntegrity() async {
+  Future<DataIntegrityResult> verifyDataIntegrity() async {
     try {
-      // 1. Verificar que no hay registros huérfanos
-      final localRecords = await _localService.getAllFraps();
-      final cloudRecords = await _cloudService.getAllFraps();
-
-      // 2. Verificar que no hay duplicados restantes
-      final allRecords = [...localRecords, ...cloudRecords];
-      final remainingDuplicates = await _duplicateDetection.detectDuplicates(allRecords);
-
-      // 3. Verificar que los registros locales tienen IDs válidos
-      final invalidLocalRecords = localRecords.where((r) => !r.id.startsWith('local_')).toList();
-
-      // 4. Verificar que los registros de la nube tienen IDs válidos
-      final invalidCloudRecords = cloudRecords.where((r) => r.id.startsWith('local_')).toList();
-
-      return remainingDuplicates.isEmpty && 
-             invalidLocalRecords.isEmpty && 
-             invalidCloudRecords.isEmpty;
-
+      final localRecords = await _localService.getAllFrapRecords();
+      final cloudRecords = await _cloudService.getAllFrapRecords();
+      
+      Set<String> localIds = localRecords.map((r) => r.id).toSet();
+      Set<String?> cloudIds = cloudRecords.map((r) => r.id).toSet();
+      
+      // Verificar IDs únicos
+      if (localIds.length != localRecords.length) {
+        return DataIntegrityResult(
+          isValid: false,
+          message: 'Se encontraron IDs duplicados en registros locales',
+        );
+      }
+      
+      if (cloudIds.length != cloudRecords.length) {
+        return DataIntegrityResult(
+          isValid: false,
+          message: 'Se encontraron IDs duplicados en registros en la nube',
+        );
+      }
+      
+      // Verificar datos básicos
+      for (final record in localRecords) {
+        if (record.patient.name.isEmpty || record.serviceInfo.isEmpty) {
+          return DataIntegrityResult(
+            isValid: false,
+            message: 'Registro local con datos incompletos: ${record.id}',
+          );
+        }
+      }
+      
+      return DataIntegrityResult(
+        isValid: true,
+        message: 'Integridad de datos verificada correctamente',
+      );
     } catch (e) {
-      print('Error verificando integridad: $e');
-      return false;
+      return DataIntegrityResult(
+        isValid: false,
+        message: 'Error verificando integridad: $e',
+      );
     }
   }
 
-  // Crear backup antes de limpieza
-  Future<void> _createBackup(List<Frap> records) async {
-    try {
-      final backupData = records.map((r) => r.toJson()).toList();
-      // Aquí podrías guardar en un archivo temporal o en Hive con prefijo 'backup_'
-      // Por simplicidad, solo imprimimos que se creó el backup
-      print('Backup creado con ${records.length} registros');
-    } catch (e) {
-      print('Error creando backup: $e');
-    }
-  }
-
-  // Rollback en caso de error
-  Future<void> _rollbackCleanup() async {
-    try {
-      // Aquí restaurarías desde el backup
-      // Por simplicidad, solo imprimimos que se realizó rollback
-      print('Rollback realizado');
-    } catch (e) {
-      print('Error durante rollback: $e');
-    }
-  }
-
-  // Estimar tamaño de un registro en bytes
   int _estimateRecordSize(Frap record) {
-    // Estimación simple basada en campos principales
     int size = 0;
+    
+    // Información del paciente
     size += record.patient.name.length;
-    size += record.clinicalHistory.allergies.join(',').length;
+    size += record.patient.age.toString().length;
+    size += record.patient.sex.length;
+    size += record.patient.address.length;
+    size += record.patient.phone.length;
+    
+    // Información del servicio
+    size += record.serviceInfo.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Información del registro
+    size += record.registryInfo.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Antecedentes patológicos
+    size += record.pathologicalHistory.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Antecedentes clínicos
+    size += record.clinicalHistory.allergies.length;
+    size += record.clinicalHistory.medications.length;
+    size += record.clinicalHistory.previousIllnesses.length;
+    
+    // Medicamentos
+    size += record.medications.length;
+    
+    // Examen físico
     size += record.physicalExam.vitalSigns.length;
-    size += record.serviceInfo.toString().length;
-    size += record.registryInfo.toString().length;
-    size += record.management.toString().length;
-    size += record.medications.toString().length;
-    size += record.gynecoObstetric.toString().length;
-    size += record.attentionNegative.toString().length;
-    size += record.pathologicalHistory.toString().length;
-    size += record.priorityJustification.toString().length;
-    size += record.injuryLocation.toString().length;
-    size += record.receivingUnit.toString().length;
-    size += record.patientReception.toString().length;
+    size += record.physicalExam.head.length;
+    size += record.physicalExam.neck.length;
+    size += record.physicalExam.thorax.length;
+    size += record.physicalExam.abdomen.length;
+    size += record.physicalExam.extremities.length;
+    
+    // Localización de lesiones
+    size += record.injuryLocation.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Manejo
+    size += record.management.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Gineco-obstétrico
+    size += record.gynecoObstetric.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Negativa de atención
+    size += record.attentionNegative.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Justificación de prioridad
+    size += record.priorityJustification.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Unidad receptora
+    size += record.receivingUnit.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Recepción del paciente
+    size += record.patientReception.values.map((v) => v.toString().length).fold(0, (a, b) => a + b);
+    
+    // Insumos
+    size += record.insumos.length;
+    
+    // Personal médico
+    size += record.personalMedico.length;
+    
+    // Escalas obstétricas
+    if (record.escalasObstetricas != null) {
+      size += record.escalasObstetricas!.toJson().toString().length;
+    }
     
     return size;
   }
 
-  // Obtener estadísticas de limpieza
-  Future<Map<String, dynamic>> getCleanupStatistics() async {
-    final localRecords = await _localService.getAllFraps();
-    final cloudRecords = await _cloudService.getAllFraps();
-    final allRecords = [...localRecords, ...cloudRecords];
-    final duplicateGroups = await _duplicateDetection.detectDuplicates(allRecords);
-
-    int totalDuplicates = 0;
-    int exactDuplicates = 0;
-    int similarDuplicates = 0;
-    int potentialDuplicates = 0;
-
-    for (final group in duplicateGroups) {
-      totalDuplicates += group.records.length - 1; // -1 porque un registro es el original
-      
-      switch (group.type) {
-        case DuplicateType.exact:
-          exactDuplicates += group.records.length - 1;
-          break;
-        case DuplicateType.similar:
-          similarDuplicates += group.records.length - 1;
-          break;
-        case DuplicateType.potential:
-          potentialDuplicates += group.records.length - 1;
-          break;
-      }
-    }
-
-    return {
-      'totalRecords': allRecords.length,
-      'localRecords': localRecords.length,
-      'cloudRecords': cloudRecords.length,
-      'totalDuplicates': totalDuplicates,
-      'exactDuplicates': exactDuplicates,
-      'similarDuplicates': similarDuplicates,
-      'potentialDuplicates': potentialDuplicates,
-      'duplicateGroups': duplicateGroups.length,
-    };
+  Future<CleanupStatistics> getCleanupStatistics() async {
+    final localRecords = await _localService.getAllFrapRecords();
+    final cloudRecords = await _cloudService.getAllFrapRecords();
+    
+    return CleanupStatistics(
+      totalLocalRecords: localRecords.length,
+      totalCloudRecords: cloudRecords.length,
+      duplicateGroups: 0, // This will need to be calculated based on the actual duplicate detection logic
+      totalDuplicates: 0, // This will need to be calculated based on the actual duplicate detection logic
+      estimatedSpaceSaved: 0, // This will need to be calculated based on the actual duplicate detection logic
+    );
   }
 } 

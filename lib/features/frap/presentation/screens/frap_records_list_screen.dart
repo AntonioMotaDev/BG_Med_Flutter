@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bg_med/core/theme/app_theme.dart';
+import 'package:bg_med/core/services/frap_unified_service.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
-import 'package:bg_med/features/frap/presentation/widgets/pagination_widget.dart';
-import 'package:bg_med/features/frap/presentation/screens/frap_screen.dart';
 import 'package:bg_med/features/frap/presentation/screens/frap_record_details_screen.dart';
+import 'package:bg_med/features/frap/presentation/screens/pdf_preview_screen.dart';
+import 'package:bg_med/features/frap/presentation/screens/frap_screen.dart';
+import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
 class FrapRecordsListScreen extends ConsumerStatefulWidget {
@@ -798,21 +799,24 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                                 ),
                               ),
                               
-                              // Controles de paginación
+                              // Paginación
                               if (totalPages > 1)
-                                PaginationWidget(
-                                  currentPage: _currentPage,
-                                  totalPages: totalPages,
-                                  onPageChanged: _goToPage,
-                                  itemsPerPage: _itemsPerPage,
-                                  itemsPerPageOptions: _itemsPerPageOptions,
-                                  onItemsPerPageChanged: (value) {
-                                    setState(() {
-                                      _itemsPerPage = value;
-                                      _currentPage = 1;
-                                    });
-                                  },
-                                  totalItems: filteredRecords.length,
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      IconButton(
+                                        onPressed: _currentPage > 1 ? () => setState(() => _currentPage--) : null,
+                                        icon: const Icon(Icons.chevron_left),
+                                      ),
+                                      Text('Página $_currentPage de $totalPages'),
+                                      IconButton(
+                                        onPressed: _currentPage < totalPages ? () => setState(() => _currentPage++) : null,
+                                        icon: const Icon(Icons.chevron_right),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                             ],
                           ),
@@ -821,7 +825,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Navegar a la pantalla de creación de registro FRAP
+          // Navegar a la pantalla de creación de FRAP
           Navigator.push(
             context,
             MaterialPageRoute(

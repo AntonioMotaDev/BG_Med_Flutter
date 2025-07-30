@@ -23,7 +23,6 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
   // Controladores de texto
   final _convenioController = TextEditingController();
   final _episodioController = TextEditingController();
-  final _folioController = TextEditingController();
   final _solicitadoPorController = TextEditingController();
 
   // Variable para la fecha
@@ -41,7 +40,6 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
       
       _convenioController.text = data['convenio'] ?? '';
       _episodioController.text = data['episodio'] ?? '';
-      _folioController.text = data['folio'] ?? '';
       _solicitadoPorController.text = data['solicitadoPor'] ?? '';
       
       // Parsear fecha si existe
@@ -59,7 +57,6 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
   void dispose() {
     _convenioController.dispose();
     _episodioController.dispose();
-    _folioController.dispose();
     _solicitadoPorController.dispose();
     super.dispose();
   }
@@ -122,29 +119,11 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Primera fila: Convenio y Folio
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _convenioController,
-                              label: 'Convenio',
-                              isRequired: true,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _folioController,
-                              label: 'Folio',
-                              isRequired: true,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                            ),
-                          ),
-                        ],
+                      // Primera fila: Convenio
+                      _buildTextField(
+                        controller: _convenioController,
+                        label: 'Convenio',
+                        isRequired: true,
                       ),
                       const SizedBox(height: 20),
 
@@ -156,10 +135,6 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
                               controller: _episodioController,
                               label: 'Episodio',
                               isRequired: true,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -170,12 +145,11 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Tercera fila: Solicitado por (campo completo)
+                      // Tercera fila: Solicitado por
                       _buildTextField(
                         controller: _solicitadoPorController,
-                        label: 'Solicitado por:',
+                        label: 'Solicitado por',
                         isRequired: true,
-                        maxLines: 2,
                       ),
                     ],
                   ),
@@ -248,6 +222,7 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
           vertical: 16,
         ),
       ),
+      style: const TextStyle(fontSize: 14),
       validator: (value) {
         if (isRequired && (value == null || value.trim().isEmpty)) {
           return '$label es requerido';
@@ -258,86 +233,65 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
   }
 
   Widget _buildDateField() {
-    return InkWell(
-      onTap: () async {
-        final DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: _fechaSeleccionada ?? DateTime.now(),
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppTheme.primaryBlue,
-                ),
-              ),
-              child: child!,
-            );
-          },
-        );
-        if (picked != null) {
-          setState(() {
-            _fechaSeleccionada = picked;
-          });
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[400]!),
-          borderRadius: BorderRadius.circular(4),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Fecha *',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
         ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.calendar_today,
-              size: 20,
-              color: _fechaSeleccionada != null ? AppTheme.primaryBlue : Colors.grey[400],
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _selectDate,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Fecha *',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  color: AppTheme.primaryBlue,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
                     _fechaSeleccionada != null
-                        ? _formatDate(_fechaSeleccionada!)
+                        ? '${_fechaSeleccionada!.day.toString().padLeft(2, '0')}/${_fechaSeleccionada!.month.toString().padLeft(2, '0')}/${_fechaSeleccionada!.year}'
                         : 'Seleccionar fecha',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       color: _fechaSeleccionada != null ? Colors.black87 : Colors.grey[500],
-                      fontWeight: _fechaSeleccionada != null ? FontWeight.w500 : FontWeight.normal,
                     ),
                   ),
-                ],
-              ),
-            ),
-            if (_fechaSeleccionada != null)
-              GestureDetector(
-                onTap: () => setState(() => _fechaSeleccionada = null),
-                child: Icon(
-                  Icons.clear,
-                  size: 20,
-                  color: Colors.grey[400],
                 ),
-              ),
-          ],
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaSeleccionada ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (picked != null && picked != _fechaSeleccionada) {
+      setState(() {
+        _fechaSeleccionada = picked;
+      });
+    }
   }
 
   Future<void> _saveForm() async {
@@ -364,7 +318,6 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
       final formData = {
         'convenio': _convenioController.text.trim(),
         'episodio': _episodioController.text.trim(),
-        'folio': _folioController.text.trim(),
         'fecha': _fechaSeleccionada!.toIso8601String(),
         'solicitadoPor': _solicitadoPorController.text.trim(),
       };

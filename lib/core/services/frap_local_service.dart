@@ -487,12 +487,32 @@ class FrapLocalService {
     );
   }
 
-  // SINCRONIZAR con registros en la nube
+  // Marcar registro como sincronizado
+  Future<void> markAsSynced(String frapId) async {
+    try {
+      final existingIndex = _frapBox.values
+          .toList()
+          .indexWhere((frap) => frap.id == frapId);
+      
+      if (existingIndex == -1) {
+        throw Exception('Registro no encontrado');
+      }
+
+      final existingFrap = _frapBox.getAt(existingIndex)!;
+      final updatedFrap = existingFrap.copyWith(isSynced: true);
+
+      // Actualizar en Hive
+      await _frapBox.putAt(existingIndex, updatedFrap);
+    } catch (e) {
+      throw Exception('Error al marcar como sincronizado: $e');
+    }
+  }
+
+  // Obtener registros no sincronizados
   Future<List<Frap>> getUnsyncedRecords() async {
     try {
-      // Por ahora, todos los registros se consideran no sincronizados
-      // En el futuro, se puede agregar un campo 'synced' al modelo Frap
-      return await getAllFrapRecords();
+      final records = _frapBox.values.toList();
+      return records.where((frap) => !frap.isSynced).toList();
     } catch (e) {
       throw Exception('Error al obtener registros no sincronizados: $e');
     }

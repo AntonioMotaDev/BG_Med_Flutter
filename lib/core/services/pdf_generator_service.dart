@@ -6,6 +6,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
+import 'package:bg_med/core/services/frap_unified_service.dart';
+import 'package:intl/intl.dart';
 
 import '../../features/frap/presentation/providers/frap_unified_provider.dart';
 
@@ -1298,6 +1300,10 @@ class PdfGeneratorService {
 
   // Build injury location section
   pw.Widget _buildInjuryLocationSection(UnifiedFrapRecord record) {
+    final injuryLocation = record.getDetailedInfo()['injuryLocation'] as Map<String, dynamic>?;
+    final drawnInjuries = injuryLocation?['drawnInjuries'] as List<dynamic>?;
+    final notes = injuryLocation?['notes'] as String?;
+    
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -1307,43 +1313,261 @@ class PdfGeneratorService {
           color: PdfColors.black,
         )),
         pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            // Placeholder for body diagrams
-            pw.Expanded(
-              child: pw.Container(
-                height: 80,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.black, width: 1),
+        
+        // Contenido principal
+        if (drawnInjuries != null && drawnInjuries.isNotEmpty) ...[
+          // Mapa corporal con lesiones
+          pw.Container(
+            height: 200,
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey400, width: 1),
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Stack(
+              children: [
+                // Fondo blanco
+                pw.Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: PdfColors.white,
                 ),
-                child: pw.Center(
-                  child: pw.Text('Diagrama del cuerpo', style: pw.TextStyle(fontSize: 8)),
+                // Silueta humana (placeholder por ahora)
+                pw.Center(
+                  child: pw.Container(
+                    width: 120,
+                    height: 180,
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey300, width: 1),
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Center(
+                      child: pw.Text(
+                        'Silueta Humana',
+                        style: pw.TextStyle(
+                          fontSize: 8,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Lesiones dibujadas
+                ...drawnInjuries.asMap().entries.map((entry) {
+                  final injury = entry.value as Map<String, dynamic>;
+                  final points = injury['points'] as List<dynamic>;
+                  final injuryType = injury['injuryType'] as int;
+                  
+                  return _buildInjuryPath(points.cast<Map<String, dynamic>>(), injuryType, entry.key);
+                }).toList(),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          
+          // Información de lesiones
+          pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Lesiones registradas:', style: pw.TextStyle(
+                      fontSize: 8,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    )),
+                    pw.SizedBox(height: 4),
+                    ...drawnInjuries.asMap().entries.map((entry) {
+                      final injury = entry.value as Map<String, dynamic>;
+                      final injuryType = injury['injuryType'] as int;
+                      final typeName = _getInjuryTypeName(injuryType);
+                      final number = entry.key + 1;
+                      
+                      return pw.Padding(
+                        padding: const pw.EdgeInsets.only(bottom: 2),
+                        child: pw.Text(
+                          '$number. $typeName',
+                          style: pw.TextStyle(
+                            fontSize: 7,
+                            color: PdfColors.black,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 10),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Leyenda:', style: pw.TextStyle(
+                      fontSize: 8,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    )),
+                    pw.SizedBox(height: 4),
+                    _buildInjuryLegend(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ] else ...[
+          // Sin lesiones registradas
+          pw.Container(
+            height: 100,
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey300, width: 1),
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Center(
+              child: pw.Text(
+                'No se han registrado lesiones',
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  color: PdfColors.grey600,
                 ),
               ),
             ),
-            pw.SizedBox(width: 10),
-            // Legend
-            pw.Expanded(
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('1. Hemorragia', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('2. Herida', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('3. Contusión', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('4. Fractura', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('5. Luxación/Esguince', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('6. Objeto extraño', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('7. Quemadura', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('8. Picadura/Mordedura', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('9. Edema/Hematoma', style: pw.TextStyle(fontSize: 7)),
-                  pw.Text('10. Otro:', style: pw.TextStyle(fontSize: 7)),
-                ],
-              ),
+          ),
+        ],
+        
+        // Notas adicionales
+        if (notes != null && notes.trim().isNotEmpty) ...[
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(6),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey50,
+              borderRadius: pw.BorderRadius.circular(4),
+              border: pw.Border.all(color: PdfColors.grey200, width: 0.5),
             ),
-          ],
-        ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Notas adicionales:', style: pw.TextStyle(
+                  fontSize: 8,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.black,
+                )),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  notes,
+                  style: pw.TextStyle(
+                    fontSize: 7,
+                    color: PdfColors.black,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  // Construir el path de una lesión
+  pw.Widget _buildInjuryPath(List<Map<String, dynamic>> pointsData, int injuryType, int index) {
+    if (pointsData.isEmpty) return pw.SizedBox.shrink();
+    
+    final color = _getInjuryTypeColor(injuryType);
+    final number = index + 1;
+    
+    return pw.Stack(
+      children: [
+        // Número de la lesión en el primer punto
+        if (pointsData.isNotEmpty)
+          pw.Positioned(
+            left: (pointsData.first['dx'] as num).toDouble() - 6,
+            top: (pointsData.first['dy'] as num).toDouble() - 6,
+            child: pw.Container(
+              width: 12,
+              height: 12,
+              decoration: pw.BoxDecoration(
+                color: color,
+                shape: pw.BoxShape.circle,
+                border: pw.Border.all(color: PdfColors.white, width: 1),
+              ),
+              child: pw.Center(
+                child: pw.Text(
+                  '$number',
+                  style: pw.TextStyle(
+                    color: PdfColors.white,
+                    fontSize: 6,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // Construir leyenda de tipos de lesiones
+  pw.Widget _buildInjuryLegend() {
+    final injuryTypes = [
+      '1. Hemorragia',
+      '2. Herida',
+      '3. Contusión',
+      '4. Fractura',
+      '5. Luxación/Esguince',
+      '6. Objeto extraño',
+      '7. Quemadura',
+      '8. Picadura/Mordedura',
+      '9. Edema/Hematoma',
+      '10. Otro',
+    ];
+    
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: injuryTypes.map((type) => pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 1),
+        child: pw.Text(
+          type,
+          style: pw.TextStyle(
+            fontSize: 6,
+            color: PdfColors.black,
+          ),
+        ),
+      )).toList(),
+    );
+  }
+
+  // Obtener color del tipo de lesión
+  PdfColor _getInjuryTypeColor(int injuryType) {
+    switch (injuryType) {
+      case 0: return PdfColors.red; // Hemorragia
+      case 1: return PdfColors.brown; // Herida
+      case 2: return PdfColors.purple; // Contusión
+      case 3: return PdfColors.orange; // Fractura
+      case 4: return PdfColors.yellow; // Luxación
+      case 5: return PdfColors.pink; // Objeto extraño
+      case 6: return PdfColors.deepOrange; // Quemadura
+      case 7: return PdfColors.green; // Picadura
+      case 8: return PdfColors.indigo; // Edema
+      case 9: return PdfColors.grey; // Otro
+      default: return PdfColors.black;
+    }
+  }
+
+  // Obtener nombre del tipo de lesión
+  String _getInjuryTypeName(int injuryType) {
+    switch (injuryType) {
+      case 0: return 'Hemorragia';
+      case 1: return 'Herida';
+      case 2: return 'Contusión';
+      case 3: return 'Fractura';
+      case 4: return 'Luxación/Esguince';
+      case 5: return 'Objeto extraño';
+      case 6: return 'Quemadura';
+      case 7: return 'Picadura/Mordedura';
+      case 8: return 'Edema/Hematoma';
+      case 9: return 'Otro';
+      default: return 'Desconocido';
+    }
   }
 
   // Build management section
@@ -1943,4 +2167,5 @@ class PdfGeneratorService {
       throw Exception('Error al imprimir el PDF: $e');
     }
   }
-} 
+}
+

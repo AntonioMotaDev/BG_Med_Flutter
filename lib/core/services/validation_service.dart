@@ -79,9 +79,9 @@ class ValidationService {
     }
 
     // Validar género
-    if (patient.gender.trim().isEmpty) {
+    if (patient.sex.trim().isEmpty) {
       errors.add(ValidationError(
-        field: 'gender',
+        field: 'sex',
         message: 'El género es obligatorio',
       ));
     }

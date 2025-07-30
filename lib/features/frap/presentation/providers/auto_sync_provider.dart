@@ -135,7 +135,7 @@ class AutoSyncNotifier extends StateNotifier<AutoSyncState> {
     );
   }
 
-  // Liberar recursos
+  @override
   void dispose() {
     _autoSyncService.dispose();
   }

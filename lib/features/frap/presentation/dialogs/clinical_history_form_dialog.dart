@@ -15,352 +15,521 @@ class ClinicalHistoryFormDialog extends StatefulWidget {
   State<ClinicalHistoryFormDialog> createState() => _ClinicalHistoryFormDialogState();
 }
 
-class _ClinicalHistoryFormDialogState extends State<ClinicalHistoryFormDialog> {
+class _ClinicalHistoryFormDialogState extends State<ClinicalHistoryFormDialog>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
-  // Controladores para campos de texto
-  final _otherTypeController = TextEditingController();
-  final _agenteCausalController = TextEditingController();
-  final _cinematicaController = TextEditingController();
-  final _medidaSeguridadController = TextEditingController();
+  // Variables para checkboxes
+  bool _traumaCraneo = false;
+  bool _traumaTorax = false;
+  bool _traumaAbdomen = false;
+  bool _traumaColumna = false;
+  bool _traumaExtremidades = false;
+  bool _traumaPelvis = false;
+  bool _traumaOtros = false;
 
-  // Variables para los checkboxes de tipo
-  bool _atropellado = false;
-  bool _lxPorCaida = false;
-  bool _intoxicacion = false;
-  bool _amputacion = false;
-  bool _choque = false;
-  bool _agresion = false;
-  bool _hpaf = false;
-  bool _hpab = false;
-  bool _volcadura = false;
-  bool _quemadura = false;
-  bool _otroTipo = false;
+  // Controladores para especificaciones
+  final _traumaCraneoEspecifiqueController = TextEditingController();
+  final _traumaToraxEspecifiqueController = TextEditingController();
+  final _traumaAbdomenEspecifiqueController = TextEditingController();
+  final _traumaColumnaEspecifiqueController = TextEditingController();
+  final _traumaExtremidadesEspecifiqueController = TextEditingController();
+  final _traumaPelvisEspecifiqueController = TextEditingController();
+  final _traumaOtrosEspecifiqueController = TextEditingController();
+
+  // Animación para el diálogo
+  AnimationController? _animationController;
+  Animation<double>? _scaleAnimation;
+  Animation<double>? _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _initializeForm();
+    _initializeAnimations();
+  }
+
+  void _initializeAnimations() {
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController!, curve: Curves.easeOutBack),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController!, curve: Curves.easeIn),
+    );
+    _animationController!.forward();
   }
 
   void _initializeForm() {
     if (widget.initialData != null) {
       final data = widget.initialData!;
       
-      // Tipos
-      _atropellado = data['atropellado'] ?? false;
-      _lxPorCaida = data['lxPorCaida'] ?? false;
-      _intoxicacion = data['intoxicacion'] ?? false;
-      _amputacion = data['amputacion'] ?? false;
-      _choque = data['choque'] ?? false;
-      _agresion = data['agresion'] ?? false;
-      _hpaf = data['hpaf'] ?? false;
-      _hpab = data['hpab'] ?? false;
-      _volcadura = data['volcadura'] ?? false;
-      _quemadura = data['quemadura'] ?? false;
-      _otroTipo = data['otroTipo'] ?? false;
-      
-      // Campos de texto
-      _otherTypeController.text = data['otherTypeDescription'] ?? '';
-      _agenteCausalController.text = data['agenteCausal'] ?? '';
-      _cinematicaController.text = data['cinematica'] ?? '';
-      _medidaSeguridadController.text = data['medidaSeguridad'] ?? '';
+      _traumaCraneo = data['traumaCraneo'] ?? false;
+      _traumaTorax = data['traumaTorax'] ?? false;
+      _traumaAbdomen = data['traumaAbdomen'] ?? false;
+      _traumaColumna = data['traumaColumna'] ?? false;
+      _traumaExtremidades = data['traumaExtremidades'] ?? false;
+      _traumaPelvis = data['traumaPelvis'] ?? false;
+      _traumaOtros = data['traumaOtros'] ?? false;
+
+      // Especificaciones
+      _traumaCraneoEspecifiqueController.text = data['traumaCraneoEspecifique'] ?? '';
+      _traumaToraxEspecifiqueController.text = data['traumaToraxEspecifique'] ?? '';
+      _traumaAbdomenEspecifiqueController.text = data['traumaAbdomenEspecifique'] ?? '';
+      _traumaColumnaEspecifiqueController.text = data['traumaColumnaEspecifique'] ?? '';
+      _traumaExtremidadesEspecifiqueController.text = data['traumaExtremidadesEspecifique'] ?? '';
+      _traumaPelvisEspecifiqueController.text = data['traumaPelvisEspecifique'] ?? '';
+      _traumaOtrosEspecifiqueController.text = data['traumaOtrosEspecifique'] ?? '';
     }
   }
 
   @override
   void dispose() {
-    _otherTypeController.dispose();
-    _agenteCausalController.dispose();
-    _cinematicaController.dispose();
-    _medidaSeguridadController.dispose();
+    _animationController?.dispose();
+    _traumaCraneoEspecifiqueController.dispose();
+    _traumaToraxEspecifiqueController.dispose();
+    _traumaAbdomenEspecifiqueController.dispose();
+    _traumaColumnaEspecifiqueController.dispose();
+    _traumaExtremidadesEspecifiqueController.dispose();
+    _traumaPelvisEspecifiqueController.dispose();
+    _traumaOtrosEspecifiqueController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Si las animaciones no están inicializadas, mostrar diálogo sin animación
+    if (_animationController == null || _scaleAnimation == null || _fadeAnimation == null) {
+      return _buildDialogContent();
+    }
+
+    return AnimatedBuilder(
+      animation: _animationController!,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: _fadeAnimation!,
+          child: ScaleTransition(
+            scale: _scaleAnimation!,
+            child: _buildDialogContent(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDialogContent() {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.95,
-        height: MediaQuery.of(context).size.height * 0.85,
+        height: MediaQuery.of(context).size.height * 0.9,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryBlue,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.description,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'ANTECEDENTES CLÍNICOS',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-
-            // Form content
+            // Header mejorado
+            _buildHeader(),
+            
+            // Content mejorado
             Expanded(
-              child: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Sección A) Tipo
-                      _buildSectionTitle('A) Tipo:'),
-                      const SizedBox(height: 16),
-                      
-                      // Primera fila de tipos
-                      Row(
-                        children: [
-                          Expanded(child: _buildCheckboxOption(_atropellado, 'Atropellado', (value) => setState(() => _atropellado = value ?? false))),
-                          Expanded(child: _buildCheckboxOption(_lxPorCaida, 'Lx. Por caída', (value) => setState(() => _lxPorCaida = value ?? false))),
-                          Expanded(child: _buildCheckboxOption(_intoxicacion, 'Intoxicación', (value) => setState(() => _intoxicacion = value ?? false))),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Expanded(child: _buildCheckboxOption(_amputacion, 'Amputación', (value) => setState(() => _amputacion = value ?? false))),
-                          Expanded(child: _buildCheckboxOption(_choque, 'Choque', (value) => setState(() => _choque = value ?? false))),
-                          const Expanded(child: SizedBox()), // Espacio vacío
-                        ],
-                      ),
-                      
-                      // Segunda fila de tipos
-                      Row(
-                        children: [
-                          Expanded(child: _buildCheckboxOption(_agresion, 'Agresión', (value) => setState(() => _agresion = value ?? false))),
-                          Expanded(child: _buildCheckboxOption(_hpaf, 'H.P.A.F.', (value) => setState(() => _hpaf = value ?? false))),
-                          Expanded(child: _buildCheckboxOption(_hpab, 'H.P.A.B.', (value) => setState(() => _hpab = value ?? false))),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Expanded(child: _buildCheckboxOption(_volcadura, 'Volcadura', (value) => setState(() => _volcadura = value ?? false))),
-                          Expanded(child: _buildCheckboxOption(_quemadura, 'Quemadura', (value) => setState(() => _quemadura = value ?? false))),
-                          const Expanded(child: SizedBox()), // Espacio vacío
-                        ],
-                      ),
-
-                      // Opción "Otro" con campo de texto
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: _otroTipo,
-                            onChanged: (value) {
-                              setState(() {
-                                _otroTipo = value ?? false;
-                                if (!_otroTipo) {
-                                  _otherTypeController.clear();
-                                }
-                              });
-                            },
-                            activeColor: AppTheme.primaryBlue,
-                          ),
-                          const Text('Otro', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _otherTypeController,
-                              enabled: _otroTipo,
-                              decoration: const InputDecoration(
-                                hintText: 'Especifique:',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              style: const TextStyle(fontSize: 14),
-                              onChanged: (value) {
-                                if (value.isNotEmpty && !_otroTipo) {
-                                  setState(() => _otroTipo = true);
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 24),
-
-                      // Sección B) Agente causal
-                      _buildSectionTitle('B) Agente causal:'),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _agenteCausalController,
-                        decoration: const InputDecoration(
-                          hintText: 'Especifique:',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                        ),
-                        maxLines: 2,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      
-                      const SizedBox(height: 24),
-
-                      // Cinemática
-                      _buildSectionTitle('Cinemática:'),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _cinematicaController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                        ),
-                        maxLines: 3,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      
-                      const SizedBox(height: 24),
-
-                      // Medida de seguridad
-                      _buildSectionTitle('Medida de seguridad:'),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _medidaSeguridadController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                        ),
-                        maxLines: 2,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              child: _buildContent(),
             ),
 
-            // Navigation buttons
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
-                ),
-              ),
-              child: Row(
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
-                  ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // Footer mejorado
+            _buildFooter(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primaryBlue,
+            AppTheme.primaryBlue.withOpacity(0.8),
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.medical_services,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Antecedentes Clínicos',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Historial de traumas del paciente',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 20),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCheckboxOption(bool value, String title, Function(bool?) onChanged) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Checkbox(
-          value: value,
-          onChanged: onChanged,
-          activeColor: AppTheme.primaryBlue,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  Widget _buildContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Título de sección
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.emergency,
+                    color: AppTheme.primaryBlue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Seleccione los antecedentes clínicos del paciente',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Grid de opciones mejorado
+            _buildTraumaGrid(),
+          ],
         ),
-        Flexible(
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _buildTraumaGrid() {
+    final traumaOptions = [
+      {
+        'label': 'Trauma Cráneo',
+        'icon': Icons.psychology,
+        'value': _traumaCraneo,
+        'controller': _traumaCraneoEspecifiqueController,
+        'onChanged': (value) => setState(() => _traumaCraneo = value ?? false),
+      },
+      {
+        'label': 'Trauma Tórax',
+        'icon': Icons.favorite,
+        'value': _traumaTorax,
+        'controller': _traumaToraxEspecifiqueController,
+        'onChanged': (value) => setState(() => _traumaTorax = value ?? false),
+      },
+      {
+        'label': 'Trauma Abdomen',
+        'icon': Icons.airline_seat_individual_suite,
+        'value': _traumaAbdomen,
+        'controller': _traumaAbdomenEspecifiqueController,
+        'onChanged': (value) => setState(() => _traumaAbdomen = value ?? false),
+      },
+      {
+        'label': 'Trauma Columna',
+        'icon': Icons.straighten,
+        'value': _traumaColumna,
+        'controller': _traumaColumnaEspecifiqueController,
+        'onChanged': (value) => setState(() => _traumaColumna = value ?? false),
+      },
+      {
+        'label': 'Trauma Extremidades',
+        'icon': Icons.accessibility,
+        'value': _traumaExtremidades,
+        'controller': _traumaExtremidadesEspecifiqueController,
+        'onChanged': (value) => setState(() => _traumaExtremidades = value ?? false),
+      },
+      {
+        'label': 'Trauma Pelvis',
+        'icon': Icons.person,
+        'value': _traumaPelvis,
+        'controller': _traumaPelvisEspecifiqueController,
+        'onChanged': (value) => setState(() => _traumaPelvis = value ?? false),
+      },
+      {
+        'label': 'Otros',
+        'icon': Icons.more_horiz,
+        'value': _traumaOtros,
+        'controller': _traumaOtrosEspecifiqueController,
+        'onChanged': (value) => setState(() => _traumaOtros = value ?? false),
+      },
+    ];
+
+    return Column(
+      children: traumaOptions.map((trauma) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildTraumaListItem(
+            label: trauma['label'] as String,
+            icon: trauma['icon'] as IconData,
+            value: trauma['value'] as bool,
+            controller: trauma['controller'] as TextEditingController,
+            onChanged: trauma['onChanged'] as Function(bool?),
           ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTraumaListItem({
+    required String label,
+    required IconData icon,
+    required bool value,
+    required TextEditingController controller,
+    required Function(bool?) onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: value ? AppTheme.primaryBlue : Colors.grey[300]!,
+          width: value ? 2 : 1,
         ),
-      ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Checkbox y label (flex: 2)
+          Expanded(
+            flex: 2,
+            child: CheckboxListTile(
+              title: Row(
+                children: [
+                  Icon(
+                    icon,
+                    color: value ? AppTheme.primaryBlue : Colors.grey[600],
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: value ? FontWeight.w600 : FontWeight.normal,
+                        color: value ? AppTheme.primaryBlue : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              value: value,
+              onChanged: onChanged,
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              dense: true,
+              activeColor: AppTheme.primaryBlue,
+              checkboxShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          
+          // Campo de especificación (flex: 3)
+          Expanded(
+            flex: 3,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: value ? 60 : 0,
+              child: value
+                  ? Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: TextFormField(
+                        controller: controller,
+                        decoration: InputDecoration(
+                          labelText: 'Especifique',
+                          hintText: 'Detalles adicionales...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppTheme.primaryBlue),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          labelStyle: TextStyle(
+                            color: AppTheme.primaryBlue,
+                            fontSize: 12,
+                          ),
+                        ),
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 2,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
+        border: Border(
+          top: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close),
+              label: const Text('Cancelar'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _saveForm,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.save),
+              label: Text(_isLoading ? 'Guardando...' : 'Guardar Antecedentes'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _saveForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
       final formData = {
-        // Tipos
-        'atropellado': _atropellado,
-        'lxPorCaida': _lxPorCaida,
-        'intoxicacion': _intoxicacion,
-        'amputacion': _amputacion,
-        'choque': _choque,
-        'agresion': _agresion,
-        'hpaf': _hpaf,
-        'hpab': _hpab,
-        'volcadura': _volcadura,
-        'quemadura': _quemadura,
-        'otroTipo': _otroTipo,
-        'otherTypeDescription': _otherTypeController.text.trim(),
-        
-        // Campos de texto
-        'agenteCausal': _agenteCausalController.text.trim(),
-        'cinematica': _cinematicaController.text.trim(),
-        'medidaSeguridad': _medidaSeguridadController.text.trim(),
+        'traumaCraneo': _traumaCraneo,
+        'traumaTorax': _traumaTorax,
+        'traumaAbdomen': _traumaAbdomen,
+        'traumaColumna': _traumaColumna,
+        'traumaExtremidades': _traumaExtremidades,
+        'traumaPelvis': _traumaPelvis,
+        'traumaOtros': _traumaOtros,
+        // Especificaciones
+        'traumaCraneoEspecifique': _traumaCraneoEspecifiqueController.text.trim(),
+        'traumaToraxEspecifique': _traumaToraxEspecifiqueController.text.trim(),
+        'traumaAbdomenEspecifique': _traumaAbdomenEspecifiqueController.text.trim(),
+        'traumaColumnaEspecifique': _traumaColumnaEspecifiqueController.text.trim(),
+        'traumaExtremidadesEspecifique': _traumaExtremidadesEspecifiqueController.text.trim(),
+        'traumaPelvisEspecifique': _traumaPelvisEspecifiqueController.text.trim(),
+        'traumaOtrosEspecifique': _traumaOtrosEspecifiqueController.text.trim(),
       };
 
       widget.onSave(formData);
@@ -368,9 +537,19 @@ class _ClinicalHistoryFormDialogState extends State<ClinicalHistoryFormDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Antecedentes clínicos guardados'),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Text('Antecedentes clínicos guardados exitosamente'),
+              ],
+            ),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
       }
@@ -378,8 +557,18 @@ class _ClinicalHistoryFormDialogState extends State<ClinicalHistoryFormDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Text('Error al guardar: $e'),
+              ],
+            ),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
       }

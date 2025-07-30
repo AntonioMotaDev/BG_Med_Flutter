@@ -32,6 +32,14 @@ class PhysicalExam extends Equatable {
   final String oxygenSaturation;
   @HiveField(11)
   final String neurological;
+  @HiveField(12)
+  final int eva; // Escala EVA (0-10)
+  @HiveField(13)
+  final int llc; // LLC en segundos
+  @HiveField(14)
+  final int glucosa; // Glucosa mg/dl
+  @HiveField(15)
+  final String ta; // Tensión arterial mm/Hg
 
   const PhysicalExam({
     // Campos existentes
@@ -48,6 +56,10 @@ class PhysicalExam extends Equatable {
     this.temperature = '',
     this.oxygenSaturation = '',
     this.neurological = '',
+    this.eva = 0,
+    this.llc = 0,
+    this.glucosa = 0,
+    this.ta = '',
   });
 
   // Método copyWith para crear copias con cambios
@@ -64,6 +76,10 @@ class PhysicalExam extends Equatable {
     String? temperature,
     String? oxygenSaturation,
     String? neurological,
+    int? eva,
+    int? llc,
+    int? glucosa,
+    String? ta,
   }) {
     return PhysicalExam(
       vitalSigns: vitalSigns ?? this.vitalSigns,
@@ -78,7 +94,26 @@ class PhysicalExam extends Equatable {
       temperature: temperature ?? this.temperature,
       oxygenSaturation: oxygenSaturation ?? this.oxygenSaturation,
       neurological: neurological ?? this.neurological,
+      eva: eva ?? this.eva,
+      llc: llc ?? this.llc,
+      glucosa: glucosa ?? this.glucosa,
+      ta: ta ?? this.ta,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'vitalSigns': vitalSigns,
+      'head': head,
+      'neck': neck,
+      'thorax': thorax,
+      'abdomen': abdomen,
+      'extremities': extremities,
+      'eva': eva,
+      'llc': llc,
+      'glucosa': glucosa,
+      'ta': ta,
+    };
   }
 
   @override
@@ -95,5 +130,9 @@ class PhysicalExam extends Equatable {
         temperature,
         oxygenSaturation,
         neurological,
+        eva,
+        llc,
+        glucosa,
+        ta,
       ];
 } 

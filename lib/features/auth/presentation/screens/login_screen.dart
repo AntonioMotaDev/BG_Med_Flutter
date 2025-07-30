@@ -4,6 +4,7 @@ import 'package:bg_med/features/auth/presentation/screens/forgot_password_screen
 import 'package:flutter/material.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -90,6 +91,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               
               // Enlace de registro
               _buildRegisterLink(),
+              const SizedBox(height: 16),
+              
+              // Botón de debug temporal
+              if (kDebugMode) _buildDebugButton(),
             ],
           ),
         ),
@@ -308,6 +313,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDebugButton() {
+    return ElevatedButton(
+      onPressed: () {
+        final authState = ref.read(authNotifierProvider);
+        print('🔍 DEBUG - Estado actual: ${authState.status}');
+        print('🔍 DEBUG - Usuario: ${authState.user?.name}');
+        print('🔍 DEBUG - Error: ${authState.errorMessage}');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Estado: ${authState.status}, Usuario: ${authState.user?.name ?? "null"}'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+      ),
+      child: const Text('Debug Estado'),
     );
   }
 

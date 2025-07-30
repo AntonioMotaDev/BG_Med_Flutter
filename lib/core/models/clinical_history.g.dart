@@ -30,13 +30,15 @@ class ClinicalHistoryAdapter extends TypeAdapter<ClinicalHistory> {
       previousSurgeries: fields[10] as String,
       hospitalizations: fields[11] as String,
       transfusions: fields[12] as String,
+      horaUltimoAlimento: fields[13] as String,
+      eventosPrevios: fields[14] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, ClinicalHistory obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.allergies)
       ..writeByte(1)
@@ -62,7 +64,11 @@ class ClinicalHistoryAdapter extends TypeAdapter<ClinicalHistory> {
       ..writeByte(11)
       ..write(obj.hospitalizations)
       ..writeByte(12)
-      ..write(obj.transfusions);
+      ..write(obj.transfusions)
+      ..writeByte(13)
+      ..write(obj.horaUltimoAlimento)
+      ..writeByte(14)
+      ..write(obj.eventosPrevios);
   }
 
   @override

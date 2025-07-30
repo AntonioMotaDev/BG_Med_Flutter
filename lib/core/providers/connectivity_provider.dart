@@ -1,117 +1,93 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum ConnectivityState {
-  connected,
-  disconnected,
-  connecting,
-  unknown,
-}
+enum ConnectivityState { connected, disconnected, connecting, unknown, offline, wifi, mobile }
 
 class ConnectivityNotifier extends StateNotifier<ConnectivityState> {
   final Connectivity _connectivity;
-  StreamSubscription<ConnectivityResult>? _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   ConnectivityNotifier(this._connectivity) : super(ConnectivityState.unknown) {
-    _initializeConnectivity();
+    _initConnectivity();
+    _setupConnectivityListener();
   }
 
-  void _initializeConnectivity() async {
-    // Verificar estado inicial
-    final initialResult = await _connectivity.checkConnectivity();
-    _updateState(initialResult);
-
-    // Suscribirse a cambios de conectividad
-    _subscription = _connectivity.onConnectivityChanged.listen(_updateState);
-  }
-
-  void _updateState(ConnectivityResult result) {
-    switch (result) {
-      case ConnectivityResult.wifi:
-      case ConnectivityResult.mobile:
-      case ConnectivityResult.ethernet:
-        state = ConnectivityState.connected;
-        break;
-      case ConnectivityResult.none:
-        state = ConnectivityState.disconnected;
-        break;
-      case ConnectivityResult.bluetooth:
-      case ConnectivityResult.vpn:
-      case ConnectivityResult.other:
-        state = ConnectivityState.connecting;
-        break;
+  Future<void> _initConnectivity() async {
+    try {
+      final result = await _connectivity.checkConnectivity();
+      _updateState(result);
+    } catch (e) {
+      state = ConnectivityState.unknown;
     }
   }
 
-  // Verificar conectividad actual
-  Future<bool> isConnected() async {
-    final result = await _connectivity.checkConnectivity();
-    return result != ConnectivityResult.none;
+  void _setupConnectivityListener() {
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
+      _updateState,
+      onError: (error) {
+        state = ConnectivityState.unknown;
+      },
+    );
   }
 
-  // Obtener tipo de conexión
-  Future<String> getConnectionType() async {
-    final result = await _connectivity.checkConnectivity();
-    switch (result) {
-      case ConnectivityResult.wifi:
-        return 'WiFi';
-      case ConnectivityResult.mobile:
-        return 'Móvil';
-      case ConnectivityResult.ethernet:
-        return 'Ethernet';
-      case ConnectivityResult.bluetooth:
-        return 'Bluetooth';
-      case ConnectivityResult.vpn:
-        return 'VPN';
-      case ConnectivityResult.other:
-        return 'Otro';
-      case ConnectivityResult.none:
+  void _updateState(List<ConnectivityResult> results) {
+    if (results.isEmpty) {
+      state = ConnectivityState.offline;
+      return;
+    }
+
+    // Determinar el estado basado en los resultados
+    if (results.contains(ConnectivityResult.wifi)) {
+      state = ConnectivityState.wifi;
+    } else if (results.contains(ConnectivityResult.mobile)) {
+      state = ConnectivityState.mobile;
+    } else if (results.contains(ConnectivityResult.ethernet)) {
+      state = ConnectivityState.connected;
+    } else if (results.contains(ConnectivityResult.vpn)) {
+      state = ConnectivityState.connected;
+    } else if (results.contains(ConnectivityResult.bluetooth)) {
+      state = ConnectivityState.connected;
+    } else if (results.contains(ConnectivityResult.other)) {
+      state = ConnectivityState.connected;
+    } else {
+      state = ConnectivityState.offline;
+    }
+  }
+
+  bool get isConnected => state == ConnectivityState.mobile || 
+                         state == ConnectivityState.wifi || 
+                         state == ConnectivityState.connected;
+
+  bool get isOffline => state == ConnectivityState.offline || 
+                       state == ConnectivityState.disconnected;
+
+  String get statusText {
+    switch (state) {
+      case ConnectivityState.connected:
+        return 'Conectado';
+      case ConnectivityState.disconnected:
+        return 'Desconectado';
+      case ConnectivityState.connecting:
+        return 'Conectando...';
+      case ConnectivityState.unknown:
+        return 'Estado desconocido';
+      case ConnectivityState.offline:
         return 'Sin conexión';
+      case ConnectivityState.wifi:
+        return 'WiFi';
+      case ConnectivityState.mobile:
+        return 'Datos móviles';
     }
-  }
-
-  // Verificar si es una conexión estable
-  bool get isStableConnection {
-    return state == ConnectivityState.connected;
-  }
-
-  // Verificar si está en modo offline
-  bool get isOffline {
-    return state == ConnectivityState.disconnected;
   }
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 }
 
-// Provider para el estado de conectividad
 final connectivityProvider = StateNotifierProvider<ConnectivityNotifier, ConnectivityState>((ref) {
   return ConnectivityNotifier(Connectivity());
-});
-
-// Provider para verificar si está conectado
-final isConnectedProvider = FutureProvider<bool>((ref) async {
-  final connectivity = ref.watch(connectivityProvider.notifier);
-  return await connectivity.isConnected();
-});
-
-// Provider para el tipo de conexión
-final connectionTypeProvider = FutureProvider<String>((ref) async {
-  final connectivity = ref.watch(connectivityProvider.notifier);
-  return await connectivity.getConnectionType();
-});
-
-// Provider para verificar si es conexión estable
-final isStableConnectionProvider = Provider<bool>((ref) {
-  final connectivity = ref.watch(connectivityProvider.notifier);
-  return connectivity.isStableConnection;
-});
-
-// Provider para verificar si está offline
-final isOfflineProvider = Provider<bool>((ref) {
-  final connectivity = ref.watch(connectivityProvider.notifier);
-  return connectivity.isOffline;
 }); 

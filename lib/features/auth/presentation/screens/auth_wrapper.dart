@@ -9,7 +9,13 @@ class AuthWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    print('🔄 AuthWrapper - Construyendo widget...');
     final authState = ref.watch(authNotifierProvider);
+
+    // Logs de depuración
+    print('🔄 AuthWrapper - Estado actual: ${authState.status}');
+    print('🔄 AuthWrapper - Usuario: ${authState.user?.name}');
+    print('🔄 AuthWrapper - Error: ${authState.errorMessage}');
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
@@ -21,16 +27,20 @@ class AuthWrapper extends ConsumerWidget {
     switch (authState.status) {
       case AuthStatus.initial:
       case AuthStatus.loading:
+        print('🔄 AuthWrapper - Mostrando pantalla de carga');
         return _buildLoadingScreen();
       
       case AuthStatus.authenticated:
         if (authState.user != null) {
+          print('🔄 AuthWrapper - Usuario autenticado, redirigiendo al dashboard');
           return const DashboardScreen();
         }
+        print('🔄 AuthWrapper - Usuario autenticado pero sin datos, mostrando login');
         return const LoginScreen();
       
       case AuthStatus.unauthenticated:
       case AuthStatus.error:
+        print('🔄 AuthWrapper - Usuario no autenticado o error, mostrando login');
         return const LoginScreen();
     }
   }

@@ -68,20 +68,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void _init() {
     _authService.authStateChanges.listen((user) async {
+      print('🔄 AuthNotifier - Cambio en authStateChanges: ${user?.uid}');
+      
       if (user == null) {
+        print('🔄 AuthNotifier - Usuario es null, estableciendo estado como unauthenticated');
         state = const AuthState(status: AuthStatus.unauthenticated);
       } else {
+        print('🔄 AuthNotifier - Usuario detectado, obteniendo datos...');
         try {
           final userData = await _authService.getCurrentUserData();
           if (userData != null) {
+            print('🔄 AuthNotifier - Datos del usuario obtenidos: ${userData.name}');
             state = AuthState(
               status: AuthStatus.authenticated,
               user: userData,
             );
           } else {
+            print('🔄 AuthNotifier - No se pudieron obtener datos del usuario');
             state = const AuthState(status: AuthStatus.unauthenticated);
           }
         } catch (e) {
+          print('🔄 AuthNotifier - Error al obtener datos del usuario: $e');
           state = AuthState(
             status: AuthStatus.error,
             errorMessage: 'Error al cargar datos del usuario',
@@ -96,6 +103,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
   }) async {
+    print('🔄 AuthNotifier - Iniciando proceso de login...');
     state = state.copyWith(status: AuthStatus.loading);
     
     try {
@@ -105,17 +113,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       
       if (user != null) {
+        print('🔄 AuthNotifier - Login exitoso: ${user.name}');
         state = AuthState(
           status: AuthStatus.authenticated,
           user: user,
         );
       } else {
+        print('🔄 AuthNotifier - Login falló: usuario es null');
         state = const AuthState(
           status: AuthStatus.error,
           errorMessage: 'Error al iniciar sesión',
         );
       }
     } catch (e) {
+      print('🔄 AuthNotifier - Error en login: $e');
       state = AuthState(
         status: AuthStatus.error,
         errorMessage: e.toString(),

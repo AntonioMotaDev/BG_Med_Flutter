@@ -29,13 +29,17 @@ class PhysicalExamAdapter extends TypeAdapter<PhysicalExam> {
       temperature: fields[9] as String,
       oxygenSaturation: fields[10] as String,
       neurological: fields[11] as String,
+      eva: fields[12] as int,
+      llc: fields[13] as int,
+      glucosa: fields[14] as int,
+      ta: fields[15] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, PhysicalExam obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.vitalSigns)
       ..writeByte(1)
@@ -59,7 +63,15 @@ class PhysicalExamAdapter extends TypeAdapter<PhysicalExam> {
       ..writeByte(10)
       ..write(obj.oxygenSaturation)
       ..writeByte(11)
-      ..write(obj.neurological);
+      ..write(obj.neurological)
+      ..writeByte(12)
+      ..write(obj.eva)
+      ..writeByte(13)
+      ..write(obj.llc)
+      ..writeByte(14)
+      ..write(obj.glucosa)
+      ..writeByte(15)
+      ..write(obj.ta);
   }
 
   @override

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:bg_med/core/services/frap_local_service.dart';
 import 'package:bg_med/core/services/frap_firestore_service.dart';
-import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/models/frap_firestore.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -323,7 +322,7 @@ class FrapSyncService {
       'patient': {
         'name': frapData.patientInfo['name'] ?? '',
         'age': frapData.patientInfo['age'] ?? 0,
-        'gender': frapData.patientInfo['sex'] ?? '',
+        'sex': frapData.patientInfo['sex'] ?? '',
         'address': frapData.patientInfo['address'] ?? '',
       },
       'clinicalHistory': {

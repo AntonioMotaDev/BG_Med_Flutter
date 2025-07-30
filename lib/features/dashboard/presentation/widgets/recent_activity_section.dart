@@ -48,68 +48,58 @@ class RecentActivitySection extends ConsumerWidget {
         ValueListenableBuilder(
           valueListenable: Hive.box<Frap>('fraps').listenable(),
           builder: (context, Box<Frap> box, _) {
-            final List<RecentActivity> activities = [];
+            try {
+              final List<RecentActivity> activities = [];
 
-            // Agregar registros FRAP
-            for (final frap in box.values) {
-              activities.add(RecentActivity(
-                id: frap.id,
-                title: frap.patient.name,
-                subtitle: 'Registro FRAP creado',
-                createdAt: frap.createdAt,
-                icon: Icons.assignment,
-                color: Colors.blue[600]!,
-                type: 'frap',
-                data: frap,
-              ));
-            }
-
-            // Agregar pacientes creados (solo si el estado es exitoso)
-            if (patientsState.status == PatientsStatus.success) {
-              for (final patient in patientsState.patients) {
+              // Agregar registros FRAP
+              for (final frap in box.values) {
                 activities.add(RecentActivity(
-                  id: patient.id ?? '',
-                  title: patient.fullName,
-                  subtitle: 'Paciente registrado',
-                  createdAt: patient.createdAt,
-                  icon: Icons.person_add,
-                  color: Colors.green[600]!,
-                  type: 'patient',
-                  data: patient,
+                  id: frap.id,
+                  title: frap.patient.name,
+                  subtitle: 'Registro FRAP creado',
+                  createdAt: frap.createdAt,
+                  icon: Icons.assignment,
+                  color: Colors.blue[600]!,
+                  type: 'frap',
+                  data: frap,
                 ));
               }
-            }
 
-            if (activities.isEmpty) {
+              // Agregar pacientes creados (solo si el estado es exitoso)
+              if (patientsState.status == PatientsStatus.success) {
+                for (final patient in patientsState.patients) {
+                  activities.add(RecentActivity(
+                    id: patient.id ?? '',
+                    title: patient.fullName,
+                    subtitle: 'Paciente registrado',
+                    createdAt: patient.createdAt,
+                    icon: Icons.person_add,
+                    color: Colors.green[600]!,
+                    type: 'patient',
+                    data: patient,
+                  ));
+                }
+              }
+
+              if (activities.isEmpty) {
+                return _buildEmptyState();
+              }
+
+              // Ordenar por fecha de creación (más reciente primero)
+              activities.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+              // Mostrar solo los últimos 5 registros
+              final recentActivities = activities.take(5).toList();
+
+              return Column(
+                children: recentActivities.map((activity) {
+                  return _buildActivityTile(activity);
+                }).toList(),
+              );
+            } catch (e) {
+              // Si hay error con la caja de Hive, mostrar estado vacío
               return _buildEmptyState();
             }
-
-            // Ordenar por fecha de creación (más reciente primero)
-            activities.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            
-            // Tomar solo las 5 más recientes
-            final displayActivities = activities.take(5).toList();
-
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: displayActivities.length,
-                separatorBuilder: (context, index) => Divider(
-                  height: 1,
-                  color: Colors.grey[200],
-                ),
-                itemBuilder: (context, index) {
-                  final activity = displayActivities[index];
-                  return _buildActivityTile(activity);
-                },
-              ),
-            );
           },
         ),
       ],

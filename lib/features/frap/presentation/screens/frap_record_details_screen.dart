@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bg_med/core/services/frap_unified_service.dart';
+import 'package:bg_med/features/frap/presentation/screens/pdf_preview_screen.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
-import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:bg_med/features/frap/presentation/widgets/injury_location_display_widget.dart';
 import 'dart:typed_data'; // Added for Uint8List
-import 'package:bg_med/features/frap/presentation/screens/pdf_preview_screen.dart'; // Added for PdfPreviewScreen
+import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
 
 class FrapRecordDetailsScreen extends ConsumerStatefulWidget {
   final UnifiedFrapRecord record;
@@ -949,7 +950,6 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                         // Lista de lesiones
                         if (drawnInjuries.isNotEmpty) ...[
                           ...drawnInjuries.asMap().entries.map((entry) {
-                            final index = entry.key;
                             final injury = entry.value;
                             final typeName = _getInjuryTypeName(injury.injuryType);
                             final color = _getInjuryTypeColor(injury.injuryType);

@@ -46,6 +46,40 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
 
   final List<String> _sexOptions = ['Masculino', 'Femenino'];
 
+  // Variables para checkboxes y selecciones
+  String _tipoEntregaSeleccionado = '';
+  String _seguroMedicoSeleccionado = '';
+  String _generoSeleccionado = '';
+
+  // Controladores de texto adicionales
+  final _entreCallesController = TextEditingController();
+  final _tipoEntregaOtroController = TextEditingController();
+
+  final List<String> _tiposEntrega = [
+    'Domicilio',
+    'Hospital',
+    'Clínica',
+    'Centro de Salud',
+    'Otro'
+  ];
+
+  final List<String> _segurosMedicos = [
+    'IMSS',
+    'ISSSTE',
+    'PEMEX',
+    'Particular',
+    'Sin seguro',
+    'Otro'
+  ];
+
+  final List<String> _generos = [
+    'Masculino',
+    'Femenino',
+    'No binario',
+    'Prefiero no decir',
+    'Otro'
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -115,44 +149,80 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       backgroundColor: Colors.transparent,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.95,
-        height: MediaQuery.of(context).size.height * 0.85,
+        height: MediaQuery.of(context).size.height * 0.9,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            // Header
+            // Header mejorado
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppTheme.primaryBlue,
+                gradient: LinearGradient(
+                  colors: [AppTheme.primaryBlue, AppTheme.primaryBlue.withOpacity(0.8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 24,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person_add_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   const Expanded(
-                    child: Text(
-                      'INFORMACIÓN DEL PACIENTE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'INFORMACIÓN DEL PACIENTE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Complete los datos del paciente',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      padding: const EdgeInsets.all(8),
+                    ),
                   ),
                 ],
               ),
@@ -163,33 +233,29 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
               child: Form(
                 key: _formKey,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Selector de paciente existente
+                      // Selector de paciente existente mejorado
                       _buildPatientSelector(patientsState),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
-                      // Divisor
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: Colors.grey[300])),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              _selectedPatient != null ? 'DATOS DEL PACIENTE SELECCIONADO' : 'DATOS DEL NUEVO PACIENTE',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: Colors.grey[300])),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
+                      // Divisor mejorado
+                      if (_selectedPatient != null) ...[
+                        _buildSectionDivider(
+                          'DATOS DEL PACIENTE SELECCIONADO',
+                          Icons.check_circle,
+                          Colors.green,
+                        ),
+                      ] else ...[
+                        _buildSectionDivider(
+                          'DATOS DEL NUEVO PACIENTE',
+                          Icons.person_add,
+                          AppTheme.primaryBlue,
+                        ),
+                      ],
+                      const SizedBox(height: 24),
 
                       // Formulario de datos del paciente
                       _buildPatientForm(),
@@ -199,27 +265,40 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
               ),
             ),
 
-            // Navigation buttons
+            // Navigation buttons mejorados
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.grey[50],
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                border: Border(
+                  top: BorderSide(color: Colors.grey[200]!),
                 ),
               ),
               child: Row(
                 children: [
-                  TextButton(
+                  TextButton.icon(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
+                    icon: const Icon(Icons.cancel_outlined),
+                    label: const Text('Cancelar'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey[600],
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
                   ),
                   const Spacer(),
                   if (_selectedPatient != null) ...[
-                    TextButton(
+                    TextButton.icon(
                       onPressed: _clearSelection,
-                      child: const Text('Limpiar selección'),
+                      icon: const Icon(Icons.clear_all),
+                      label: const Text('Limpiar'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.orange[600],
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
                     ),
                     const SizedBox(width: 12),
                   ],
@@ -227,18 +306,23 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     onPressed: _isLoading ? null : _saveForm,
                     icon: _isLoading
                         ? const SizedBox(
-                            width: 16,
-                            height: 16,
+                            width: 18,
+                            height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
+                        : const Icon(Icons.save_rounded),
+                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Datos'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
                     ),
                   ),
                 ],
@@ -251,98 +335,231 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
   }
 
   Widget _buildPatientSelector(PatientsState patientsState) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.search, color: AppTheme.primaryBlue),
-            const SizedBox(width: 8),
-            const Text(
-              'Buscar paciente existente',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.search_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Buscar paciente existente',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      'Seleccione un paciente de la base de datos',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.blue[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.blue[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+              ),
+              hintText: 'Buscar por nombre, apellido...',
+              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            onChanged: (value) {
+              setState(() {
+                // Trigger rebuild to filter patients
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          
+          if (_searchController.text.isNotEmpty && patientsState.patients.isNotEmpty) ...[
+            Container(
+              constraints: const BoxConstraints(maxHeight: 200),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue[300]!),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _getFilteredPatients(patientsState.patients).length,
+                itemBuilder: (context, index) {
+                  final patient = _getFilteredPatients(patientsState.patients)[index];
+                  final isSelected = _selectedPatient?.id == patient.id;
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.primaryBlue.withOpacity(0.1) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: isSelected 
+                          ? Border.all(color: AppTheme.primaryBlue, width: 2)
+                          : null,
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: isSelected ? AppTheme.primaryBlue : Colors.grey[300],
+                        child: Text(
+                          patient.firstName.substring(0, 1).toUpperCase(),
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.grey[700],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        '${patient.firstName} ${patient.paternalLastName} ${patient.maternalLastName}',
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? AppTheme.primaryBlue : Colors.black87,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Edad: ${patient.age} • Teléfono: ${patient.phone}',
+                        style: TextStyle(
+                          color: isSelected ? AppTheme.primaryBlue.withOpacity(0.8) : Colors.grey[600],
+                        ),
+                      ),
+                      trailing: isSelected 
+                          ? Icon(Icons.check_circle, color: AppTheme.primaryBlue)
+                          : null,
+                      onTap: () => _selectPatient(patient),
+                    ),
+                  );
+                },
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: 'Buscar por nombre, apellido...',
-            prefixIcon: Icon(Icons.search),
-          ),
-          onChanged: (value) {
-            setState(() {
-              // Trigger rebuild to filter patients
-            });
-          },
-        ),
-        const SizedBox(height: 12),
-        
-        if (_searchController.text.isNotEmpty && patientsState.patients.isNotEmpty) ...[
-          Container(
-            constraints: const BoxConstraints(maxHeight: 200),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _getFilteredPatients(patientsState.patients).length,
-              itemBuilder: (context, index) {
-                final patient = _getFilteredPatients(patientsState.patients)[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppTheme.primaryBlue,
-                    child: Text(
-                      patient.firstName.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(color: Colors.white),
+          
+          if (_selectedPatient != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green[500],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 20,
                     ),
                   ),
-                  title: Text('${patient.firstName} ${patient.paternalLastName} ${patient.maternalLastName}'),
-                  subtitle: Text('Edad: ${patient.age} • Teléfono: ${patient.phone}'),
-                  onTap: () => _selectPatient(patient),
-                  selected: _selectedPatient?.id == patient.id,
-                );
-              },
-            ),
-          ),
-        ],
-        
-        if (_selectedPatient != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.check_circle, color: AppTheme.primaryBlue),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Paciente seleccionado: ${_selectedPatient!.firstName} ${_selectedPatient!.paternalLastName}',
-                    style: TextStyle(
-                      color: AppTheme.primaryBlue,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Paciente seleccionado',
+                          style: TextStyle(
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          '${_selectedPatient!.firstName} ${_selectedPatient!.paternalLastName}',
+                          style: TextStyle(
+                            color: Colors.green[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: _clearSelection,
-                  icon: Icon(Icons.close, color: AppTheme.primaryBlue),
-                ),
-              ],
+                  IconButton(
+                    onPressed: _clearSelection,
+                    icon: Icon(Icons.close, color: Colors.green[600]),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.green[100],
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionDivider(String title, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ],
+        ),
+        Expanded(
+          child: Divider(color: color.withOpacity(0.3)),
+        ),
       ],
     );
   }
@@ -350,288 +567,573 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
   Widget _buildPatientForm() {
     return Column(
       children: [
-        // Nombre completo
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _firstNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre *',
-                  border: OutlineInputBorder(),
+        // Sección: Información Personal
+        _buildFormSection(
+          'INFORMACIÓN PERSONAL',
+          Icons.person_outline,
+          Colors.blue,
+          [
+            // Nombre completo
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: _firstNameController,
+                    label: 'Nombre *',
+                    icon: Icons.person,
+                    enabled: _selectedPatient == null || _firstNameController.text.trim().isEmpty,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El nombre es requerido';
+                      }
+                      return null;
+                    },
+                  ),
                 ),
-                enabled: _selectedPatient == null || _firstNameController.text.trim().isEmpty,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El nombre es requerido';
-                  }
-                  return null;
-                },
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                    controller: _paternalLastNameController,
+                    label: 'Apellido Paterno *',
+                    icon: Icons.person,
+                    enabled: _selectedPatient == null || _paternalLastNameController.text.trim().isEmpty,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El apellido paterno es requerido';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _paternalLastNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Apellido Paterno *',
-                  border: OutlineInputBorder(),
+            const SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: _maternalLastNameController,
+                    label: 'Apellido Materno *',
+                    icon: Icons.person,
+                    enabled: _selectedPatient == null || _maternalLastNameController.text.trim().isEmpty,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El apellido materno es requerido';
+                      }
+                      return null;
+                    },
+                  ),
                 ),
-                enabled: _selectedPatient == null || _paternalLastNameController.text.trim().isEmpty,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El apellido paterno es requerido';
-                  }
-                  return null;
-                },
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                    controller: _ageController,
+                    label: 'Edad *',
+                    icon: Icons.cake,
+                    keyboardType: TextInputType.number,
+                    enabled: _selectedPatient == null || _ageController.text.trim().isEmpty,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'La edad es requerida';
+                      }
+                      final age = int.tryParse(value);
+                      if (age == null || age < 0 || age > 120) {
+                        return 'Edad válida (0-120)';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Sexo y teléfono
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDropdownField(
+                    value: _sexSelected.isEmpty ? null : _sexSelected,
+                    label: 'Sexo *',
+                    icon: Icons.wc,
+                    items: _sexOptions,
+                    enabled: (_selectedPatient == null || _sexSelected.isEmpty),
+                    onChanged: (_selectedPatient == null || _sexSelected.isEmpty) 
+                        ? (value) {
+                            setState(() {
+                              _sexSelected = value ?? '';
+                            });
+                          }
+                        : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Seleccione el sexo';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                    controller: _phoneController,
+                    label: 'Teléfono *',
+                    icon: Icons.phone,
+                    keyboardType: TextInputType.phone,
+                    enabled: _selectedPatient == null || _phoneController.text.trim().isEmpty,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El teléfono es requerido';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        const SizedBox(height: 16),
         
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _maternalLastNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Apellido Materno *',
-                  border: OutlineInputBorder(),
+        const SizedBox(height: 24),
+
+        // Sección: Dirección
+        _buildFormSection(
+          'DIRECCIÓN',
+          Icons.location_on_outlined,
+          Colors.green,
+          [
+            // Calle y número exterior
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: _buildTextField(
+                    controller: _streetController,
+                    label: 'Calle *',
+                    icon: Icons.streetview,
+                    enabled: _selectedPatient == null || _streetController.text.trim().isEmpty,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'La calle es requerida';
+                      }
+                      return null;
+                    },
+                  ),
                 ),
-                enabled: _selectedPatient == null || _maternalLastNameController.text.trim().isEmpty,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El apellido materno es requerido';
-                  }
-                  return null;
-                },
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                    controller: _exteriorNumberController,
+                    label: 'Núm. Ext. *',
+                    icon: Icons.home,
+                    enabled: _selectedPatient == null || _exteriorNumberController.text.trim().isEmpty,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Número requerido';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _ageController,
-                decoration: const InputDecoration(
-                  labelText: 'Edad *',
-                  border: OutlineInputBorder(),
+            const SizedBox(height: 16),
+
+            // Número interior y colonia
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: _interiorNumberController,
+                    label: 'Núm. Int.',
+                    icon: Icons.home_work,
+                    enabled: _selectedPatient == null || _interiorNumberController.text.trim().isEmpty,
+                  ),
                 ),
-                enabled: _selectedPatient == null || _ageController.text.trim().isEmpty,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(3),
-                ],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'La edad es requerida';
-                  }
-                  final age = int.tryParse(value);
-                  if (age == null || age < 0 || age > 120) {
-                    return 'Edad válida (0-120)';
-                  }
-                  return null;
-                },
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                    controller: _neighborhoodController,
+                    label: 'Colonia *',
+                    icon: Icons.location_city,
+                    enabled: _selectedPatient == null || _neighborhoodController.text.trim().isEmpty,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'La colonia es requerida';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Ciudad y seguro médico
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: _cityController,
+                    label: 'Ciudad *',
+                    icon: Icons.location_city,
+                    enabled: _selectedPatient == null || _cityController.text.trim().isEmpty,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'La ciudad es requerida';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                    controller: _insuranceController,
+                    label: 'Seguro Médico',
+                    icon: Icons.medical_services,
+                    enabled: _selectedPatient == null || _insuranceController.text.trim().isEmpty,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Entre calles
+            _buildTextField(
+              controller: _entreCallesController,
+              label: 'Entre calles o referencia de llegada',
+              icon: Icons.directions,
+              maxLines: 2,
+              hintText: 'Ej: Entre Av. Principal y Calle Secundaria',
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        
+        const SizedBox(height: 24),
 
-        // Sexo y teléfono
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: _sexSelected.isEmpty ? null : _sexSelected,
-                decoration: const InputDecoration(
-                  labelText: 'Sexo *',
-                  border: OutlineInputBorder(),
-                ),
-                items: _sexOptions.map((sexo) {
-                  return DropdownMenuItem(
-                    value: sexo,
-                    child: Text(sexo),
-                  );
-                }).toList(),
-                onChanged: (_selectedPatient == null || _sexSelected.isEmpty) ? (value) {
-                  setState(() {
-                    _sexSelected = value ?? '';
-                  });
-                } : null,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Seleccione el sexo';
+        // Sección: Información Adicional
+        _buildFormSection(
+          'INFORMACIÓN ADICIONAL',
+          Icons.info_outline,
+          Colors.orange,
+          [
+            // Tipo de entrega
+            _buildSelectionGroup(
+              'TIPO DE ENTREGA',
+              Icons.delivery_dining,
+              _tiposEntrega,
+              _tipoEntregaSeleccionado,
+              (value) {
+                setState(() {
+                  _tipoEntregaSeleccionado = value;
+                  if (value != 'Otro') {
+                    _tipoEntregaOtroController.clear();
                   }
-                  return null;
-                },
-              ),
+                });
+              },
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Teléfono *',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _selectedPatient == null || _phoneController.text.trim().isEmpty,
-                keyboardType: TextInputType.phone,
+            
+            if (_tipoEntregaSeleccionado == 'Otro') ...[
+              const SizedBox(height: 12),
+              _buildTextField(
+                controller: _tipoEntregaOtroController,
+                label: 'Especifique tipo de entrega:',
+                icon: Icons.edit,
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El teléfono es requerido';
+                  if (_tipoEntregaSeleccionado == 'Otro' && 
+                      (value == null || value.trim().isEmpty)) {
+                    return 'Especifique el tipo de entrega';
                   }
                   return null;
                 },
               ),
+            ],
+            
+            const SizedBox(height: 16),
+
+            // Género
+            _buildSelectionGroup(
+              'GÉNERO',
+              Icons.person_outline,
+              _generos,
+              _generoSeleccionado,
+              (value) {
+                setState(() {
+                  _generoSeleccionado = value;
+                });
+              },
+            ),
+            
+            const SizedBox(height: 16),
+
+            // Seguro médico actualizado
+            _buildSelectionGroup(
+              'SEGURO MÉDICO',
+              Icons.medical_services_outlined,
+              _segurosMedicos,
+              _seguroMedicoSeleccionado,
+              (value) {
+                setState(() {
+                  _seguroMedicoSeleccionado = value;
+                });
+              },
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        
+        const SizedBox(height: 24),
 
-        // Dirección - Calle y número exterior
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: TextFormField(
-                controller: _streetController,
-                decoration: const InputDecoration(
-                  labelText: 'Calle *',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _selectedPatient == null || _streetController.text.trim().isEmpty,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'La calle es requerida';
-                  }
-                  return null;
-                },
-              ),
+        // Sección: Información Médica
+        _buildFormSection(
+          'INFORMACIÓN MÉDICA',
+          Icons.medical_information,
+          Colors.red,
+          [
+            // Padecimiento Actual
+            _buildTextField(
+              controller: _currentConditionController,
+              label: 'Padecimiento Actual',
+              icon: Icons.sick,
+              maxLines: 3,
+              hintText: 'Describe el padecimiento o síntomas actuales del paciente',
+              textCapitalization: TextCapitalization.sentences,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _exteriorNumberController,
-                decoration: const InputDecoration(
-                  labelText: 'Núm. Ext. *',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _selectedPatient == null || _exteriorNumberController.text.trim().isEmpty,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Número requerido';
-                  }
-                  return null;
-                },
-              ),
+            const SizedBox(height: 16),
+
+            // Contacto de Emergencia
+            _buildTextField(
+              controller: _emergencyContactController,
+              label: 'Contacto de Emergencia',
+              icon: Icons.emergency,
+              hintText: 'Nombre del contacto de emergencia',
+              textCapitalization: TextCapitalization.words,
+            ),
+            const SizedBox(height: 16),
+
+            // Persona Responsable
+            _buildTextField(
+              controller: _responsiblePersonController,
+              label: 'Persona Responsable',
+              icon: Icons.person_pin,
+              hintText: 'Ej: Padre, Madre, Tutor',
+              textCapitalization: TextCapitalization.words,
             ),
           ],
         ),
-        const SizedBox(height: 16),
+      ],
+    );
+  }
 
-        // Número interior y colonia
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _interiorNumberController,
-                decoration: const InputDecoration(
-                  labelText: 'Núm. Int.',
-                  border: OutlineInputBorder(),
+  Widget _buildFormSection(String title, IconData icon, Color color, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                enabled: _selectedPatient == null || _interiorNumberController.text.trim().isEmpty,
+                child: Icon(icon, color: color, size: 20),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _neighborhoodController,
-                decoration: const InputDecoration(
-                  labelText: 'Colonia *',
-                  border: OutlineInputBorder(),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: color,
                 ),
-                enabled: _selectedPatient == null || _neighborhoodController.text.trim().isEmpty,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'La colonia es requerida';
-                  }
-                  return null;
-                },
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // Ciudad y seguro médico
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _cityController,
-                decoration: const InputDecoration(
-                  labelText: 'Ciudad *',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _selectedPatient == null || _cityController.text.trim().isEmpty,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'La ciudad es requerida';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _insuranceController,
-                decoration: const InputDecoration(
-                  labelText: 'Seguro Médico',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _selectedPatient == null || _insuranceController.text.trim().isEmpty,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // Padecimiento Actual
-        TextFormField(
-          controller: _currentConditionController,
-          decoration: const InputDecoration(
-            labelText: 'Padecimiento Actual',
-            border: OutlineInputBorder(),
-            hintText: 'Describe el padecimiento o síntomas actuales del paciente',
+            ],
           ),
-          maxLines: 3,
-          textCapitalization: TextCapitalization.sentences,
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
 
-        // Contacto de Emergencia
-        TextFormField(
-          controller: _emergencyContactController,
-          decoration: const InputDecoration(
-            labelText: 'Contacto de Emergencia',
-            border: OutlineInputBorder(),
-            hintText: 'Nombre del contacto de emergencia',
-          ),
-          textCapitalization: TextCapitalization.words,
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool enabled = true,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    int maxLines = 1,
+    String? hintText,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+  }) {
+    return TextFormField(
+      controller: controller,
+      enabled: enabled,
+      validator: validator,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      maxLines: maxLines,
+      textCapitalization: textCapitalization,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        prefixIcon: Icon(icon, color: enabled ? Colors.grey[600] : Colors.grey[400]),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
         ),
-        const SizedBox(height: 16),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red[300]!),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red, width: 2),
+        ),
+        filled: true,
+        fillColor: enabled ? Colors.white : Colors.grey[100],
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        labelStyle: TextStyle(
+          color: enabled ? Colors.grey[700] : Colors.grey[400],
+        ),
+      ),
+      style: TextStyle(
+        color: enabled ? Colors.black87 : Colors.grey[600],
+      ),
+    );
+  }
 
-        // Persona Responsable
-        TextFormField(
-          controller: _responsiblePersonController,
-          decoration: const InputDecoration(
-            labelText: 'Persona Responsable',
-            border: OutlineInputBorder(),
-            hintText: 'Ej: Padre, Madre, Tutor',
-          ),
-          textCapitalization: TextCapitalization.words,
+  Widget _buildDropdownField({
+    required String? value,
+    required String label,
+    required IconData icon,
+    required List<String> items,
+    required bool enabled,
+    required Function(String?)? onChanged,
+    required String? Function(String?)? validator,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: enabled ? Colors.grey[600] : Colors.grey[400]),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red[300]!),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red, width: 2),
+        ),
+        filled: true,
+        fillColor: enabled ? Colors.white : Colors.grey[100],
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        labelStyle: TextStyle(
+          color: enabled ? Colors.grey[700] : Colors.grey[400],
+        ),
+      ),
+      items: items.map((item) {
+        return DropdownMenuItem(
+          value: item,
+          child: Text(item),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      validator: validator,
+      style: TextStyle(
+        color: enabled ? Colors.black87 : Colors.grey[600],
+      ),
+    );
+  }
+
+  Widget _buildSelectionGroup(
+    String title,
+    IconData icon,
+    List<String> options,
+    String selectedValue,
+    Function(String) onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Colors.grey[600], size: 18),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((option) {
+            final isSelected = selectedValue == option;
+            return GestureDetector(
+              onTap: () => onChanged(isSelected ? '' : option),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primaryBlue : Colors.white,
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primaryBlue : Colors.grey[300]!,
+                    width: isSelected ? 2 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  option,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected ? Colors.white : Colors.grey[700],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
@@ -647,7 +1149,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
              patient.maternalLastName.toLowerCase().contains(searchTerm);
     }).toList();
   }
-
+  
   void _selectPatient(PatientFirestore patient) {
     setState(() {
       _selectedPatient = patient;
@@ -666,6 +1168,14 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _cityController.text = patient.city;
       _insuranceController.text = patient.insurance;
       _responsiblePersonController.text = patient.responsiblePerson ?? '';
+      
+      // Nuevos campos - usar acceso seguro ya que pueden no existir en el modelo
+      _entreCallesController.text = ''; // Campo nuevo, no existe en PatientFirestore
+      _tipoEntregaSeleccionado = ''; // Campo nuevo, no existe en PatientFirestore
+      _tipoEntregaOtroController.text = ''; // Campo nuevo, no existe en PatientFirestore
+      _generoSeleccionado = ''; // Campo nuevo, no existe en PatientFirestore
+      _seguroMedicoSeleccionado = ''; // Campo nuevo, no existe en PatientFirestore
+      
       // No llenamos currentCondition y emergencyContact porque son específicos de cada consulta FRAP
       
       // Limpiar búsqueda
@@ -694,6 +1204,13 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _currentConditionController.clear();
       _emergencyContactController.clear();
       _responsiblePersonController.clear();
+      
+      // Limpiar nuevos campos
+      _entreCallesController.clear();
+      _tipoEntregaSeleccionado = '';
+      _tipoEntregaOtroController.clear();
+      _generoSeleccionado = '';
+      _seguroMedicoSeleccionado = '';
     });
   }
 
@@ -724,7 +1241,13 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         'currentCondition': _currentConditionController.text.trim(),
         'emergencyContact': _emergencyContactController.text.trim(),
         'responsiblePerson': _responsiblePersonController.text.trim(),
+        'entreCalles': _entreCallesController.text.trim(),
+        'tipoEntrega': _tipoEntregaSeleccionado,
+        'tipoEntregaOtro': _tipoEntregaOtroController.text.trim(),
+        'genero': _generoSeleccionado,
+        'seguroMedico': _seguroMedicoSeleccionado,
         'isNewPatient': _selectedPatient == null,
+        'timestamp': DateTime.now().toIso8601String(),
       };
 
       // Si es un nuevo paciente, preguntar si quiere guardarlo
@@ -740,9 +1263,20 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Información del paciente guardada'),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Text('Información del paciente guardada exitosamente'),
+              ],
+            ),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -750,8 +1284,19 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Text('Error al guardar: $e'),
+              ],
+            ),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -768,7 +1313,16 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Guardar Nuevo Paciente'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.save, color: AppTheme.primaryBlue),
+            const SizedBox(width: 12),
+            const Text('Guardar Nuevo Paciente'),
+          ],
+        ),
         content: const Text(
           '¿Deseas guardar este paciente en la base de datos para futuras consultas?',
         ),
@@ -782,6 +1336,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Guardar paciente'),
           ),
@@ -816,9 +1373,20 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nuevo paciente guardado exitosamente'),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Text('Nuevo paciente guardado exitosamente'),
+              ],
+            ),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -826,8 +1394,19 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar paciente: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Text('Error al guardar paciente: $e'),
+              ],
+            ),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }

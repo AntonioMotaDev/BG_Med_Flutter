@@ -4,7 +4,12 @@ import 'package:bg_med/core/models/frap_firestore.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_local_provider.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_firestore_provider.dart';
 import 'package:bg_med/core/services/frap_cleanup_service.dart';
+import 'package:bg_med/core/services/data_cleanup_service.dart';
 import 'package:intl/intl.dart'; // Added for DateFormat
+import 'package:bg_med/core/services/frap_unified_service.dart';
+import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
+import 'package:bg_med/core/services/frap_local_service.dart';
+import 'package:bg_med/core/services/frap_firestore_service.dart';
 
 // Estados de sincronización
 enum SyncStatus {
@@ -15,332 +20,7 @@ enum SyncStatus {
 }
 
 // Modelo unificado para representar registros FRAP de cualquier fuente
-class UnifiedFrapRecord {
-  final String id;
-  final String patientName;
-  final int patientAge;
-  final String patientGender;
-  final String patientAddress;
-  final DateTime createdAt;
-  final bool isLocal; // true = local (Hive), false = cloud (Firestore)
-  final double completionPercentage;
-  final String? syncId; // ID para sincronización entre local y nube
-  
-  // Campos para manejo de duplicados
-  final bool isDuplicate;
-  final String? duplicateOf; // ID del registro original
-  final String? duplicateCriteria; // Criterio usado para detectar duplicado
-  
-  // Datos originales para acceso directo
-  final Frap? localRecord;
-  final FrapFirestore? cloudRecord;
-
-  const UnifiedFrapRecord({
-    required this.id,
-    required this.patientName,
-    required this.patientAge,
-    required this.patientGender,
-    required this.patientAddress,
-    required this.createdAt,
-    required this.isLocal,
-    required this.completionPercentage,
-    this.syncId,
-    this.isDuplicate = false,
-    this.duplicateOf,
-    this.duplicateCriteria,
-    this.localRecord,
-    this.cloudRecord,
-  });
-
-  // Factory constructor desde registro local
-  factory UnifiedFrapRecord.fromLocal(Frap frap) {
-    return UnifiedFrapRecord(
-      id: frap.id,
-      patientName: frap.patient.fullName.isNotEmpty ? frap.patient.fullName : 'Paciente sin nombre',
-      patientAge: frap.patient.age,
-      patientGender: frap.patient.sex, // Cambiado de gender a sex
-      patientAddress: frap.patient.fullAddress,
-      createdAt: frap.createdAt,
-      isLocal: true,
-      completionPercentage: frap.completionPercentage,
-      syncId: _generateRobustSyncId(frap.patient.fullName, frap.patient.age, frap.patient.sex, frap.createdAt),
-      localRecord: frap,
-      cloudRecord: null,
-    );
-  }
-
-  // Factory constructor desde registro de la nube
-  factory UnifiedFrapRecord.fromCloud(FrapFirestore frapFirestore) {
-    return UnifiedFrapRecord(
-      id: frapFirestore.id ?? '',
-      patientName: frapFirestore.patientName.isNotEmpty ? frapFirestore.patientName : 'Paciente sin nombre',
-      patientAge: frapFirestore.patientAge,
-      patientGender: frapFirestore.patientGender,
-      patientAddress: _extractAddressFromFirestore(frapFirestore),
-      createdAt: frapFirestore.createdAt,
-      isLocal: false,
-      completionPercentage: frapFirestore.completionPercentage,
-      syncId: _generateRobustSyncId(frapFirestore.patientName, frapFirestore.patientAge, frapFirestore.patientGender, frapFirestore.createdAt),
-      localRecord: null,
-      cloudRecord: frapFirestore,
-    );
-  }
-
-  // Método para marcar como duplicado
-  UnifiedFrapRecord markAsDuplicate(String originalId, String criteria) {
-    return UnifiedFrapRecord(
-      id: id,
-      patientName: patientName,
-      patientAge: patientAge,
-      patientGender: patientGender,
-      patientAddress: patientAddress,
-      createdAt: createdAt,
-      isLocal: isLocal,
-      completionPercentage: completionPercentage,
-      syncId: syncId,
-      isDuplicate: true,
-      duplicateOf: originalId,
-      duplicateCriteria: criteria,
-      localRecord: localRecord,
-      cloudRecord: cloudRecord,
-    );
-  }
-
-  // Calcular porcentaje de completitud para registros locales
-  static double _calculateLocalCompletion(Frap frap) {
-    // Usar el nuevo método del modelo Frap expandido
-    return frap.completionPercentage;
-  }
-
-  // Extraer dirección de registro de Firestore
-  static String _extractAddressFromFirestore(FrapFirestore frapFirestore) {
-    final patientInfo = frapFirestore.patientInfo;
-    final address = patientInfo['address'] ?? '';
-    if (address.isNotEmpty) return address;
-    
-    final street = patientInfo['street'] ?? '';
-    final neighborhood = patientInfo['neighborhood'] ?? '';
-    return '$street $neighborhood'.trim();
-  }
-
-  // Generar ID de sincronización basado en datos del paciente y fecha
-  static String _generateSyncId(String patientName, int patientAge, String patientGender, DateTime createdAt) {
-    final normalizedName = patientName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-    final dateKey = '${createdAt.year}${createdAt.month.toString().padLeft(2, '0')}${createdAt.day.toString().padLeft(2, '0')}${createdAt.hour.toString().padLeft(2, '0')}${createdAt.minute.toString().padLeft(2, '0')}';
-    return '${normalizedName}_${patientAge}_${patientGender.toLowerCase()}_$dateKey';
-  }
-
-  // Generar syncId más robusto y consistente
-  static String _generateRobustSyncId(String patientName, int patientAge, String patientGender, DateTime createdAt) {
-    final normalizedName = patientName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-    final dateKey = '${createdAt.year}${createdAt.month.toString().padLeft(2, '0')}${createdAt.day.toString().padLeft(2, '0')}${createdAt.hour.toString().padLeft(2, '0')}${createdAt.minute.toString().padLeft(2, '0')}';
-    return '${normalizedName}_${patientAge}_${patientGender.toLowerCase()}_$dateKey';
-  }
-
-  // Función para comparar registros por contenido
-  static bool _areRecordsEquivalent(UnifiedFrapRecord local, UnifiedFrapRecord cloud) {
-    // Criterio 1: Comparar datos críticos del paciente
-    if (local.patientName.toLowerCase() != cloud.patientName.toLowerCase()) return false;
-    if (local.patientAge != cloud.patientAge) return false;
-    if (local.patientGender.toLowerCase() != cloud.patientGender.toLowerCase()) return false;
-    
-    // Criterio 2: Comparar fechas de creación (con tolerancia de 5 minutos)
-    final timeDifference = local.createdAt.difference(cloud.createdAt).abs();
-    if (timeDifference.inMinutes > 5) return false;
-    
-    // Criterio 3: Comparar contenido de secciones principales
-    final localInfo = local.getDetailedInfo();
-    final cloudInfo = cloud.getDetailedInfo();
-    
-    // Comparar información del paciente
-    final localPatient = localInfo['patientInfo'] as Map<String, dynamic>;
-    final cloudPatient = cloudInfo['patientInfo'] as Map<String, dynamic>;
-    
-    if (localPatient['name'] != cloudPatient['name']) return false;
-    if (localPatient['age'] != cloudPatient['age']) return false;
-    if (localPatient['sex'] != cloudPatient['sex']) return false; // Cambiado de gender a sex
-    
-    // Comparar historia clínica básica
-    final localClinical = localInfo['clinicalHistory'] as Map<String, dynamic>;
-    final cloudClinical = cloudInfo['clinicalHistory'] as Map<String, dynamic>;
-    
-    if (localClinical['allergies'] != cloudClinical['allergies']) return false;
-    if (localClinical['medications'] != cloudClinical['medications']) return false;
-    
-    return true;
-  }
-
-  // Detectar duplicados usando múltiples criterios
-  static List<Map<String, dynamic>> _detectDuplicates(
-    List<UnifiedFrapRecord> localRecords,
-    List<UnifiedFrapRecord> cloudRecords,
-  ) {
-    final duplicates = <Map<String, dynamic>>[];
-    
-    for (final localRecord in localRecords) {
-      for (final cloudRecord in cloudRecords) {
-        // Criterio 1: SyncId exacto
-        if (localRecord.syncId == cloudRecord.syncId) {
-          duplicates.add({
-            'local': localRecord,
-            'cloud': cloudRecord,
-            'criteria': 'syncId_exact',
-          });
-          continue;
-        }
-        
-        // Criterio 2: Datos del paciente + fecha (con tolerancia)
-        if (_areRecordsEquivalent(localRecord, cloudRecord)) {
-          duplicates.add({
-            'local': localRecord,
-            'cloud': cloudRecord,
-            'criteria': 'content_equivalent',
-          });
-          continue;
-        }
-        
-        // Criterio 3: Nombre y edad exactos + fecha cercana (10 minutos)
-        if (localRecord.patientName.toLowerCase() == cloudRecord.patientName.toLowerCase() &&
-            localRecord.patientAge == cloudRecord.patientAge &&
-            localRecord.patientGender.toLowerCase() == cloudRecord.patientGender.toLowerCase()) {
-          final timeDifference = localRecord.createdAt.difference(cloudRecord.createdAt).abs();
-          if (timeDifference.inMinutes <= 10) {
-            duplicates.add({
-              'local': localRecord,
-              'cloud': cloudRecord,
-              'criteria': 'patient_similar',
-            });
-          }
-        }
-      }
-    }
-    
-    return duplicates;
-  }
-
-  // Método para obtener información detallada del registro
-  Map<String, dynamic> getDetailedInfo() {
-    if (isLocal && localRecord != null) {
-      return {
-        'serviceInfo': localRecord!.serviceInfo.isNotEmpty 
-            ? localRecord!.serviceInfo 
-            : {
-                'serviceType': 'Atención Prehospitalaria',
-                'date': DateFormat('dd/MM/yyyy').format(localRecord!.createdAt),
-                'startTime': DateFormat('HH:mm').format(localRecord!.createdAt),
-              },
-        'registryInfo': localRecord!.registryInfo.isNotEmpty 
-            ? localRecord!.registryInfo 
-            : {
-                'folio': localRecord!.id.substring(0, 8).toUpperCase(),
-                'registrationDate': DateFormat('dd/MM/yyyy').format(localRecord!.createdAt),
-                'registrationTime': DateFormat('HH:mm').format(localRecord!.createdAt),
-              },
-        'patientInfo': {
-          'name': localRecord!.patient.fullName,
-          'firstName': localRecord!.patient.firstName,
-          'paternalLastName': localRecord!.patient.paternalLastName,
-          'maternalLastName': localRecord!.patient.maternalLastName,
-          'age': localRecord!.patient.age,
-          'sex': localRecord!.patient.sex, // Cambiado de gender a sex
-          'address': localRecord!.patient.fullAddress,
-          'phone': localRecord!.patient.phone,
-          'insurance': localRecord!.patient.insurance,
-          'responsiblePerson': localRecord!.patient.responsiblePerson,
-          'street': localRecord!.patient.street,
-          'exteriorNumber': localRecord!.patient.exteriorNumber,
-          'interiorNumber': localRecord!.patient.interiorNumber,
-          'neighborhood': localRecord!.patient.neighborhood,
-          'city': localRecord!.patient.city,
-          // Campos específicos de FRAP (desde patientInfo del registro)
-          'currentCondition': localRecord!.serviceInfo['currentCondition'] ?? '',
-          'emergencyContact': localRecord!.serviceInfo['emergencyContact'] ?? '',
-        },
-        'clinicalHistory': {
-          'allergies': localRecord!.clinicalHistory.allergies,
-          'medications': localRecord!.clinicalHistory.medications,
-          'previousIllnesses': localRecord!.clinicalHistory.previousIllnesses,
-          'currentSymptoms': localRecord!.clinicalHistory.currentSymptoms,
-          'pain': localRecord!.clinicalHistory.pain,
-          'painScale': localRecord!.clinicalHistory.painScale,
-        },
-        'physicalExam': {
-          'vitalSigns': localRecord!.physicalExam.vitalSigns,
-          'head': localRecord!.physicalExam.head,
-          'neck': localRecord!.physicalExam.neck,
-          'thorax': localRecord!.physicalExam.thorax,
-          'abdomen': localRecord!.physicalExam.abdomen,
-          'extremities': localRecord!.physicalExam.extremities,
-          'bloodPressure': localRecord!.physicalExam.bloodPressure,
-          'heartRate': localRecord!.physicalExam.heartRate,
-          'respiratoryRate': localRecord!.physicalExam.respiratoryRate,
-          'temperature': localRecord!.physicalExam.temperature,
-          'oxygenSaturation': localRecord!.physicalExam.oxygenSaturation,
-          'neurological': localRecord!.physicalExam.neurological,
-        },
-        'pathologicalHistory': localRecord!.pathologicalHistory.isNotEmpty 
-            ? localRecord!.pathologicalHistory 
-            : {
-                'allergies': localRecord!.clinicalHistory.allergies,
-                'previous_illnesses': localRecord!.clinicalHistory.previousIllnesses,
-                'previousSurgeries': localRecord!.clinicalHistory.previousSurgeries,
-                'hospitalizations': localRecord!.clinicalHistory.hospitalizations,
-                'transfusions': localRecord!.clinicalHistory.transfusions,
-              },
-        'medications': localRecord!.medications.isNotEmpty 
-            ? localRecord!.medications 
-            : {
-                'current_medications': localRecord!.clinicalHistory.medications,
-                'dosage': localRecord!.clinicalHistory.dosage,
-                'frequency': localRecord!.clinicalHistory.frequency,
-                'route': localRecord!.clinicalHistory.route,
-                'time': localRecord!.clinicalHistory.time,
-              },
-        'management': localRecord!.management.isNotEmpty 
-            ? localRecord!.management 
-            : {
-                'procedures': '',
-                'medications': localRecord!.clinicalHistory.medications,
-                'response': '',
-                'observations': '',
-              },
-        'gynecoObstetric': localRecord!.gynecoObstetric,
-        'attentionNegative': localRecord!.attentionNegative,
-        'priorityJustification': localRecord!.priorityJustification,
-        'injuryLocation': localRecord!.injuryLocation,
-        'receivingUnit': localRecord!.receivingUnit,
-        'patientReception': localRecord!.patientReception,
-      };
-    } else if (!isLocal && cloudRecord != null) {
-      return {
-        'serviceInfo': cloudRecord!.serviceInfo,
-        'registryInfo': cloudRecord!.registryInfo,
-        'patientInfo': cloudRecord!.patientInfo,
-        'clinicalHistory': cloudRecord!.clinicalHistory,
-        'physicalExam': cloudRecord!.physicalExam,
-        'management': cloudRecord!.management,
-        'medications': cloudRecord!.medications,
-        'gynecoObstetric': cloudRecord!.gynecoObstetric,
-        'attentionNegative': cloudRecord!.attentionNegative,
-        'pathologicalHistory': cloudRecord!.pathologicalHistory,
-        'priorityJustification': cloudRecord!.priorityJustification,
-        'injuryLocation': cloudRecord!.injuryLocation,
-        'receivingUnit': cloudRecord!.receivingUnit,
-        'patientReception': cloudRecord!.patientReception,
-      };
-    }
-    return {};
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is UnifiedFrapRecord && other.id == id && other.isLocal == isLocal;
-  }
-
-  @override
-  int get hashCode => id.hashCode ^ isLocal.hashCode;
-}
+// Usar la definición del servicio unificado en lugar de duplicar
 
 // Estado unificado para registros FRAP
 class UnifiedFrapState {
@@ -400,7 +80,14 @@ class UnifiedFrapState {
 class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
   final FrapLocalNotifier _localNotifier;
   final FrapFirestoreNotifier _cloudNotifier;
-  final FrapCleanupService _cleanupService = FrapCleanupService();
+  final FrapCleanupService _cleanupService = FrapCleanupService(
+    dataCleanupService: DataCleanupService(
+      localService: FrapLocalService(),
+      cloudService: FrapFirestoreService(),
+    ),
+    localService: FrapLocalService(),
+    cloudService: FrapFirestoreService(),
+  );
   bool _isUpdating = false; // Flag para evitar actualizaciones múltiples
 
   UnifiedFrapNotifier(this._localNotifier, this._cloudNotifier) : super(const UnifiedFrapState()) {
@@ -460,63 +147,30 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
         .map((frap) => UnifiedFrapRecord.fromCloud(frap))
         .toList();
 
-    // Detectar duplicados usando la nueva lógica
-    final duplicates = UnifiedFrapRecord._detectDuplicates(localRecords, cloudRecords);
-    
     // Crear mapa de registros únicos, priorizando registros de la nube
     final Map<String, UnifiedFrapRecord> uniqueRecords = {};
     final List<String> duplicateLocalIds = [];
     
     // Primero agregar todos los registros de la nube
     for (final cloudRecord in cloudRecords) {
-      if (cloudRecord.syncId != null) {
-        uniqueRecords[cloudRecord.syncId!] = cloudRecord;
-      } else {
-        // Si no tiene syncId, usar el ID original como fallback
-        uniqueRecords['cloud_${cloudRecord.id}'] = cloudRecord;
-      }
+      uniqueRecords['cloud_${cloudRecord.cloudRecord?.id ?? DateTime.now().millisecondsSinceEpoch}'] = cloudRecord;
     }
     
     // Luego procesar registros locales
     for (final localRecord in localRecords) {
       bool isDuplicate = false;
-      String? duplicateOf;
-      String? duplicateCriteria;
       
-      // Verificar si es duplicado
-      for (final duplicate in duplicates) {
-        if (duplicate['local']?.id == localRecord.id) {
+      // Verificar si es duplicado comparando con registros de la nube
+      for (final cloudRecord in cloudRecords) {
+        if (_areRecordsEquivalent(localRecord, cloudRecord)) {
           isDuplicate = true;
-          duplicateOf = duplicate['cloud']?.id;
-          duplicateCriteria = duplicate['criteria'];
-          duplicateLocalIds.add(localRecord.id);
+          duplicateLocalIds.add(localRecord.localRecord?.id ?? '');
           break;
         }
       }
       
-      if (localRecord.syncId != null) {
-        if (!uniqueRecords.containsKey(localRecord.syncId!)) {
-          // No es duplicado, agregar al mapa
-          if (isDuplicate) {
-            uniqueRecords[localRecord.syncId!] = localRecord.markAsDuplicate(duplicateOf!, duplicateCriteria!);
-          } else {
-            uniqueRecords[localRecord.syncId!] = localRecord;
-          }
-        } else {
-          // Ya existe un registro con el mismo syncId (debe ser de la nube)
-          // Marcar el local como duplicado
-          duplicateLocalIds.add(localRecord.id);
-        }
-      } else {
-        // Si no tiene syncId, usar el ID original como fallback
-        final key = 'local_${localRecord.id}';
-        if (!uniqueRecords.containsKey(key)) {
-          if (isDuplicate) {
-            uniqueRecords[key] = localRecord.markAsDuplicate(duplicateOf!, duplicateCriteria!);
-          } else {
-            uniqueRecords[key] = localRecord;
-          }
-        }
+      if (!isDuplicate) {
+        uniqueRecords['local_${localRecord.localRecord?.id ?? DateTime.now().millisecondsSinceEpoch}'] = localRecord;
       }
     }
     
@@ -533,29 +187,30 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
       debugRecordUnification();
       
       // Mostrar información de duplicados detectados
-      if (duplicates.isNotEmpty) {
+      if (duplicateLocalIds.isNotEmpty) {
         print('=== DUPLICADOS DETECTADOS ===');
-        print('Total de duplicados: ${duplicates.length}');
-        for (final duplicate in duplicates) {
-          final local = duplicate['local']!;
-          final cloud = duplicate['cloud']!;
-          final criteria = duplicate['criteria']!;
-          print('  - Local: ${local.patientName} (${local.id})');
-          print('    Cloud: ${cloud.patientName} (${cloud.id})');
-          print('    Criterio: $criteria');
-        }
+        print('Total de duplicados: ${duplicateLocalIds.length}');
         print('Registros locales marcados para eliminación: ${duplicateLocalIds.length}');
         print('=== FIN DUPLICADOS ===\n');
       }
     }
   }
 
+  bool _areRecordsEquivalent(UnifiedFrapRecord local, UnifiedFrapRecord cloud) {
+    // Comparar por datos del paciente y fecha de creación
+    final localPatientName = local.patientName;
+    final cloudPatientName = cloud.patientName;
+    
+    return localPatientName.toLowerCase() == cloudPatientName.toLowerCase() &&
+           local.createdAt.difference(cloud.createdAt).abs().inMinutes < 5;
+  }
+
   void _updateStatistics() {
     final totalRecords = state.records.length;
     final localCount = state.records.where((r) => r.isLocal).length;
     final cloudCount = state.records.where((r) => !r.isLocal).length;
-    final duplicateCount = state.records.where((r) => r.isDuplicate).length;
-    final localDuplicatesCount = state.records.where((r) => r.isLocal && r.isDuplicate).length;
+    final duplicateCount = 0; // Ya no tenemos esta propiedad
+    final localDuplicatesCount = 0; // Ya no tenemos esta propiedad
     
     final unifiedStats = {
       'total': totalRecords,
@@ -565,9 +220,9 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
       'thisWeek': _getWeekCount(),
       'thisMonth': _getMonthCount(),
       'averageCompletion': _getAverageCompletion(),
-      'localOnlyCount': localCount - localDuplicatesCount, // Registros que solo existen localmente
+      'localOnlyCount': localCount, // Registros que solo existen localmente
       'cloudOnlyCount': cloudCount, // Registros que solo existen en la nube
-      'syncedCount': totalRecords - localDuplicatesCount, // Registros sincronizados
+      'syncedCount': totalRecords, // Registros sincronizados
       'duplicateCount': duplicateCount,
       'localDuplicatesCount': localDuplicatesCount,
     };
@@ -610,7 +265,14 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
 
   double _getAverageCompletion() {
     if (state.records.isEmpty) return 0.0;
-    final total = state.records.map((record) => record.completionPercentage).reduce((a, b) => a + b);
+    // Calcular un promedio simple basado en si el registro tiene datos
+    double total = 0.0;
+    for (final record in state.records) {
+      final info = record.getDetailedInfo();
+      if (info.isNotEmpty) {
+        total += 1.0;
+      }
+    }
     return total / state.records.length;
   }
 
@@ -718,18 +380,18 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
     print('\nLocal records:');
     for (final record in localRecords) {
       final unified = UnifiedFrapRecord.fromLocal(record);
-      print('  - ${record.patient.name} (${record.patient.age}) | SyncID: ${unified.syncId} | Created: ${record.createdAt}');
+      print('  - ${record.patient.name} (${record.patient.age}) | Created: ${record.createdAt}');
     }
     
     print('\nCloud records:');
     for (final record in cloudRecords) {
       final unified = UnifiedFrapRecord.fromCloud(record);
-      print('  - ${record.patientName} (${record.patientAge}) | SyncID: ${unified.syncId} | Created: ${record.createdAt}');
+      print('  - ${record.patientName} (${record.patientAge}) | Created: ${record.createdAt}');
     }
     
     print('\nUnified records:');
     for (final record in state.records) {
-      print('  - ${record.patientName} (${record.patientAge}) | ${record.isLocal ? 'LOCAL' : 'CLOUD'} | SyncID: ${record.syncId} | Created: ${record.createdAt}');
+      print('  - ${record.patientName} | ${record.isLocal ? 'LOCAL' : 'CLOUD'} | Created: ${record.createdAt}');
     }
     print('=== END DEBUG ===\n');
   }
@@ -919,4 +581,79 @@ final unifiedFrapRecordProvider = Provider.family<UnifiedFrapRecord?, String>((r
   } catch (e) {
     return null;
   }
+}); 
+
+// Provider para el servicio unificado
+final frapUnifiedServiceProvider = Provider<FrapUnifiedService>((ref) {
+  final localService = ref.watch(frapLocalServiceProvider);
+  final cloudService = ref.watch(frapFirestoreServiceProvider);
+  
+  return FrapUnifiedService(
+    localService: localService,
+    cloudService: cloudService,
+  );
+});
+
+// Provider para los registros unificados
+final unifiedRecordsProvider = FutureProvider<List<UnifiedFrapRecord>>((ref) async {
+  final unifiedService = ref.watch(frapUnifiedServiceProvider);
+  return await unifiedService.getAllRecords();
+});
+
+// Provider para guardar registros
+final saveFrapRecordProvider = FutureProvider.family<UnifiedSaveResult, FrapData>((ref, frapData) async {
+  final unifiedService = ref.watch(frapUnifiedServiceProvider);
+  return await unifiedService.saveFrapRecord(frapData);
+});
+
+// Provider para sincronizar registros pendientes
+final syncRecordsProvider = FutureProvider<SyncResult>((ref) async {
+  final unifiedService = ref.watch(frapUnifiedServiceProvider);
+  return await unifiedService.syncPendingRecords();
+});
+
+// Notifier para manejar el estado de los registros
+class UnifiedRecordsNotifier extends StateNotifier<AsyncValue<List<UnifiedFrapRecord>>> {
+  final FrapUnifiedService _unifiedService;
+
+  UnifiedRecordsNotifier(this._unifiedService) : super(const AsyncValue.loading()) {
+    _loadRecords();
+  }
+
+  Future<void> _loadRecords() async {
+    state = const AsyncValue.loading();
+    try {
+      final records = await _unifiedService.getAllRecords();
+      state = AsyncValue.data(records);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  Future<void> refreshRecords() async {
+    await _loadRecords();
+  }
+
+  Future<UnifiedSaveResult> saveRecord(FrapData frapData) async {
+    final result = await _unifiedService.saveFrapRecord(frapData);
+    
+    // Recargar registros después de guardar
+    await _loadRecords();
+    
+    return result;
+  }
+
+  Future<SyncResult> syncRecords() async {
+    final result = await _unifiedService.syncPendingRecords();
+    
+    // Recargar registros después de sincronizar
+    await _loadRecords();
+    
+    return result;
+  }
+}
+
+final unifiedRecordsNotifierProvider = StateNotifierProvider<UnifiedRecordsNotifier, AsyncValue<List<UnifiedFrapRecord>>>((ref) {
+  final unifiedService = ref.watch(frapUnifiedServiceProvider);
+  return UnifiedRecordsNotifier(unifiedService);
 }); 

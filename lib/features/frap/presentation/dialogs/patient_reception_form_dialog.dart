@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 
 class PatientReceptionFormDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onSave;
@@ -23,6 +22,7 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
 
   // Controladores de texto
   final _doctorNameController = TextEditingController();
+  final _doctorCedulaController = TextEditingController();
 
   // Controlador de firma
   late SignatureController _doctorSignatureController;
@@ -49,6 +49,7 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
     if (widget.initialData != null && widget.initialData!.isNotEmpty) {
       final data = widget.initialData!;
       _doctorNameController.text = data['doctorName'] ?? '';
+      _doctorCedulaController.text = data['doctorCedula'] ?? '';
       _doctorSignatureData = data['doctorSignature'];
     }
   }
@@ -56,6 +57,7 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
   @override
   void dispose() {
     _doctorNameController.dispose();
+    _doctorCedulaController.dispose();
     _doctorSignatureController.dispose();
     super.dispose();
   }
@@ -109,101 +111,122 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
               ),
             ),
 
-            // Form content
+            // Content
             Expanded(
-              child: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Título del documento
-                      Center(
-                        child: Text(
-                          'RECEPCIÓN DEL PACIENTE',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Campo del nombre del médico
-                      Text(
-                        'Médico que recibe',
+                      const Text(
+                        'Información del Doctor que Recibe',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey[700],
+                          color: Colors.black87,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      
-                      TextFormField(
-                        controller: _doctorNameController,
-                        decoration: const InputDecoration(
-                          hintText: 'Ingrese el nombre completo del médico',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(fontSize: 16),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'El nombre del médico es requerido';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Sección de firma
-                      _buildSignatureSection(
-                        title: 'Nombre y firma',
-                        controller: _doctorSignatureController,
-                        base64Data: _doctorSignatureData,
-                        onClear: () {
-                          _doctorSignatureController.clear();
-                          setState(() {
-                            _doctorSignatureData = null;
-                          });
-                        },
                       ),
                       const SizedBox(height: 16),
 
-                      // Nota informativa
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.teal[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.teal[200]!),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.teal[600],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'La firma del médico receptor es requerida para completar la recepción del paciente.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.teal[800],
-                                ),
-                              ),
-                            ),
-                          ],
+                      // Nombre del doctor
+                      _buildTextField(
+                        controller: _doctorNameController,
+                        label: 'Nombre del Doctor',
+                        isRequired: true,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Cédula profesional del doctor
+                      _buildTextField(
+                        controller: _doctorCedulaController,
+                        label: 'Cédula Profesional',
+                        isRequired: false,
+                        hint: 'Opcional',
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Firma del doctor
+                      const Text(
+                        'Firma del Doctor',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
+                      const SizedBox(height: 8),
+
+                      Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[400]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Signature(
+                            controller: _doctorSignatureController,
+                            backgroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Botones para la firma
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                _doctorSignatureController.clear();
+                                _doctorSignatureData = null;
+                              },
+                              icon: const Icon(Icons.clear),
+                              label: const Text('Limpiar'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _captureSignature,
+                              icon: const Icon(Icons.save),
+                              label: const Text('Capturar'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.blue,
+                                side: const BorderSide(color: Colors.blue),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (_doctorSignatureData != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Firma capturada',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -239,7 +262,7 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
                             ),
                           )
                         : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Recepción'),
+                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal[600],
                       foregroundColor: Colors.white,
@@ -254,132 +277,61 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
     );
   }
 
-  Widget _buildSignatureSection({
-    required String title,
-    required SignatureController controller,
-    String? base64Data,
-    required VoidCallback onClear,
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    bool isRequired = false,
+    String? hint,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: isRequired ? '$label *' : label,
+        hintText: hint,
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 16,
         ),
-        const SizedBox(height: 8),
-        Container(
-          height: 200,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[400]!),
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.white,
-          ),
-          child: Stack(
-            children: [
-              // Si hay datos base64 guardados, mostrar la imagen
-              if (base64Data != null)
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    image: DecorationImage(
-                      image: MemoryImage(_getImageBytesFromBase64(base64Data)),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                )
-              else
-                // Área de firma normal
-                Signature(
-                  controller: controller,
-                  backgroundColor: Colors.white,
-                ),
-              
-              // Texto de instrucción (solo visible cuando está vacía y no hay datos guardados)
-              if (controller.isEmpty && base64Data == null)
-                const Center(
-                  child: Text(
-                    'Firme aquí',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              
-              // Botón de limpiar
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.clear,
-                      size: 16,
-                      color: Colors.red,
-                    ),
-                    onPressed: () {
-                      onClear();
-                      // Si hay datos guardados, también los limpiamos
-                      if (base64Data != null) {
-                        setState(() {
-                          _doctorSignatureData = null;
-                        });
-                      }
-                    },
-                    padding: const EdgeInsets.all(4),
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          height: 2,
-          color: Colors.black,
-        ),
-        const SizedBox(height: 4),
-        Center(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-            ),
-          ),
-        ),
-      ],
+      ),
+      style: const TextStyle(fontSize: 14),
+      validator: (value) {
+        if (isRequired && (value == null || value.trim().isEmpty)) {
+          return '$label es requerido';
+        }
+        return null;
+      },
     );
   }
 
-  Uint8List _getImageBytesFromBase64(String base64Data) {
-    try {
-      final base64String = base64Data.split(',').last;
-      return base64Decode(base64String);
-    } catch (e) {
-      return Uint8List(0);
+  Future<void> _captureSignature() async {
+    if (_doctorSignatureController.isNotEmpty) {
+      final signature = await _doctorSignatureController.toPngBytes();
+      if (signature != null) {
+        setState(() {
+          _doctorSignatureData = base64Encode(signature);
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Firma capturada correctamente'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, dibuje una firma antes de capturar'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -388,47 +340,27 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
       return;
     }
 
-    // Validar que la firma esté presente (ya sea nueva o guardada)
-    if (_doctorSignatureController.isEmpty && _doctorSignatureData == null) {
-      _showErrorDialog('Firma requerida', 'Por favor, complete la firma del médico receptor.');
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      String? signatureData = _doctorSignatureData;
+      final formData = {
+        'doctorName': _doctorNameController.text.trim(),
+        'doctorCedula': _doctorCedulaController.text.trim(),
+        'doctorSignature': _doctorSignatureData,
+      };
+
+      widget.onSave(formData);
       
-      // Si no hay datos guardados pero hay una firma nueva, convertirla
-      if (_doctorSignatureData == null && _doctorSignatureController.isNotEmpty) {
-        final signatureBytes = await _doctorSignatureController.toPngBytes();
-        if (signatureBytes != null) {
-          signatureData = 'data:image/png;base64,${base64Encode(signatureBytes)}';
-        }
-      }
-
-      if (signatureData != null) {
-        final formData = {
-          'doctorName': _doctorNameController.text.trim(),
-          'doctorSignature': signatureData,
-          'timestamp': DateTime.now().toIso8601String(),
-        };
-
-        widget.onSave(formData);
-        
-        if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Recepción del paciente guardada exitosamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        throw Exception('Error al procesar la firma');
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Información de recepción guardada'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -446,21 +378,5 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
         });
       }
     }
-  }
-
-  void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendido'),
-          ),
-        ],
-      ),
-    );
   }
 } 

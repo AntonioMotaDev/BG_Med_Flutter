@@ -77,30 +77,48 @@ class AuthService {
     required String password,
   }) async {
     try {
+      print('🔐 Intentando login con email: $email');
+      
       final UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       final User? user = result.user;
-      if (user == null) return null;
+      if (user == null) {
+        print('❌ Usuario es null después del login');
+        return null;
+      }
+
+      print('✅ Login exitoso en Firebase Auth. UID: ${user.uid}');
 
       // Obtener datos del usuario desde Firestore
+      print('📄 Buscando datos del usuario en Firestore...');
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      
       if (!userDoc.exists) {
+        print('❌ Usuario no encontrado en Firestore. UID: ${user.uid}');
         throw Exception('Usuario no encontrado en la base de datos');
       }
 
+      print('✅ Usuario encontrado en Firestore');
       final userData = UserModel.fromFirestore(userDoc);
+      print('👤 Datos del usuario cargados: ${userData.name} (${userData.role})');
 
       // Actualizar estado de verificación de email si cambió
       if (userData.emailVerified != user.emailVerified) {
+        print('📧 Actualizando estado de verificación de email');
         await _updateEmailVerificationStatus(user.uid, user.emailVerified);
       }
 
       return userData;
     } catch (e) {
-      print('Error en login: $e');
+      print('❌ Error en login: $e');
+      print('❌ Tipo de error: ${e.runtimeType}');
+      if (e is FirebaseAuthException) {
+        print('❌ Código de error Firebase: ${e.code}');
+        print('❌ Mensaje de error Firebase: ${e.message}');
+      }
       throw _handleAuthException(e);
     }
   }

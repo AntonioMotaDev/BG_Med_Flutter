@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class GynecoObstetricFormDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onSave;
@@ -22,24 +21,30 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
   // Controladores de texto
   final _fumController = TextEditingController();
   final _semanasGestacionController = TextEditingController();
-  final _gestaController = TextEditingController();
-  final _abortosController = TextEditingController();
-  final _partosController = TextEditingController();
-  final _cesareasController = TextEditingController();
-  final _metodosAnticonceptivosController = TextEditingController();
-  final _horaController = TextEditingController();
+  final _observacionesController = TextEditingController();
+  final _frecuenciaCardiacaFetalController = TextEditingController();
+  final _contraccionesController = TextEditingController();
 
-  // Variables para opciones seleccionables principales
+  // Variables para checkboxes
   bool _isParto = false;
   bool _isAborto = false;
   bool _isHxVaginal = false;
+  bool _ruidosFetalesPerceptibles = false;
 
-  // Variables para otros dropdowns
-  String _ruidosCardiacosFetales = '';
-  String _expulsionPlacenta = '';
+  // Variables para escalas
+  Map<String, int> _silvermanAnderson = {
+    'minuto': 0,
+    '3min': 0,
+    '5min': 0,
+    '10min': 0,
+  };
 
-  final List<String> _ruidosOptions = ['Perceptibles', 'No Perceptibles'];
-  final List<String> _expulsionOptions = ['Si', 'No'];
+  Map<String, int> _apgar = {
+    'minuto': 0,
+    '3min': 0,
+    '5min': 0,
+    '10min': 0,
+  };
 
   @override
   void initState() {
@@ -51,21 +56,39 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
     if (widget.initialData != null) {
       final data = widget.initialData!;
       
+      // Campos de texto
       _fumController.text = data['fum'] ?? '';
       _semanasGestacionController.text = data['semanasGestacion'] ?? '';
-      _gestaController.text = data['gesta'] ?? '';
-      _abortosController.text = data['abortos'] ?? '';
-      _partosController.text = data['partos'] ?? '';
-      _cesareasController.text = data['cesareas'] ?? '';
-      _metodosAnticonceptivosController.text = data['metodosAnticonceptivos'] ?? '';
-      _horaController.text = data['hora'] ?? '';
+      _observacionesController.text = data['observaciones'] ?? '';
+      _frecuenciaCardiacaFetalController.text = data['frecuenciaCardiacaFetal'] ?? '';
+      _contraccionesController.text = data['contracciones'] ?? '';
       
+      // Checkboxes
       _isParto = data['isParto'] ?? false;
       _isAborto = data['isAborto'] ?? false;
       _isHxVaginal = data['isHxVaginal'] ?? false;
+      _ruidosFetalesPerceptibles = data['ruidosFetalesPerceptibles'] ?? false;
       
-      _ruidosCardiacosFetales = data['ruidosCardiacosFetales'] ?? '';
-      _expulsionPlacenta = data['expulsionPlacenta'] ?? '';
+      // Escalas
+      if (data['silvermanAnderson'] != null) {
+        final silvermanData = Map<String, dynamic>.from(data['silvermanAnderson']);
+        _silvermanAnderson = {
+          'minuto': silvermanData['minuto'] ?? 0,
+          '3min': silvermanData['3min'] ?? 0,
+          '5min': silvermanData['5min'] ?? 0,
+          '10min': silvermanData['10min'] ?? 0,
+        };
+      }
+      
+      if (data['apgar'] != null) {
+        final apgarData = Map<String, dynamic>.from(data['apgar']);
+        _apgar = {
+          'minuto': apgarData['minuto'] ?? 0,
+          '3min': apgarData['3min'] ?? 0,
+          '5min': apgarData['5min'] ?? 0,
+          '10min': apgarData['10min'] ?? 0,
+        };
+      }
     }
   }
 
@@ -73,12 +96,9 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
   void dispose() {
     _fumController.dispose();
     _semanasGestacionController.dispose();
-    _gestaController.dispose();
-    _abortosController.dispose();
-    _partosController.dispose();
-    _cesareasController.dispose();
-    _metodosAnticonceptivosController.dispose();
-    _horaController.dispose();
+    _observacionesController.dispose();
+    _frecuenciaCardiacaFetalController.dispose();
+    _contraccionesController.dispose();
     super.dispose();
   }
 
@@ -88,7 +108,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
       backgroundColor: Colors.transparent,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.95,
-        height: MediaQuery.of(context).size.height * 0.85,
+        height: MediaQuery.of(context).size.height * 0.9,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -99,7 +119,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.pink,
+                color: Colors.pink[600],
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -140,7 +160,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Tipo de Urgencia (Opciones principales)
+                      // Tipo de Urgencia
                       _buildSectionTitle('TIPO DE URGENCIA'),
                       const SizedBox(height: 16),
                       
@@ -184,129 +204,122 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                       Row(
                         children: [
                           Expanded(
-                            child: _buildTextField(
+                            child: TextFormField(
                               controller: _fumController,
-                              label: 'F.U.M.',
-                              hintText: 'Fecha de última menstruación',
+                              decoration: const InputDecoration(
+                                labelText: 'F.U.M.',
+                                border: OutlineInputBorder(),
+                                hintText: 'dd/mm/yyyy',
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 16),
                           Expanded(
-                            child: _buildTextField(
+                            child: TextFormField(
                               controller: _semanasGestacionController,
-                              label: 'Semanas de Gestación',
+                              decoration: const InputDecoration(
+                                labelText: 'Semanas de Gestación',
+                                border: OutlineInputBorder(),
+                                suffixText: 'semanas',
+                              ),
                               keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // Gesta, Abortos, Partos, Cesáreas
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _gestaController,
-                              label: 'Gesta',
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _abortosController,
-                              label: 'Abortos',
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _partosController,
-                              label: 'Partos',
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _cesareasController,
-                              label: 'Cesáreas',
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Métodos Anticonceptivos
-                      _buildTextField(
-                        controller: _metodosAnticonceptivosController,
-                        label: 'Métodos Anticonceptivos',
-                        maxLines: 2,
-                      ),
+                      
                       const SizedBox(height: 24),
 
-                      // Evaluación Clínica
-                      _buildSectionTitle('EVALUACIÓN CLÍNICA'),
+                      // Ruidos Fetales
+                      _buildSectionTitle('RUIDOS FETALES'),
                       const SizedBox(height: 16),
-
-                      // Ruidos Cardíacos Fetales
-                      _buildDropdownField(
-                        label: 'Ruidos Cardíacos Fetales',
-                        value: _ruidosCardiacosFetales,
-                        options: _ruidosOptions,
+                      
+                      _buildCheckboxOption(
+                        title: 'Ruidos fetales perceptibles',
+                        value: _ruidosFetalesPerceptibles,
                         onChanged: (value) {
                           setState(() {
-                            _ruidosCardiacosFetales = value ?? '';
+                            _ruidosFetalesPerceptibles = value ?? false;
                           });
                         },
                       ),
-                      const SizedBox(height: 16),
+                      
+                      if (_ruidosFetalesPerceptibles) ...[
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _frecuenciaCardiacaFetalController,
+                          decoration: const InputDecoration(
+                            labelText: 'Frecuencia Cardíaca Fetal',
+                            border: OutlineInputBorder(),
+                            suffixText: 'lpm',
+                            hintText: 'Ej: 140',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ],
+                      
+                      const SizedBox(height: 24),
 
-                      // Expulsión de placenta
-                      _buildDropdownField(
-                        label: 'Expulsión de placenta',
-                        value: _expulsionPlacenta,
-                        options: _expulsionOptions,
-                        onChanged: (value) {
-                          setState(() {
-                            _expulsionPlacenta = value ?? '';
-                            // Limpiar la hora si se cambia a "No" o se deselecciona
-                            if (_expulsionPlacenta != 'Si') {
-                              _horaController.clear();
-                            }
-                          });
-                        },
+                      // Contracciones
+                      _buildSectionTitle('CONTRACCIONES'),
+                      const SizedBox(height: 16),
+                      
+                      TextFormField(
+                        controller: _contraccionesController,
+                        decoration: const InputDecoration(
+                          labelText: 'Contracciones',
+                          border: OutlineInputBorder(),
+                          hintText: 'Ej: 2/10, 1/5, contracción/minuto',
+                        ),
+                        maxLines: 2,
                       ),
-                      const SizedBox(height: 16),
+                      
+                      const SizedBox(height: 24),
 
-                      // Hora de Expulsión de Placenta (solo si hay expulsión)
-                      _buildTimeField(
-                        controller: _horaController,
-                        label: 'Hora de Expulsión de Placenta',
-                        isEnabled: _expulsionPlacenta == 'Si',
+                      // Escalas (solo si es parto)
+                      if (_isParto) ...[
+                        _buildSectionTitle('ESCALAS OBSTÉTRICAS'),
+                        const SizedBox(height: 16),
+                        
+                        // Silverman Anderson
+                        _buildScaleSection(
+                          title: 'Silverman Anderson',
+                          scale: _silvermanAnderson,
+                          onScaleChanged: (newScale) {
+                            setState(() {
+                              _silvermanAnderson = newScale;
+                            });
+                          },
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Apgar
+                        _buildScaleSection(
+                          title: 'Apgar',
+                          scale: _apgar,
+                          onScaleChanged: (newScale) {
+                            setState(() {
+                              _apgar = newScale;
+                            });
+                          },
+                        ),
+                        
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Observaciones
+                      _buildSectionTitle('OBSERVACIONES GENERALES'),
+                      const SizedBox(height: 16),
+                      
+                      TextFormField(
+                        controller: _observacionesController,
+                        decoration: const InputDecoration(
+                          labelText: 'Observaciones',
+                          border: OutlineInputBorder(),
+                          hintText: 'Observaciones adicionales...',
+                        ),
+                        maxLines: 4,
                       ),
                     ],
                   ),
@@ -345,8 +358,15 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                         : const Icon(Icons.save),
                     label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
+                      backgroundColor: Colors.pink[600],
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
@@ -360,19 +380,25 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
 
   Widget _buildSectionTitle(String title) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.pink.withOpacity(0.1),
+        color: Colors.pink[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.pink.withOpacity(0.3)),
+        border: Border.all(color: Colors.pink[200]!),
       ),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.pink,
-        ),
+      child: Row(
+        children: [
+          Icon(Icons.medical_services, color: Colors.pink[700], size: 20),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.pink[700],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -391,133 +417,116 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
       child: CheckboxListTile(
         title: Text(
           title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         value: value,
         onChanged: onChanged,
-        activeColor: Colors.pink,
+        activeColor: Colors.pink[600],
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    String? hintText,
-    bool isRequired = false,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-    int maxLines = 1,
+  Widget _buildScaleSection({
+    required String title,
+    required Map<String, int> scale,
+    required Function(Map<String, int>) onScaleChanged,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: isRequired ? '$label *' : label,
-        hintText: hintText,
-        border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 16,
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.purple[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple[200]!),
       ),
-      style: const TextStyle(fontSize: 14),
-      validator: (value) {
-        if (isRequired && (value == null || value.trim().isEmpty)) {
-          return '$label es requerido';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> options,
-    required Function(String?) onChanged,
-    bool isRequired = false,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value.isEmpty ? null : value,
-      decoration: InputDecoration(
-        labelText: isRequired ? '$label *' : label,
-        border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 16,
-        ),
-      ),
-      items: options.map((option) {
-        return DropdownMenuItem(
-          value: option,
-          child: Text(option, style: const TextStyle(fontSize: 14)),
-        );
-      }).toList(),
-      onChanged: onChanged,
-      validator: (value) {
-        if (isRequired && (value == null || value.isEmpty)) {
-          return 'Seleccione una opción';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildTimeField({
-    required TextEditingController controller,
-    required String label,
-    bool isEnabled = true,
-  }) {
-    return TextFormField(
-      controller: controller,
-      enabled: isEnabled,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 16,
-        ),
-        suffixIcon: IconButton(
-          icon: Icon(
-            Icons.access_time,
-            color: isEnabled ? null : Colors.grey[400],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.purple[700],
+            ),
           ),
-          onPressed: isEnabled ? () async {
-            final TimeOfDay? time = await showTimePicker(
-              context: context,
-              initialTime: TimeOfDay.now(),
-            );
-            if (time != null) {
-              final formattedTime = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-              controller.text = formattedTime;
-            }
-          } : null,
-        ),
-        helperText: isEnabled ? null : 'Disponible solo si hay expulsión de placenta',
-        helperStyle: TextStyle(
-          color: Colors.grey[600],
-          fontSize: 12,
-        ),
+          const SizedBox(height: 12),
+          Text(
+            'Escala del 1-10',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.purple[600],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Grid de inputs para los tiempos
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 2.5,
+            children: scale.entries.map((entry) {
+              return _buildScaleInput(
+                label: entry.key == 'minuto' ? 'Minuto' : '${entry.key}',
+                value: entry.value,
+                onChanged: (newValue) {
+                  final newScale = Map<String, int>.from(scale);
+                  newScale[entry.key] = newValue;
+                  onScaleChanged(newScale);
+                },
+              );
+            }).toList(),
+          ),
+        ],
       ),
-      style: TextStyle(
-        fontSize: 14,
-        color: isEnabled ? null : Colors.grey[600],
-      ),
-      readOnly: true,
-      validator: isEnabled ? (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'La hora es requerida cuando hay expulsión de placenta';
-        }
-        return null;
-      } : null,
+    );
+  }
+
+  Widget _buildScaleInput({
+    required String label,
+    required int value,
+    required Function(int) onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonFormField<int>(
+            value: value > 0 ? value : null,
+            decoration: const InputDecoration(
+              hintText: 'Seleccionar',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            items: List.generate(10, (index) => index + 1).map((score) {
+              return DropdownMenuItem(
+                value: score,
+                child: Text('$score'),
+              );
+            }).toList(),
+            onChanged: (newValue) {
+              onChanged(newValue ?? 0);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -537,14 +546,13 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
         'isHxVaginal': _isHxVaginal,
         'fum': _fumController.text.trim(),
         'semanasGestacion': _semanasGestacionController.text.trim(),
-        'gesta': _gestaController.text.trim(),
-        'abortos': _abortosController.text.trim(),
-        'partos': _partosController.text.trim(),
-        'cesareas': _cesareasController.text.trim(),
-        'metodosAnticonceptivos': _metodosAnticonceptivosController.text.trim(),
-        'ruidosCardiacosFetales': _ruidosCardiacosFetales,
-        'expulsionPlacenta': _expulsionPlacenta,
-        'hora': _horaController.text.trim(),
+        'ruidosFetalesPerceptibles': _ruidosFetalesPerceptibles,
+        'frecuenciaCardiacaFetal': _frecuenciaCardiacaFetalController.text.trim(),
+        'contracciones': _contraccionesController.text.trim(),
+        'silvermanAnderson': _silvermanAnderson,
+        'apgar': _apgar,
+        'observaciones': _observacionesController.text.trim(),
+        'timestamp': DateTime.now().toIso8601String(),
       };
 
       widget.onSave(formData);
@@ -552,9 +560,13 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Información gineco-obstétrica guardada'),
+          SnackBar(
+            content: Text('Información gineco-obstétrica guardada exitosamente'),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
           ),
         );
       }
@@ -562,8 +574,18 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Text('Error al guardar: $e'),
+              ],
+            ),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
           ),
         );
       }

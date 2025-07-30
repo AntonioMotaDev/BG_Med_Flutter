@@ -1,7 +1,7 @@
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
-import 'package:bg_med/features/frap/presentation/providers/auto_sync_provider.dart';
-import 'package:bg_med/core/services/auto_sync_service.dart';
+import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
+import 'package:bg_med/core/services/frap_unified_service.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/patient_info_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/service_info_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/registry_info_form_dialog.dart';
@@ -16,6 +16,7 @@ import 'package:bg_med/features/frap/presentation/dialogs/physical_exam_form_dia
 import 'package:bg_med/features/frap/presentation/dialogs/attention_negative_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/patient_reception_form_dialog.dart';
 import 'package:bg_med/features/frap/presentation/dialogs/injury_location_form_dialog.dart';
+import 'package:bg_med/features/frap/presentation/dialogs/insumos_form_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,14 +35,14 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     super.initState();
     // Inicializar el servicio de sincronización automática
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(autoSyncProvider.notifier).initialize();
+      // Remover la llamada a initialize ya que no existe
+      // ref.read(unifiedRecordsNotifierProvider.notifier).initialize();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final frapData = ref.watch(frapDataProvider);
-    final autoSyncState = ref.watch(autoSyncProvider);
     
     return Scaffold(
       appBar: AppBar(
@@ -49,53 +50,54 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         actions: [
-          // Indicador de conectividad
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: autoSyncState.isOnline ? Colors.green : Colors.orange,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  autoSyncState.isOnline ? Icons.cloud_done : Icons.cloud_off,
-                  size: 16,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  autoSyncState.isOnline ? 'En línea' : 'Sin conexión',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
           // Botón de sincronización manual
-          if (autoSyncState.isOnline)
-            IconButton(
-              icon: autoSyncState.isSyncing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                      ),
-                    )
-                  : const Icon(Icons.sync),
-              onPressed: autoSyncState.isSyncing
-                  ? null
-                  : () {
-                      ref.read(autoSyncProvider.notifier).forceSyncNow();
-                    },
-              tooltip: 'Sincronizar ahora',
+          IconButton(
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    ),
+                  )
+                : const Icon(Icons.sync),
+            onPressed: _isSaving
+                ? null
+                : () async {
+                    setState(() {
+                      _isSaving = true;
+                    });
+                    
+                    try {
+                      final result = await ref.read(unifiedRecordsNotifierProvider.notifier).syncRecords();
+                      
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(result.message),
+                            backgroundColor: result.success ? Colors.green : Colors.orange,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error al sincronizar: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    } finally {
+                      if (mounted) {
+                        setState(() {
+                          _isSaving = false;
+                        });
+                      }
+                    }
+                  },
+            tooltip: 'Sincronizar ahora',
           ),
         ],
       ),
@@ -105,47 +107,35 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Información de estado de sincronización
-            if (autoSyncState.lastSyncMessage != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: autoSyncState.isOnline 
-                      ? Colors.green.shade50 
-                      : Colors.orange.shade50,
-                  border: Border.all(
-                    color: autoSyncState.isOnline 
-                        ? Colors.green 
-                        : Colors.orange,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                border: Border.all(color: Colors.blue.shade200),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue.shade700,
+                    size: 20,
                   ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      autoSyncState.isOnline 
-                          ? Icons.info_outline 
-                          : Icons.warning_outlined,
-                      color: autoSyncState.isOnline 
-                          ? Colors.green 
-                          : Colors.orange,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        autoSyncState.lastSyncMessage!,
-                        style: TextStyle(
-                          color: autoSyncState.isOnline 
-                              ? Colors.green.shade700 
-                              : Colors.orange.shade700,
-                          fontSize: 13,
-                        ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Los datos se guardarán tanto localmente como en la nube cuando haya conexión.',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontSize: 14,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
             
             GridView.count(
               shrinkWrap: true,
@@ -191,14 +181,31 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   onTap: () => _openManagementDialog(),
                 ),
                 
-                // Antecedentes Patológicos
-                _buildSectionCard(
-                  title: 'ANTECEDENTES PATOLÓGICOS',
-                  icon: Icons.history,
-                  filledFields: frapData.getFilledFieldsCount('pathological_history'),
-                  totalFields: 8,
-                  onTap: () => _openPathologicalHistoryDialog(),
-                ),
+                // Antecedentes Patológicos (solo para urgencias clínicas)
+                if (_shouldShowSection('pathological_history'))
+                  _buildSectionCard(
+                    title: 'ANTECEDENTES PATOLÓGICOS',
+                    icon: Icons.medical_services,
+                    filledFields: frapData.getFilledFieldsCount('pathological_history'),
+                    totalFields: 5,
+                    onTap: () => _openPathologicalHistoryDialog(),
+                    backgroundColor: _getSectionBackgroundColor('pathological_history'),
+                    textColor: _getSectionTextColor('pathological_history'),
+                    statusMessage: _getSectionStatusMessage('pathological_history'),
+                  ),
+                
+                // Antecedentes Clínicos (solo para urgencias de trauma)
+                if (_shouldShowSection('clinical_history'))
+                  _buildSectionCard(
+                    title: 'ANTECEDENTES CLÍNICOS',
+                    icon: Icons.medical_services,
+                    filledFields: frapData.getFilledFieldsCount('clinical_history'),
+                    totalFields: 5,
+                    onTap: () => _openClinicalHistoryDialog(),
+                    backgroundColor: _getSectionBackgroundColor('clinical_history'),
+                    textColor: _getSectionTextColor('clinical_history'),
+                    statusMessage: _getSectionStatusMessage('clinical_history'),
+                  ),
                 
                 // Medicamentos
                 _buildSectionCard(
@@ -209,15 +216,6 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   onTap: () => _openMedicationsDialog(),
                 ),
                 
-                // Historia Clínica
-                _buildSectionCard(
-                  title: 'ANTECEDENTES CLÍNICOS',
-                  icon: Icons.description,
-                  filledFields: frapData.getFilledFieldsCount('clinical_history'),
-                  totalFields: 14,
-                  onTap: () => _openClinicalHistoryDialog(),
-                ),
-                
                 // Gineco-Obstétrico
                 _buildSectionCard(
                   title: 'GINECO-OBSTÉTRICAS',
@@ -225,7 +223,6 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   filledFields: frapData.getFilledFieldsCount('gyneco_obstetric'),
                   totalFields: 10,
                   onTap: () => _openGynecoObstetricDialog(),
-                  isDisabled: !_isGynecoObstetricEnabled(frapData),
                 ),
                 
                 // Examen Físico
@@ -281,47 +278,48 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   totalFields: 6,
                   onTap: () => _openPatientReceptionDialog(),
                 ),
+
+                // Insumos (Nuevo)
+                _buildSectionCard(
+                  title: 'INSUMOS',
+                  icon: Icons.inventory,
+                  filledFields: frapData.getFilledFieldsCount('insumos'),
+                  totalFields: 2,
+                  onTap: () => _openInsumosDialog(),
+                ),
               ],
             ),
             
             const SizedBox(height: 32),
             
-            // Indicador de conectividad
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: autoSyncState.isOnline 
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: autoSyncState.isOnline 
-                        ? Colors.green.withOpacity(0.3)
-                        : Colors.orange.withOpacity(0.3),
+            // Indicador de estado de conexión
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.wifi,
+                    color: Colors.blue,
+                    size: 16,
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      autoSyncState.isOnline ? Icons.wifi : Icons.wifi_off,
-                      color: autoSyncState.isOnline ? Colors.green : Colors.orange,
-                      size: 16,
+                  const SizedBox(width: 8),
+                  Text(
+                    'Conectado - Se guardará en la nube',
+                    style: TextStyle(
+                      color: Colors.blue[700],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      autoSyncState.isOnline 
-                          ? 'Conectado - Se guardará en la nube'
-                          : 'Sin conexión - Se guardará localmente',
-                      style: TextStyle(
-                        color: autoSyncState.isOnline ? Colors.green[700] : Colors.orange[700],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             
@@ -331,8 +329,8 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _isSaving || autoSyncState.isSyncing ? null : _saveRecord,
-                icon: _isSaving || autoSyncState.isSyncing
+                onPressed: _isSaving ? null : _saveRecord,
+                icon: _isSaving
                     ? const SizedBox(
                         width: 20,
                         height: 20,
@@ -341,33 +339,27 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : Icon(autoSyncState.isOnline ? Icons.cloud_upload : Icons.save),
+                    : const Icon(Icons.cloud_upload),
                 label: Text(
-                  _isSaving || autoSyncState.isSyncing
-                      ? 'Guardando...'
-                      : 'Guardar Registro',
+                  _isSaving ? 'Guardando...' : 'Guardar Registro',
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: autoSyncState.isOnline 
-                      ? AppTheme.primaryBlue 
-                      : AppTheme.primaryGreen,
+                  backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
             ),
             
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             
             SizedBox(
               width: double.infinity,
               child: TextButton.icon(
-                onPressed: _isSaving || autoSyncState.isSyncing
-                    ? null
-                    : _showClearConfirmationDialog,
+                onPressed: _isSaving ? null : _showClearConfirmationDialog,
                 icon: const Icon(Icons.delete_sweep_outlined),
                 label: const Text('Limpiar Formulario'),
                 style: TextButton.styleFrom(
@@ -394,130 +386,112 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     required int filledFields,
     required int totalFields,
     required VoidCallback onTap,
-    bool isDisabled = false,
+    Color? backgroundColor,
+    Color? textColor,
+    String? statusMessage,
   }) {
-    final completionPercentage = totalFields > 0 ? (filledFields / totalFields) : 0.0;
     final isComplete = filledFields == totalFields;
     final isEmpty = filledFields == 0;
-
-    // Determinar colores basado en el estado
-    Color borderColor;
-    Color iconBackgroundColor;
-    Color iconColor;
-    Color titleColor;
-    Color progressColor;
-
-    if (isDisabled) {
-      borderColor = Colors.grey[300]!;
-      iconBackgroundColor = Colors.grey.withOpacity(0.1);
-      iconColor = Colors.grey[400]!;
-      titleColor = Colors.grey[400]!;
-      progressColor = Colors.grey[300]!;
-    } else if (isComplete) {
-      borderColor = Colors.green;
-      iconBackgroundColor = Colors.green.withOpacity(0.1);
-      iconColor = Colors.green;
-      titleColor = Colors.green[700]!;
-      progressColor = Colors.green;
-    } else if (isEmpty) {
-      borderColor = Colors.grey[300]!;
-      iconBackgroundColor = Colors.grey.withOpacity(0.1);
-      iconColor = Colors.grey[600]!;
-      titleColor = Colors.grey[600]!;
-      progressColor = Colors.grey[400]!;
-    } else {
-      borderColor = AppTheme.primaryBlue;
-      iconBackgroundColor = AppTheme.primaryBlue.withOpacity(0.1);
-      iconColor = AppTheme.primaryBlue;
-      titleColor = AppTheme.primaryBlue;
-      progressColor = AppTheme.primaryBlue;
-    }
-
-    return Card(
-      elevation: isDisabled ? 0.5 : 2,
-      shape: RoundedRectangleBorder(
+    final isDisabled = statusMessage != null && statusMessage.contains('No aplica');
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? Colors.white,
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: borderColor,
+        border: Border.all(
+          color: isDisabled 
+              ? Colors.grey[300]! 
+              : isComplete 
+                  ? Colors.green[300]! 
+                  : Colors.grey[300]!,
           width: isComplete ? 2 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: isDisabled ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: iconBackgroundColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: iconColor,
-                      size: 24,
-                    ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isDisabled ? null : onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDisabled 
+                        ? Colors.grey[200]! 
+                        : isComplete 
+                            ? Colors.green[100]! 
+                            : AppTheme.primaryBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: titleColor,
-                          ),
+                  child: Icon(
+                    icon,
+                    color: isDisabled 
+                        ? Colors.grey[400]! 
+                        : isComplete 
+                            ? Colors.green[600]! 
+                            : AppTheme.primaryBlue,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: textColor ?? (isDisabled ? Colors.grey[500] : Colors.black87),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          isDisabled 
-                              ? 'Requiere que el paciente sea de sexo femenino'
-                              : '$filledFields de $totalFields campos completados',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDisabled ? Colors.grey[500] : Colors.grey[600],
-                          ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isDisabled 
+                            ? statusMessage
+                            : '$filledFields de $totalFields campos completados',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDisabled ? Colors.grey[500] : Colors.grey[600],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  Icon(
-                    isDisabled
-                        ? Icons.lock
-                        : isComplete
-                            ? Icons.check_circle
-                            : isEmpty
-                                ? Icons.radio_button_unchecked
-                                : Icons.edit,
-                    color: isDisabled
-                        ? Colors.grey[400]
-                        : isComplete
-                            ? Colors.green
-                            : isEmpty
-                                ? Colors.grey[400]
-                                : AppTheme.primaryBlue,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              LinearProgressIndicator(
-                value: isDisabled ? 0.0 : completionPercentage,
-                backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-              ),
-            ],
+                ),
+                Icon(
+                  isDisabled
+                      ? Icons.lock
+                      : isComplete
+                          ? Icons.check_circle
+                          : isEmpty
+                              ? Icons.radio_button_unchecked
+                              : Icons.edit,
+                  color: isDisabled
+                      ? Colors.grey[400]
+                      : isComplete
+                          ? Colors.green
+                          : isEmpty
+                              ? Colors.grey[400]
+                              : AppTheme.primaryBlue,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -743,64 +717,147 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     );
   }
 
-  void _saveRecord() async {
-    if (_isSaving) return;
+  void _openInsumosDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => InsumosFormDialog(
+        onSave: (data) {
+          ref.read(frapDataProvider.notifier).updateSectionData('insumos', data);
+        },
+        initialData: ref.read(frapDataProvider).insumos.isNotEmpty
+            ? ref.read(frapDataProvider).insumos 
+            : null,
+      ),
+    );
+  }
+
+  // Función para determinar si una sección debe mostrarse según el tipo de urgencia
+  bool _shouldShowSection(String sectionName) {
+    final serviceInfo = ref.read(frapDataProvider).serviceInfo;
+    final tipoUrgencia = serviceInfo['tipoUrgencia'] ?? '';
     
-    if (!mounted) return;
+    // Si no hay tipo de urgencia seleccionado, mostrar todas las secciones
+    if (tipoUrgencia.isEmpty) return true;
+    
+    switch (sectionName) {
+      case 'pathological_history':
+        // Antecedentes patológicos solo para urgencias clínicas
+        return tipoUrgencia == 'Clínico';
+      case 'clinical_history':
+        // Antecedentes clínicos solo para urgencias de trauma
+        return tipoUrgencia == 'Trauma';
+      default:
+        // Otras secciones se muestran siempre
+        return true;
+    }
+  }
+
+  // Función para obtener el color de fondo según el tipo de urgencia
+  Color _getSectionBackgroundColor(String sectionName) {
+    final serviceInfo = ref.read(frapDataProvider).serviceInfo;
+    final tipoUrgencia = serviceInfo['tipoUrgencia'] ?? '';
+    
+    if (tipoUrgencia.isEmpty) return Colors.white;
+    
+    switch (sectionName) {
+      case 'pathological_history':
+        return tipoUrgencia == 'Clínico' ? Colors.green[50]! : Colors.grey[100]!;
+      case 'clinical_history':
+        return tipoUrgencia == 'Trauma' ? Colors.red[50]! : Colors.grey[100]!;
+      default:
+        return Colors.white;
+    }
+  }
+
+  // Función para obtener el color del texto según el tipo de urgencia
+  Color _getSectionTextColor(String sectionName) {
+    final serviceInfo = ref.read(frapDataProvider).serviceInfo;
+    final tipoUrgencia = serviceInfo['tipoUrgencia'] ?? '';
+    
+    if (tipoUrgencia.isEmpty) return Colors.black87;
+    
+    switch (sectionName) {
+      case 'pathological_history':
+        return tipoUrgencia == 'Clínico' ? Colors.green[700]! : Colors.grey[500]!;
+      case 'clinical_history':
+        return tipoUrgencia == 'Trauma' ? Colors.red[700]! : Colors.grey[500]!;
+      default:
+        return Colors.black87;
+    }
+  }
+
+  // Función para obtener el mensaje de estado según el tipo de urgencia
+  String _getSectionStatusMessage(String sectionName) {
+    final serviceInfo = ref.read(frapDataProvider).serviceInfo;
+    final tipoUrgencia = serviceInfo['tipoUrgencia'] ?? '';
+    
+    if (tipoUrgencia.isEmpty) return '';
+    
+    switch (sectionName) {
+      case 'pathological_history':
+        return tipoUrgencia == 'Clínico' 
+            ? 'Requerido para urgencias clínicas' 
+            : 'No aplica para urgencias de trauma';
+      case 'clinical_history':
+        return tipoUrgencia == 'Trauma' 
+            ? 'Requerido para urgencias de trauma' 
+            : 'No aplica para urgencias clínicas';
+      default:
+        return '';
+    }
+  }
+
+  bool _validateForm() {
+    final frapData = ref.read(frapDataProvider);
+    
+    // Validar que se hayan completado los campos mínimos requeridos
+    if (frapData.patientInfo.isEmpty) {
+      _showErrorDialog(
+        'Error de validación', 
+        'Debe completar al menos la información del paciente para guardar el registro.'
+      );
+      return false;
+    }
+    
+    return true;
+  }
+
+  Future<void> _saveRecord() async {
+    if (!_validateForm()) {
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
 
     try {
-    final frapData = ref.read(frapDataProvider);
-    
-      // Validar que se hayan completado los campos mínimos requeridos
-      if (frapData.patientInfo.isEmpty) {
-        if (mounted) {
-          _showErrorDialog('Error de validación', 'Debe completar al menos la información del paciente para guardar el registro.');
-        }
-        return;
-      }
-
-      // Usar el servicio de sincronización automática
-      final result = await ref.read(autoSyncProvider.notifier).saveRecord(frapData);
+      final frapData = ref.read(frapDataProvider);
+      
+      // Usar el servicio unificado
+      final result = await ref.read(unifiedRecordsNotifierProvider.notifier).saveRecord(frapData);
       
       if (!mounted) return;
-      
+
       if (result.success) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-            content: Text(result.message),
-            backgroundColor: result.savedToCloud ? AppTheme.primaryBlue : AppTheme.primaryGreen,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'Ver',
-              textColor: Colors.white,
-              onPressed: () {
-                if (mounted) {
-                  // Navegar a la vista correspondiente
-                  Navigator.pushNamed(
-                    context, 
-                    result.savedToCloud ? '/frap-cloud-records' : '/frap-records'
-                  );
-                }
-              },
-            ),
-          ),
-        );
+        // Mostrar diálogo de éxito
+        _showSuccessDialog(result);
         
-        // Mostrar diálogo de confirmación para limpiar el formulario
-        if (mounted) {
-          _showSuccessDialog(result);
-        }
+        // Limpiar datos del formulario
+        ref.read(frapDataProvider.notifier).clearAllData();
       } else {
-        if (mounted) {
-          _showErrorDialog('Error al guardar', result.message);
-        }
+        // Mostrar error
+        _showErrorDialog(
+          'Error al Guardar',
+          result.message.isNotEmpty ? result.message : 'No se pudo guardar el registro',
+        );
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog('Error al guardar', 'Error inesperado: $e');
+        _showErrorDialog(
+          'Error Inesperado',
+          'Ocurrió un error inesperado: $e',
+        );
       }
     } finally {
       if (mounted) {
@@ -811,7 +868,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     }
   }
 
-  void _showSuccessDialog(SaveResult result) {
+  void _showSuccessDialog(UnifiedSaveResult result) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -820,7 +877,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
             Icon(
               Icons.check_circle,
               color: result.savedToCloud ? AppTheme.primaryBlue : AppTheme.primaryGreen,
-      ),
+            ),
             const SizedBox(width: 8),
             const Text('Registro Guardado'),
           ],
@@ -830,6 +887,31 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(result.message),
+            const SizedBox(height: 16),
+            if (result.savedLocally && !result.savedToCloud)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade700, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Guardado localmente. Se sincronizará cuando haya conexión.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             const Text('¿Qué desea hacer a continuación?'),
           ],
@@ -845,12 +927,9 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
           ),
           TextButton(
             onPressed: () {
-    Navigator.of(context).pop();
-              // Navegar a la vista correspondiente
-              Navigator.pushNamed(
-                context, 
-                result.savedToCloud ? '/frap-cloud-records' : '/frap-records'
-              );
+              Navigator.of(context).pop();
+              // Navegar a la vista de registros
+              Navigator.pushNamed(context, '/frap-records');
             },
             child: const Text('Ver Registros'),
           ),
@@ -884,11 +963,6 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
         ],
       ),
     );
-  }
-
-  bool _isGynecoObstetricEnabled(FrapData frapData) {
-    final patientSex = frapData.patientInfo['sex'] as String?;
-    return patientSex != null && (patientSex.toLowerCase() == 'femenino' || patientSex.toLowerCase() == 'mujer');
   }
 
   void _showClearConfirmationDialog() {

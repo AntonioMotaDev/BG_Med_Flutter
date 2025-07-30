@@ -31,7 +31,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
 
-    // Mostrar errores
+    // Mostrar errores y éxitos
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -44,6 +44,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         // Limpiar error después de mostrarlo
         Future.delayed(const Duration(seconds: 3), () {
           ref.read(authNotifierProvider.notifier).clearError();
+        });
+      }
+      
+      // Mostrar éxito cuando se crea el usuario
+      if (next.status == AuthStatus.authenticated && previous?.status == AuthStatus.loading) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Usuario creado exitosamente! Redirigiendo al dashboard...'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        
+        // Redirigir al dashboard después de un breve delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context, 
+              '/dashboard', 
+              (route) => false
+            );
+          }
         });
       }
     });
@@ -107,7 +130,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             size: 30,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         const Text(
           'Crear Cuenta',
           style: TextStyle(
@@ -118,12 +141,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Regístrate para acceder al sistema',
+          'Completa los datos para crear tu cuenta',
           style: TextStyle(
             fontSize: 16,
             color: Colors.grey[600],
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -137,7 +159,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           // Campo de nombre
           TextFormField(
             controller: _nameController,
-            keyboardType: TextInputType.name,
             enabled: authState.status != AuthStatus.loading,
             decoration: InputDecoration(
               labelText: 'Nombre completo',
@@ -151,9 +172,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               if (value == null || value.isEmpty) {
                 return 'Por favor ingresa tu nombre';
               }
-              if (value.length < 2) {
-                return 'El nombre debe tener al menos 2 caracteres';
-              }
               return null;
             },
           ),
@@ -162,11 +180,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           // Campo de email
           TextFormField(
             controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
             enabled: authState.status != AuthStatus.loading,
+            keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              labelText: 'Email',
-              hintText: 'Ingresa tu email',
+              labelText: 'Correo electrónico',
+              hintText: 'ejemplo@correo.com',
               prefixIcon: const Icon(Icons.email_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -174,10 +192,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Por favor ingresa tu email';
+                return 'Por favor ingresa tu correo electrónico';
               }
               if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                return 'Por favor ingresa un email válido';
+                return 'Por favor ingresa un correo electrónico válido';
               }
               return null;
             },
@@ -191,7 +209,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             enabled: authState.status != AuthStatus.loading,
             decoration: InputDecoration(
               labelText: 'Contraseña',
-              hintText: 'Ingresa tu contraseña',
+              hintText: 'Mínimo 6 caracteres',
               prefixIcon: const Icon(Icons.lock_outlined),
               suffixIcon: IconButton(
                 icon: Icon(

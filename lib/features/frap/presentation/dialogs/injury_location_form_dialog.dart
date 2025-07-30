@@ -78,20 +78,6 @@ class _InjuryLocationFormDialogState extends State<InjuryLocationFormDialog> {
     ]);
   }
 
-  // Obtener tamaño fijo óptimo basado en las dimensiones de la pantalla
-  double _getOptimalFixedHeight(Size screenSize) {
-    // Determinar si estamos en orientación vertical u horizontal
-    final bool isLandscape = screenSize.width > screenSize.height;
-    
-    if (isLandscape) {
-      // En horizontal, usar altura fija de 350px para dejar espacio a los controles
-      return 350.0;
-    } else {
-      // En vertical, usar altura fija de 400px
-      return 400.0;
-    }
-  }
-
   // Cargar imagen de silueta humana
   Future<void> _loadHumanSilhouetteImage() async {
     try {

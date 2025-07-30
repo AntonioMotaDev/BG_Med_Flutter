@@ -3,6 +3,9 @@ import 'package:bg_med/core/models/patient.dart';
 import 'package:bg_med/core/models/physical_exam.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hive/hive.dart';
+import 'package:bg_med/core/models/insumo.dart';
+import 'package:bg_med/core/models/personal_medico.dart';
+import 'package:bg_med/core/models/escalas_obstetricas.dart';
 
 part 'frap.g.dart';
 
@@ -47,6 +50,17 @@ class Frap extends Equatable {
   final Map<String, dynamic> receivingUnit;
   @HiveField(16)
   final Map<String, dynamic> patientReception;
+  @HiveField(17)
+  final String consentimientoServicio; // Firma o consentimiento
+  @HiveField(18)
+  final List<Insumo> insumos; // Lista de insumos
+  @HiveField(19)
+  final List<PersonalMedico> personalMedico; // Lista de personal médico
+  @HiveField(20)
+  final EscalasObstetricas? escalasObstetricas; // Escalas obstétricas
+
+  @HiveField(21)
+  final bool isSynced;
 
   const Frap({
     // Campos existentes
@@ -68,6 +82,11 @@ class Frap extends Equatable {
     this.injuryLocation = const {},
     this.receivingUnit = const {},
     this.patientReception = const {},
+    this.consentimientoServicio = '',
+    this.insumos = const [],
+    this.personalMedico = const [],
+    this.escalasObstetricas,
+    this.isSynced = false,
   }) : updatedAt = updatedAt ?? createdAt;
 
   // Método copyWith para crear copias con cambios
@@ -89,6 +108,11 @@ class Frap extends Equatable {
     Map<String, dynamic>? injuryLocation,
     Map<String, dynamic>? receivingUnit,
     Map<String, dynamic>? patientReception,
+    String? consentimientoServicio,
+    List<Insumo>? insumos,
+    List<PersonalMedico>? personalMedico,
+    EscalasObstetricas? escalasObstetricas,
+    bool? isSynced,
   }) {
     return Frap(
       id: id ?? this.id,
@@ -108,6 +132,11 @@ class Frap extends Equatable {
       injuryLocation: injuryLocation ?? this.injuryLocation,
       receivingUnit: receivingUnit ?? this.receivingUnit,
       patientReception: patientReception ?? this.patientReception,
+      consentimientoServicio: consentimientoServicio ?? this.consentimientoServicio,
+      insumos: insumos ?? this.insumos,
+      personalMedico: personalMedico ?? this.personalMedico,
+      escalasObstetricas: escalasObstetricas ?? this.escalasObstetricas,
+      isSynced: isSynced ?? this.isSynced,
     );
   }
 
@@ -205,6 +234,33 @@ class Frap extends Equatable {
     return (completedSections / totalSections) * 100;
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'patient': patient.toJson(),
+      'clinicalHistory': clinicalHistory.toJson(),
+      'physicalExam': physicalExam.toJson(),
+      'serviceInfo': serviceInfo,
+      'registryInfo': registryInfo,
+      'management': management,
+      'medications': medications,
+      'gynecoObstetric': gynecoObstetric,
+      'attentionNegative': attentionNegative,
+      'pathologicalHistory': pathologicalHistory,
+      'priorityJustification': priorityJustification,
+      'injuryLocation': injuryLocation,
+      'receivingUnit': receivingUnit,
+      'patientReception': patientReception,
+      'consentimientoServicio': consentimientoServicio,
+      'insumos': insumos.map((i) => i.toJson()).toList(),
+      'personalMedico': personalMedico.map((p) => p.toJson()).toList(),
+      'escalasObstetricas': escalasObstetricas?.toJson(),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'isSynced': isSynced,
+    };
+  }
+
   @override
   List<Object?> get props => [
         id,
@@ -224,5 +280,10 @@ class Frap extends Equatable {
         injuryLocation,
         receivingUnit,
         patientReception,
+        consentimientoServicio,
+        insumos,
+        personalMedico,
+        escalasObstetricas,
+        isSynced,
       ];
 } 

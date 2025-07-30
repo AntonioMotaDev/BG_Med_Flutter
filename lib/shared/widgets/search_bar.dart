@@ -3,26 +3,67 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bg_med/core/services/search_service.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 
+class SearchFilters {
+  String query;
+  String? patientName;
+  String? dateFrom;
+  String? dateTo;
+  String? status;
+  String? type;
+
+  SearchFilters({
+    this.query = '',
+    this.patientName,
+    this.dateFrom,
+    this.dateTo,
+    this.status,
+    this.type,
+  });
+
+  bool get isEmpty => query.isEmpty && 
+                     patientName == null && 
+                     dateFrom == null && 
+                     dateTo == null && 
+                     status == null && 
+                     type == null;
+
+  SearchFilters copyWith({
+    String? query,
+    String? patientName,
+    String? dateFrom,
+    String? dateTo,
+    String? status,
+    String? type,
+  }) {
+    return SearchFilters(
+      query: query ?? this.query,
+      patientName: patientName ?? this.patientName,
+      dateFrom: dateFrom ?? this.dateFrom,
+      dateTo: dateTo ?? this.dateTo,
+      status: status ?? this.status,
+      type: type ?? this.type,
+    );
+  }
+}
+
 class SearchBar extends ConsumerStatefulWidget {
-  final String? initialQuery;
+  final Function(SearchFilters) onSearch;
+  final Function()? onClear;
+  final Function(SearchFilters)? onFiltersChanged;
   final SearchFilters? initialFilters;
-  final Function(String query) onSearch;
-  final Function(SearchFilters filters) onFiltersChanged;
-  final Function() onClear;
-  final List<Frap> records;
-  final bool showFilters;
-  final bool showSuggestions;
+  final String? placeholder;
+  final bool showAdvancedFilters;
+  final List<dynamic> records;
 
   const SearchBar({
     super.key,
-    this.initialQuery,
-    this.initialFilters,
     required this.onSearch,
-    required this.onFiltersChanged,
-    required this.onClear,
-    required this.records,
-    this.showFilters = true,
-    this.showSuggestions = true,
+    this.onClear,
+    this.onFiltersChanged,
+    this.initialFilters,
+    this.placeholder,
+    this.showAdvancedFilters = true,
+    this.records = const [],
   });
 
   @override
@@ -43,7 +84,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
   @override
   void initState() {
     super.initState();
-    _currentQuery = widget.initialQuery ?? '';
+    _currentQuery = widget.initialFilters?.query ?? '';
     _currentFilters = widget.initialFilters ?? SearchFilters();
     _controller.text = _currentQuery;
     
@@ -64,11 +105,12 @@ class _SearchBarState extends ConsumerState<SearchBar> {
   void _onQueryChanged(String query) {
     setState(() {
       _currentQuery = query;
+      _currentFilters = _currentFilters.copyWith(query: query);
       _isSearching = true;
     });
 
     // Generar sugerencias
-    if (widget.showSuggestions && query.isNotEmpty) {
+    if (widget.showAdvancedFilters && query.isNotEmpty) {
       _generateSuggestions(query);
     } else {
       setState(() {
@@ -80,7 +122,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
     // Realizar búsqueda con debounce
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_currentQuery == query) {
-        widget.onSearch(query);
+        widget.onSearch(_currentFilters);
         setState(() {
           _isSearching = false;
         });
@@ -100,10 +142,11 @@ class _SearchBarState extends ConsumerState<SearchBar> {
     setState(() {
       _currentQuery = suggestion;
       _controller.text = suggestion;
+      _currentFilters = _currentFilters.copyWith(query: suggestion);
       _suggestions = [];
       _showSuggestions = false;
     });
-    widget.onSearch(suggestion);
+    widget.onSearch(_currentFilters);
     _focusNode.unfocus();
   }
 
@@ -111,10 +154,18 @@ class _SearchBarState extends ConsumerState<SearchBar> {
     setState(() {
       _currentQuery = '';
       _controller.clear();
+      _currentFilters = SearchFilters();
       _suggestions = [];
       _showSuggestions = false;
     });
-    widget.onClear();
+    widget.onClear?.call();
+  }
+
+  void _onFiltersChanged(SearchFilters filters) {
+    setState(() {
+      _currentFilters = filters;
+    });
+    widget.onFiltersChanged?.call(filters);
   }
 
   void _showFiltersDialog() {
@@ -124,12 +175,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
       backgroundColor: Colors.transparent,
       builder: (context) => _FiltersBottomSheet(
         currentFilters: _currentFilters,
-        onFiltersChanged: (filters) {
-          setState(() {
-            _currentFilters = filters;
-          });
-          widget.onFiltersChanged(filters);
-        },
+        onFiltersChanged: _onFiltersChanged,
       ),
     );
   }
@@ -179,7 +225,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
                   style: const TextStyle(fontSize: 16),
                   onChanged: _onQueryChanged,
                   onSubmitted: (query) {
-                    widget.onSearch(query);
+                    widget.onSearch(_currentFilters);
                     _focusNode.unfocus();
                   },
                 ),
@@ -196,7 +242,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
               ],
               
               // Botón de filtros
-              if (widget.showFilters) ...[
+              if (widget.showAdvancedFilters) ...[
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: _showFiltersDialog,
@@ -226,7 +272,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
         ),
         
         // Filtros activos
-        if (widget.showFilters && !_currentFilters.isEmpty) ...[
+        if (widget.showAdvancedFilters && !_currentFilters.isEmpty) ...[
           const SizedBox(height: 8),
           _buildActiveFilters(),
         ],
@@ -243,10 +289,10 @@ class _SearchBarState extends ConsumerState<SearchBar> {
   Widget _buildActiveFilters() {
     final activeFilters = <Widget>[];
     
-    if (_currentFilters.dateRange != null) {
+    if (_currentFilters.dateFrom != null) {
       activeFilters.add(_buildFilterChip(
-        'Fecha: ${_formatDateRange(_currentFilters.dateRange!)}',
-        () => _removeFilter('dateRange'),
+        'Fecha: ${_formatDateRange(_currentFilters.dateFrom!, _currentFilters.dateTo)}',
+        () => _removeFilter('dateFrom'),
       ));
     }
     
@@ -257,24 +303,17 @@ class _SearchBarState extends ConsumerState<SearchBar> {
       ));
     }
     
-    if (_currentFilters.emergencyType != null) {
+    if (_currentFilters.type != null) {
       activeFilters.add(_buildFilterChip(
-        'Tipo: ${_currentFilters.emergencyType}',
-        () => _removeFilter('emergencyType'),
+        'Tipo: ${_currentFilters.type}',
+        () => _removeFilter('type'),
       ));
     }
     
-    if (_currentFilters.gender != null) {
+    if (_currentFilters.status != null) {
       activeFilters.add(_buildFilterChip(
-        'Género: ${_currentFilters.gender}',
-        () => _removeFilter('gender'),
-      ));
-    }
-    
-    if (_currentFilters.isSynced != null) {
-      activeFilters.add(_buildFilterChip(
-        _currentFilters.isSynced! ? 'Sincronizado' : 'Local',
-        () => _removeFilter('isSynced'),
+        'Estado: ${_currentFilters.status}',
+        () => _removeFilter('status'),
       ));
     }
 
@@ -355,20 +394,20 @@ class _SearchBarState extends ConsumerState<SearchBar> {
     SearchFilters newFilters;
     
     switch (filterType) {
-      case 'dateRange':
-        newFilters = _currentFilters.copyWith(dateRange: null);
+      case 'dateFrom':
+        newFilters = _currentFilters.copyWith(dateFrom: null);
+        break;
+      case 'dateTo':
+        newFilters = _currentFilters.copyWith(dateTo: null);
         break;
       case 'patientName':
         newFilters = _currentFilters.copyWith(patientName: null);
         break;
-      case 'emergencyType':
-        newFilters = _currentFilters.copyWith(emergencyType: null);
+      case 'type':
+        newFilters = _currentFilters.copyWith(type: null);
         break;
-      case 'gender':
-        newFilters = _currentFilters.copyWith(gender: null);
-        break;
-      case 'isSynced':
-        newFilters = _currentFilters.copyWith(isSynced: null);
+      case 'status':
+        newFilters = _currentFilters.copyWith(status: null);
         break;
       default:
         newFilters = _currentFilters;
@@ -377,13 +416,17 @@ class _SearchBarState extends ConsumerState<SearchBar> {
     setState(() {
       _currentFilters = newFilters;
     });
-    widget.onFiltersChanged(newFilters);
+    _onFiltersChanged(newFilters);
   }
 
-  String _formatDateRange(DateTimeRange range) {
-    final start = range.start;
-    final end = range.end;
-    
+  String _formatDateRange(String? from, String? to) {
+    if (from == null || to == null) {
+      return 'Seleccionar fechas';
+    }
+
+    final start = DateTime.parse(from);
+    final end = DateTime.parse(to);
+
     if (start.year == end.year && start.month == end.month && start.day == end.day) {
       return '${start.day}/${start.month}/${start.year}';
     }
@@ -407,30 +450,31 @@ class _FiltersBottomSheet extends StatefulWidget {
 
 class _FiltersBottomSheetState extends State<_FiltersBottomSheet> {
   late SearchFilters _filters;
-  DateTimeRange? _dateRange;
   String? _patientName;
-  String? _emergencyType;
-  String? _gender;
-  bool? _isSynced;
+  String? _dateFrom;
+  String? _dateTo;
+  String? _status;
+  String? _type;
 
   @override
   void initState() {
     super.initState();
     _filters = widget.currentFilters;
-    _dateRange = _filters.dateRange;
     _patientName = _filters.patientName;
-    _emergencyType = _filters.emergencyType;
-    _gender = _filters.gender;
-    _isSynced = _filters.isSynced;
+    _dateFrom = _filters.dateFrom;
+    _dateTo = _filters.dateTo;
+    _status = _filters.status;
+    _type = _filters.type;
   }
 
   void _applyFilters() {
     final newFilters = SearchFilters(
-      dateRange: _dateRange,
+      query: _filters.query, // Keep existing query
       patientName: _patientName,
-      emergencyType: _emergencyType,
-      gender: _gender,
-      isSynced: _isSynced,
+      dateFrom: _dateFrom,
+      dateTo: _dateTo,
+      status: _status,
+      type: _type,
     );
     widget.onFiltersChanged(newFilters);
     Navigator.pop(context);
@@ -438,11 +482,11 @@ class _FiltersBottomSheetState extends State<_FiltersBottomSheet> {
 
   void _clearFilters() {
     setState(() {
-      _dateRange = null;
       _patientName = null;
-      _emergencyType = null;
-      _gender = null;
-      _isSynced = null;
+      _dateFrom = null;
+      _dateTo = null;
+      _status = null;
+      _type = null;
     });
   }
 
@@ -491,56 +535,6 @@ class _FiltersBottomSheetState extends State<_FiltersBottomSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Rango de fechas
-                  const Text(
-                    'Rango de fechas',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () async {
-                      final range = await showDateRangePicker(
-                        context: context,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                        initialDateRange: _dateRange,
-                      );
-                      if (range != null) {
-                        setState(() {
-                          _dateRange = range;
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_today, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            _dateRange != null
-                                ? '${_dateRange!.start.day}/${_dateRange!.start.month} - ${_dateRange!.end.day}/${_dateRange!.end.month}'
-                                : 'Seleccionar fechas',
-                            style: TextStyle(
-                              color: _dateRange != null 
-                                  ? Colors.black 
-                                  : Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
                   // Nombre del paciente
                   const Text(
                     'Nombre del paciente',
@@ -564,6 +558,59 @@ class _FiltersBottomSheetState extends State<_FiltersBottomSheet> {
                   
                   const SizedBox(height: 24),
                   
+                  // Rango de fechas
+                  const Text(
+                    'Rango de fechas',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final range = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                        initialDateRange: _dateFrom != null && _dateTo != null 
+                            ? DateTimeRange(start: DateTime.parse(_dateFrom!), end: DateTime.parse(_dateTo!))
+                            : null,
+                      );
+                      if (range != null) {
+                        setState(() {
+                          _dateFrom = range.start.toIso8601String();
+                          _dateTo = range.end.toIso8601String();
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            _dateFrom != null && _dateTo != null
+                                ? '${DateTime.parse(_dateFrom!).day}/${DateTime.parse(_dateFrom!).month} - ${DateTime.parse(_dateTo!).day}/${DateTime.parse(_dateTo!).month}'
+                                : 'Seleccionar fechas',
+                            style: TextStyle(
+                              color: _dateFrom != null && _dateTo != null 
+                                  ? Colors.black 
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
                   // Tipo de emergencia
                   const Text(
                     'Tipo de emergencia',
@@ -578,7 +625,7 @@ class _FiltersBottomSheetState extends State<_FiltersBottomSheet> {
                       border: OutlineInputBorder(),
                     ),
                     hint: const Text('Seleccionar tipo'),
-                    value: _emergencyType,
+                    value: _type,
                     items: const [
                       DropdownMenuItem(value: 'Clínico', child: Text('Clínico')),
                       DropdownMenuItem(value: 'Trauma', child: Text('Trauma')),
@@ -587,35 +634,7 @@ class _FiltersBottomSheetState extends State<_FiltersBottomSheet> {
                     ],
                     onChanged: (value) {
                       setState(() {
-                        _emergencyType = value;
-                      });
-                    },
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Género
-                  const Text(
-                    'Género',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                    hint: const Text('Seleccionar género'),
-                    value: _gender,
-                    items: const [
-                      DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-                      DropdownMenuItem(value: 'Femenino', child: Text('Femenino')),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _gender = value;
+                        _type = value;
                       });
                     },
                   ),
@@ -631,19 +650,19 @@ class _FiltersBottomSheetState extends State<_FiltersBottomSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  DropdownButtonFormField<bool>(
+                  DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                     ),
                     hint: const Text('Todos'),
-                    value: _isSynced,
+                    value: _status,
                     items: const [
-                      DropdownMenuItem(value: true, child: Text('Sincronizado')),
-                      DropdownMenuItem(value: false, child: Text('Local')),
+                      DropdownMenuItem(value: 'Sincronizado', child: Text('Sincronizado')),
+                      DropdownMenuItem(value: 'Local', child: Text('Local')),
                     ],
                     onChanged: (value) {
                       setState(() {
-                        _isSynced = value;
+                        _status = value;
                       });
                     },
                   ),

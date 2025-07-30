@@ -38,6 +38,12 @@ class Patient extends Equatable {
   final String insurance;
   @HiveField(14)
   final String? responsiblePerson;
+  @HiveField(15)
+  final String gender; // Nuevo campo: género (abierto, diferente de sex)
+  @HiveField(16)
+  final String entreCalles; // Nuevo campo: referencia de llegada
+  @HiveField(17)
+  final String tipoEntrega; // Nuevo campo: tipo de entrega
 
   const Patient({
     // Campos existentes
@@ -57,6 +63,9 @@ class Patient extends Equatable {
     this.city = '',
     this.insurance = '',
     this.responsiblePerson,
+    this.gender = '',
+    this.entreCalles = '',
+    this.tipoEntrega = '',
   });
 
   // Getter para el nombre completo (usando nuevos campos si están disponibles)
@@ -105,6 +114,9 @@ class Patient extends Equatable {
     String? city,
     String? insurance,
     String? responsiblePerson,
+    String? gender,
+    String? entreCalles,
+    String? tipoEntrega,
   }) {
     return Patient(
       name: name ?? this.name,
@@ -122,7 +134,33 @@ class Patient extends Equatable {
       city: city ?? this.city,
       insurance: insurance ?? this.insurance,
       responsiblePerson: responsiblePerson ?? this.responsiblePerson,
+      gender: gender ?? this.gender,
+      entreCalles: entreCalles ?? this.entreCalles,
+      tipoEntrega: tipoEntrega ?? this.tipoEntrega,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'age': age,
+      'sex': sex,
+      'address': address,
+      'firstName': firstName,
+      'paternalLastName': paternalLastName,
+      'maternalLastName': maternalLastName,
+      'phone': phone,
+      'street': street,
+      'exteriorNumber': exteriorNumber,
+      'interiorNumber': interiorNumber,
+      'neighborhood': neighborhood,
+      'city': city,
+      'insurance': insurance,
+      'responsiblePerson': responsiblePerson,
+      'gender': gender,
+      'entreCalles': entreCalles,
+      'tipoEntrega': tipoEntrega,
+    };
   }
 
   @override
@@ -142,5 +180,8 @@ class Patient extends Equatable {
         city,
         insurance,
         responsiblePerson,
+        gender,
+        entreCalles,
+        tipoEntrega,
       ];
 } 

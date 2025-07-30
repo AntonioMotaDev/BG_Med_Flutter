@@ -51,7 +51,6 @@ class AutoSyncService {
 
   // Manejar cambios en la conectividad
   void _onConnectivityChanged(List<ConnectivityResult> results) async {
-    final wasOnline = _isOnline;
     _isOnline = !results.contains(ConnectivityResult.none);
     
     // COMENTADO: Si se acaba de conectar a internet, sincronizar
@@ -208,8 +207,8 @@ class AutoSyncService {
       if (!patientInfo.containsKey('age') || patientInfo['age'] == null) {
         patientInfo['age'] = 0;
       }
-      if (!patientInfo.containsKey('gender') || patientInfo['gender'] == null) {
-        patientInfo['gender'] = '';
+      if (!patientInfo.containsKey('sex') || patientInfo['sex'] == null) {
+        patientInfo['sex'] = '';
       }
       
       // Actualizar los datos limpios
