@@ -83,6 +83,9 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
       filtered = filtered.where((record) => !record.isLocal).toList();
     }
 
+    // Crear una copia de la lista antes de ordenar
+    filtered = List<UnifiedFrapRecord>.from(filtered);
+
     // Ordenar
     filtered.sort((a, b) {
       int result;

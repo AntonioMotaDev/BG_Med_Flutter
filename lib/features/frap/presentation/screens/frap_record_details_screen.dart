@@ -296,6 +296,13 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                   // Recepción del paciente
                   _buildPatientReceptionSection(),
                   
+                  // Nuevas secciones agregadas
+                  _buildInsumosSection(),
+                  
+                  _buildPersonalMedicoSection(),
+                  
+                  _buildEscalasObstetricasSection(),
+                  
                   const SizedBox(height: 32),
                 ],
               ),
@@ -1287,6 +1294,471 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
       color: Colors.green,
       child: _buildTwoColumnDetails(details),
     );
+  }
+
+  Widget _buildInsumosSection() {
+    // Obtener insumos del registro local o de la nube
+    List<dynamic> insumosList = [];
+    
+    if (widget.record.localRecord != null) {
+      // Si hay registro local, obtener insumos del modelo local
+      insumosList = widget.record.localRecord!.insumos.map((insumo) => {
+        'cantidad': insumo.cantidad,
+        'articulo': insumo.articulo,
+      }).toList();
+    } else if (widget.record.cloudRecord != null) {
+      // Si es solo de la nube, buscar en las secciones de management o serviceInfo
+      final cloudData = widget.record.cloudRecord!;
+      insumosList = cloudData.management['insumos'] ?? 
+                   cloudData.serviceInfo['insumos'] ?? 
+                   [];
+    }
+    
+    if (insumosList.isEmpty) return const SizedBox.shrink();
+
+    return _buildSectionCard(
+      title: 'Insumos Utilizados',
+      icon: Icons.inventory_2,
+      color: Colors.deepPurple,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (insumosList.isNotEmpty) ...[
+            for (int i = 0; i < insumosList.length; i++)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.deepPurple.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${i + 1}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            insumosList[i]['articulo']?.toString() ?? 'Sin especificar',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Cantidad: ${insumosList[i]['cantidad']?.toString() ?? '0'}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ] else ...[
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No se registraron insumos',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalMedicoSection() {
+    // Obtener personal médico del registro local o de la nube
+    List<dynamic> personalList = [];
+    
+    if (widget.record.localRecord != null) {
+      // Si hay registro local, obtener personal médico del modelo local
+      personalList = widget.record.localRecord!.personalMedico.map((personal) => {
+        'nombre': personal.nombre,
+        'especialidad': personal.especialidad,
+        'cedula': personal.cedula,
+      }).toList();
+    } else if (widget.record.cloudRecord != null) {
+      // Si es solo de la nube, buscar en las secciones de management o serviceInfo
+      final cloudData = widget.record.cloudRecord!;
+      personalList = cloudData.management['personalMedico'] ?? 
+                    cloudData.serviceInfo['personalMedico'] ?? 
+                    [];
+    }
+    
+    if (personalList.isEmpty) return const SizedBox.shrink();
+
+    return _buildSectionCard(
+      title: 'Personal Médico',
+      icon: Icons.medical_services,
+      color: Colors.blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (personalList.isNotEmpty) ...[
+            for (int i = 0; i < personalList.length; i++)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            personalList[i]['nombre']?.toString() ?? 'Sin especificar',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          if (personalList[i]['especialidad']?.toString().isNotEmpty == true)
+                            Text(
+                              'Especialidad: ${personalList[i]['especialidad']}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          if (personalList[i]['cedula']?.toString().isNotEmpty == true)
+                            Text(
+                              'Cédula: ${personalList[i]['cedula']}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ] else ...[
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No se registró personal médico',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEscalasObstetricasSection() {
+    // Obtener escalas obstétricas del registro local o de la nube
+    Map<String, dynamic>? escalasData;
+    
+    if (widget.record.localRecord != null && widget.record.localRecord!.escalasObstetricas != null) {
+      // Si hay registro local con escalas obstétricas
+      final escalas = widget.record.localRecord!.escalasObstetricas!;
+      escalasData = {
+        'silvermanAnderson': escalas.silvermanAnderson,
+        'apgar': escalas.apgar,
+        'frecuenciaCardiacaFetal': escalas.frecuenciaCardiacaFetal,
+        'contracciones': escalas.contracciones,
+      };
+    } else if (widget.record.cloudRecord != null) {
+      // Si es solo de la nube, buscar en la sección gynecoObstetric
+      final cloudData = widget.record.cloudRecord!;
+      escalasData = cloudData.gynecoObstetric['escalasObstetricas'] ?? 
+                   cloudData.gynecoObstetric['escalas'];
+    }
+    
+    if (escalasData == null || escalasData.isEmpty) return const SizedBox.shrink();
+
+    List<Map<String, dynamic>> details = [];
+    
+    // Escala de Silverman-Anderson
+    if (escalasData['silvermanAnderson'] != null) {
+      final silverman = escalasData['silvermanAnderson'] as Map<String, dynamic>;
+      if (silverman.isNotEmpty) {
+        details.add({
+          'label': 'Escala Silverman-Anderson',
+          'value': _buildSilvermanAndersonDisplay(silverman),
+          'isFullWidth': true,
+        });
+      }
+    }
+    
+    // Escala APGAR
+    if (escalasData['apgar'] != null) {
+      final apgar = escalasData['apgar'] as Map<String, dynamic>;
+      if (apgar.isNotEmpty) {
+        details.add({
+          'label': 'Escala APGAR',
+          'value': _buildApgarDisplay(apgar),
+          'isFullWidth': true,
+        });
+      }
+    }
+    
+    // Frecuencia cardíaca fetal
+    if (escalasData['frecuenciaCardiacaFetal'] != null) {
+      details.add({
+        'label': 'Frecuencia cardíaca fetal',
+        'value': '${escalasData['frecuenciaCardiacaFetal']} lpm',
+      });
+    }
+    
+    // Contracciones
+    if (escalasData['contracciones'] != null && escalasData['contracciones'].toString().isNotEmpty) {
+      details.add({
+        'label': 'Contracciones',
+        'value': escalasData['contracciones'].toString(),
+      });
+    }
+    
+    if (details.isEmpty) return const SizedBox.shrink();
+
+    return _buildSectionCard(
+      title: 'Escalas Obstétricas',
+      icon: Icons.pregnant_woman,
+      color: Colors.pink,
+      child: _buildTwoColumnDetails(details),
+    );
+  }
+
+  Widget _buildSilvermanAndersonDisplay(Map<String, dynamic> silverman) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.pink.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.pink.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Puntajes por criterio:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...silverman.entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      _getSilvermanCriteriaName(entry.key),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '${entry.value}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          const Divider(),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Puntaje total:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                '${silverman.values.fold(0, (sum, value) => sum + (value as int))}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.pink,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApgarDisplay(Map<String, dynamic> apgar) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.pink.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.pink.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Puntajes por criterio:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...apgar.entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      _getApgarCriteriaName(entry.key),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '${entry.value}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          const Divider(),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Puntaje total:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                '${apgar.values.fold(0, (sum, value) => sum + (value as int))}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.pink,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getSilvermanCriteriaName(String key) {
+    switch (key) {
+      case 'respirationMoved':
+        return 'Movimientos respiratorios';
+      case 'retraction':
+        return 'Retracción';
+      case 'nasal':
+        return 'Aleteo nasal';
+      case 'moan':
+        return 'Quejido';
+      case 'circulation':
+        return 'Circulación';
+      default:
+        return key;
+    }
+  }
+
+  String _getApgarCriteriaName(String key) {
+    switch (key) {
+      case 'heartRate':
+        return 'Frecuencia cardíaca';
+      case 'respiratoryEffort':
+        return 'Esfuerzo respiratorio';
+      case 'muscleTone':
+        return 'Tono muscular';
+      case 'reflexes':
+        return 'Reflejos';
+      case 'skinColor':
+        return 'Color de la piel';
+      default:
+        return key;
+    }
   }
 
   Widget _buildSectionCard({

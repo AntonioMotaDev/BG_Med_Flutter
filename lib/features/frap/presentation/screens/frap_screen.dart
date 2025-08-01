@@ -70,7 +70,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                     });
                     
                     try {
-                      final result = await ref.read(unifiedRecordsNotifierProvider.notifier).syncRecords();
+                      final result = await ref.read(unifiedRecordsNotifierProvider.notifier).syncRecordsWithResult();
                       
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(

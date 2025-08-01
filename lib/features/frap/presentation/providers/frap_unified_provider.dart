@@ -1,589 +1,404 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bg_med/core/models/frap.dart';
-import 'package:bg_med/core/models/frap_firestore.dart';
-import 'package:bg_med/features/frap/presentation/providers/frap_local_provider.dart';
-import 'package:bg_med/features/frap/presentation/providers/frap_firestore_provider.dart';
-import 'package:bg_med/core/services/frap_cleanup_service.dart';
-import 'package:bg_med/core/services/data_cleanup_service.dart';
-import 'package:intl/intl.dart'; // Added for DateFormat
 import 'package:bg_med/core/services/frap_unified_service.dart';
-import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
 import 'package:bg_med/core/services/frap_local_service.dart';
 import 'package:bg_med/core/services/frap_firestore_service.dart';
+import 'package:bg_med/features/frap/presentation/providers/frap_local_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
 
 // Estados de sincronización
 enum SyncStatus {
-  notSynced,    // Solo local
-  synced,       // Solo nube
-  duplicate,    // Existe en ambos
-  conflict      // Diferentes versiones
+  idle,
+  syncing,
+  success,
+  error,
 }
 
-// Modelo unificado para representar registros FRAP de cualquier fuente
-// Usar la definición del servicio unificado en lugar de duplicar
-
-// Estado unificado para registros FRAP
+// Estado unificado
 class UnifiedFrapState {
   final List<UnifiedFrapRecord> records;
-  final bool isLoadingLocal;
-  final bool isLoadingCloud;
-  final String? errorLocal;
-  final String? errorCloud;
-  final Map<String, dynamic>? statistics;
-  
-  // Información de duplicados
+  final bool isLoading;
+  final String? error;
+  final SyncStatus syncStatus;
+  final DateTime? lastSync;
+  final int totalRecords;
+  final int localRecords;
+  final int cloudRecords;
+  final int syncedRecords;
   final int duplicateCount;
   final int localDuplicatesCount;
-  final Map<String, dynamic>? cleanupStatistics;
 
   const UnifiedFrapState({
     this.records = const [],
-    this.isLoadingLocal = false,
-    this.isLoadingCloud = false,
-    this.errorLocal,
-    this.errorCloud,
-    this.statistics,
+    this.isLoading = false,
+    this.error,
+    this.syncStatus = SyncStatus.idle,
+    this.lastSync,
+    this.totalRecords = 0,
+    this.localRecords = 0,
+    this.cloudRecords = 0,
+    this.syncedRecords = 0,
     this.duplicateCount = 0,
     this.localDuplicatesCount = 0,
-    this.cleanupStatistics,
   });
-
-  bool get isLoading => isLoadingLocal || isLoadingCloud;
-  String? get error => errorLocal ?? errorCloud;
 
   UnifiedFrapState copyWith({
     List<UnifiedFrapRecord>? records,
-    bool? isLoadingLocal,
-    bool? isLoadingCloud,
-    String? errorLocal,
-    String? errorCloud,
-    Map<String, dynamic>? statistics,
+    bool? isLoading,
+    String? error,
+    SyncStatus? syncStatus,
+    DateTime? lastSync,
+    int? totalRecords,
+    int? localRecords,
+    int? cloudRecords,
+    int? syncedRecords,
     int? duplicateCount,
     int? localDuplicatesCount,
-    Map<String, dynamic>? cleanupStatistics,
   }) {
     return UnifiedFrapState(
       records: records ?? this.records,
-      isLoadingLocal: isLoadingLocal ?? this.isLoadingLocal,
-      isLoadingCloud: isLoadingCloud ?? this.isLoadingCloud,
-      errorLocal: errorLocal,
-      errorCloud: errorCloud,
-      statistics: statistics ?? this.statistics,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+      syncStatus: syncStatus ?? this.syncStatus,
+      lastSync: lastSync ?? this.lastSync,
+      totalRecords: totalRecords ?? this.totalRecords,
+      localRecords: localRecords ?? this.localRecords,
+      cloudRecords: cloudRecords ?? this.cloudRecords,
+      syncedRecords: syncedRecords ?? this.syncedRecords,
       duplicateCount: duplicateCount ?? this.duplicateCount,
       localDuplicatesCount: localDuplicatesCount ?? this.localDuplicatesCount,
-      cleanupStatistics: cleanupStatistics ?? this.cleanupStatistics,
     );
   }
 }
 
-// Notifier para manejar el estado unificado
+// Notificador unificado
 class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
+  final FrapUnifiedService _unifiedService;
   final FrapLocalNotifier _localNotifier;
-  final FrapFirestoreNotifier _cloudNotifier;
-  final FrapCleanupService _cleanupService = FrapCleanupService(
-    dataCleanupService: DataCleanupService(
-      localService: FrapLocalService(),
-      cloudService: FrapFirestoreService(),
-    ),
-    localService: FrapLocalService(),
-    cloudService: FrapFirestoreService(),
-  );
-  bool _isUpdating = false; // Flag para evitar actualizaciones múltiples
+  bool _isUpdating = false;
 
-  UnifiedFrapNotifier(this._localNotifier, this._cloudNotifier) : super(const UnifiedFrapState()) {
-    // Cargar datos iniciales
+  UnifiedFrapNotifier(
+    this._unifiedService,
+    this._localNotifier,
+  ) : super(const UnifiedFrapState()) {
+    _initialize();
+  }
+
+  void _initialize() {
+    // Cargar registros iniciales
     loadAllRecords();
   }
 
-  // Cargar todos los registros (locales y de la nube)
+  // Cargar todos los registros
   Future<void> loadAllRecords() async {
-    if (_isUpdating) return; // Evitar múltiples cargas simultáneas
+    if (_isUpdating) return;
     _isUpdating = true;
 
-    state = state.copyWith(
-      isLoadingLocal: true,
-      isLoadingCloud: true,
-      errorLocal: null,
-      errorCloud: null,
-    );
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Cargar registros locales y de la nube en paralelo
-      await Future.wait([
-        _loadLocalRecords(),
-        _loadCloudRecords(),
-      ]);
-
-      _combineRecords();
+      final records = await _unifiedService.getAllRecords();
+      
+      final stats = _calculateStats(records);
+      
+      state = state.copyWith(
+        records: records,
+        isLoading: false,
+        totalRecords: stats['total'],
+        localRecords: stats['local'],
+        cloudRecords: stats['cloud'],
+        syncedRecords: stats['synced'],
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Error cargando registros: $e',
+      );
     } finally {
       _isUpdating = false;
     }
   }
 
-  Future<void> _loadLocalRecords() async {
-    try {
-      await _localNotifier.loadLocalFrapRecords();
-      state = state.copyWith(isLoadingLocal: false, errorLocal: null);
-    } catch (e) {
-      state = state.copyWith(isLoadingLocal: false, errorLocal: e.toString());
-    }
-  }
+  // Calcular estadísticas
+  Map<String, int> _calculateStats(List<UnifiedFrapRecord> records) {
+    int localCount = 0;
+    int cloudCount = 0;
+    int syncedCount = 0;
 
-  Future<void> _loadCloudRecords() async {
-    try {
-      await _cloudNotifier.loadFrapRecords();
-      state = state.copyWith(isLoadingCloud: false, errorCloud: null);
-    } catch (e) {
-      state = state.copyWith(isLoadingCloud: false, errorCloud: e.toString());
-    }
-  }
-
-  void _combineRecords() {
-    final localRecords = _localNotifier.state.records
-        .map((frap) => UnifiedFrapRecord.fromLocal(frap))
-        .toList();
-
-    final cloudRecords = _cloudNotifier.state.records
-        .map((frap) => UnifiedFrapRecord.fromCloud(frap))
-        .toList();
-
-    // Crear mapa de registros únicos, priorizando registros de la nube
-    final Map<String, UnifiedFrapRecord> uniqueRecords = {};
-    final List<String> duplicateLocalIds = [];
-    
-    // Primero agregar todos los registros de la nube
-    for (final cloudRecord in cloudRecords) {
-      uniqueRecords['cloud_${cloudRecord.cloudRecord?.id ?? DateTime.now().millisecondsSinceEpoch}'] = cloudRecord;
-    }
-    
-    // Luego procesar registros locales
-    for (final localRecord in localRecords) {
-      bool isDuplicate = false;
-      
-      // Verificar si es duplicado comparando con registros de la nube
-      for (final cloudRecord in cloudRecords) {
-        if (_areRecordsEquivalent(localRecord, cloudRecord)) {
-          isDuplicate = true;
-          duplicateLocalIds.add(localRecord.localRecord?.id ?? '');
-          break;
-        }
-      }
-      
-      if (!isDuplicate) {
-        uniqueRecords['local_${localRecord.localRecord?.id ?? DateTime.now().millisecondsSinceEpoch}'] = localRecord;
+    for (final record in records) {
+      if (record.isLocal) {
+        localCount++;
+        if (record.isSynced) syncedCount++;
+      } else {
+        cloudCount++;
+        syncedCount++;
       }
     }
-    
-    final allRecords = uniqueRecords.values.toList();
-    
-    // Ordenar por fecha de creación descendente
-    allRecords.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    state = state.copyWith(records: allRecords);
-    _updateStatistics();
-    
-    // Debug en desarrollo
-    if (localRecords.isNotEmpty || cloudRecords.isNotEmpty) {
-      debugRecordUnification();
-      
-      // Mostrar información de duplicados detectados
-      if (duplicateLocalIds.isNotEmpty) {
-        print('=== DUPLICADOS DETECTADOS ===');
-        print('Total de duplicados: ${duplicateLocalIds.length}');
-        print('Registros locales marcados para eliminación: ${duplicateLocalIds.length}');
-        print('=== FIN DUPLICADOS ===\n');
-      }
-    }
-  }
-
-  bool _areRecordsEquivalent(UnifiedFrapRecord local, UnifiedFrapRecord cloud) {
-    // Comparar por datos del paciente y fecha de creación
-    final localPatientName = local.patientName;
-    final cloudPatientName = cloud.patientName;
-    
-    return localPatientName.toLowerCase() == cloudPatientName.toLowerCase() &&
-           local.createdAt.difference(cloud.createdAt).abs().inMinutes < 5;
-  }
-
-  void _updateStatistics() {
-    final totalRecords = state.records.length;
-    final localCount = state.records.where((r) => r.isLocal).length;
-    final cloudCount = state.records.where((r) => !r.isLocal).length;
-    final duplicateCount = 0; // Ya no tenemos esta propiedad
-    final localDuplicatesCount = 0; // Ya no tenemos esta propiedad
-    
-    final unifiedStats = {
-      'total': totalRecords,
+    return {
+      'total': records.length,
       'local': localCount,
       'cloud': cloudCount,
-      'today': _getTodayCount(),
-      'thisWeek': _getWeekCount(),
-      'thisMonth': _getMonthCount(),
-      'averageCompletion': _getAverageCompletion(),
-      'localOnlyCount': localCount, // Registros que solo existen localmente
-      'cloudOnlyCount': cloudCount, // Registros que solo existen en la nube
-      'syncedCount': totalRecords, // Registros sincronizados
-      'duplicateCount': duplicateCount,
-      'localDuplicatesCount': localDuplicatesCount,
+      'synced': syncedCount,
     };
-
-    state = state.copyWith(
-      statistics: unifiedStats,
-      duplicateCount: duplicateCount,
-      localDuplicatesCount: localDuplicatesCount,
-    );
   }
 
-  int _getTodayCount() {
-    final today = DateTime.now();
-    return state.records.where((record) {
-      final recordDate = record.createdAt;
-      return recordDate.day == today.day &&
-             recordDate.month == today.month &&
-             recordDate.year == today.year;
-    }).length;
-  }
-
-  int _getWeekCount() {
-    final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final weekEnd = weekStart.add(const Duration(days: 6));
-    
-    return state.records.where((record) {
-      return record.createdAt.isAfter(weekStart) &&
-             record.createdAt.isBefore(weekEnd.add(const Duration(days: 1)));
-    }).length;
-  }
-
-  int _getMonthCount() {
-    final now = DateTime.now();
-    return state.records.where((record) {
-      return record.createdAt.month == now.month &&
-             record.createdAt.year == now.year;
-    }).length;
-  }
-
-  double _getAverageCompletion() {
-    if (state.records.isEmpty) return 0.0;
-    // Calcular un promedio simple basado en si el registro tiene datos
-    double total = 0.0;
-    for (final record in state.records) {
-      final info = record.getDetailedInfo();
-      if (info.isNotEmpty) {
-        total += 1.0;
+  // Guardar registro
+  Future<UnifiedSaveResult> saveRecord(FrapData frapData) async {
+    try {
+      final result = await _unifiedService.saveFrapRecord(frapData);
+      
+      if (result.success) {
+        await loadAllRecords(); // Recargar lista
+      } else {
+        state = state.copyWith(error: result.message);
       }
-    }
-    return total / state.records.length;
-  }
-
-  // Buscar registros por nombre de paciente
-  Future<void> searchRecords(String patientName) async {
-    if (patientName.isEmpty) {
-      await loadAllRecords();
-      return;
-    }
-
-    if (_isUpdating) return;
-    _isUpdating = true;
-
-    try {
-      // Buscar en ambas fuentes
-      await Future.wait([
-        _localNotifier.searchLocalFrapRecords(patientName),
-        _cloudNotifier.searchFrapRecords(patientName),
-      ]);
-
-      _combineRecords();
-    } finally {
-      _isUpdating = false;
-    }
-  }
-
-  // Filtrar registros por rango de fechas
-  Future<void> filterByDateRange(DateTime startDate, DateTime endDate) async {
-    if (_isUpdating) return;
-    _isUpdating = true;
-
-    try {
-      await Future.wait([
-        _localNotifier.getLocalFrapRecordsByDateRange(startDate, endDate),
-        _cloudNotifier.getFrapRecordsByDateRange(startDate, endDate),
-      ]);
-
-      _combineRecords();
-    } finally {
-      _isUpdating = false;
-    }
-  }
-
-  // Eliminar un registro
-  Future<bool> deleteRecord(UnifiedFrapRecord record) async {
-    bool success;
-    if (record.isLocal) {
-      success = await _localNotifier.deleteLocalFrapRecord(record.id);
-    } else {
-      success = await _cloudNotifier.deleteFrapRecord(record.id);
-    }
-    
-    if (success) {
-      // Actualizar la lista local sin recargar todo
-      final updatedRecords = state.records.where((r) => r.id != record.id).toList();
-      state = state.copyWith(records: updatedRecords);
-      _updateStatistics();
-    }
-    
-    return success;
-  }
-
-  // Duplicar un registro
-  Future<String?> duplicateRecord(UnifiedFrapRecord record) async {
-    String? newRecordId;
-    if (record.isLocal) {
-      newRecordId = await _localNotifier.duplicateLocalFrapRecord(record.id);
-    } else {
-      newRecordId = await _cloudNotifier.duplicateFrapRecord(record.id);
-    }
-    
-    if (newRecordId != null) {
-      // Recargar solo los datos necesarios
-      await loadAllRecords();
-    }
-    
-    return newRecordId;
-  }
-
-  // Sincronizar registros locales a la nube
-  Future<void> syncLocalToCloud() async {
-    try {
-      await _cloudNotifier.syncWithLocalRecords();
-      await loadAllRecords();
+      
+      return result;
     } catch (e) {
-      state = state.copyWith(errorCloud: e.toString());
+      state = state.copyWith(error: 'Error guardando registro: $e');
+      return UnifiedSaveResult()
+        ..success = false
+        ..message = 'Error guardando registro: $e';
     }
   }
 
-  // Limpiar errores
-  void clearErrors() {
-    state = state.copyWith(errorLocal: null, errorCloud: null);
-  }
-
-  // Método de debug para entender la unificación de registros
-  void debugRecordUnification() {
-    final localRecords = _localNotifier.state.records;
-    final cloudRecords = _cloudNotifier.state.records;
-    
-    print('=== DEBUG RECORD UNIFICATION ===');
-    print('Local records count: ${localRecords.length}');
-    print('Cloud records count: ${cloudRecords.length}');
-    print('Unified records count: ${state.records.length}');
-    
-    print('\nLocal records:');
-    for (final record in localRecords) {
-      final unified = UnifiedFrapRecord.fromLocal(record);
-      print('  - ${record.patient.name} (${record.patient.age}) | Created: ${record.createdAt}');
-    }
-    
-    print('\nCloud records:');
-    for (final record in cloudRecords) {
-      final unified = UnifiedFrapRecord.fromCloud(record);
-      print('  - ${record.patientName} (${record.patientAge}) | Created: ${record.createdAt}');
-    }
-    
-    print('\nUnified records:');
-    for (final record in state.records) {
-      print('  - ${record.patientName} | ${record.isLocal ? 'LOCAL' : 'CLOUD'} | Created: ${record.createdAt}');
-    }
-    print('=== END DEBUG ===\n');
-  }
-
-  // Actualizar registros cuando cambian los providers subyacentes
-  void updateFromProviders(FrapLocalState localState, FrapFirestoreState cloudState) {
-    if (_isUpdating) return; // Evitar actualizaciones múltiples
-    
-    // Solo actualizar si hay cambios reales en los datos
-    bool hasLocalChanges = localState.records.length != 
-        (state.records.where((r) => r.isLocal).length);
-    bool hasCloudChanges = cloudState.records.length != 
-        (state.records.where((r) => !r.isLocal).length);
-    
-    if (!hasLocalChanges && !hasCloudChanges) {
-      return; // No hay cambios reales, no actualizar
-    }
-    
-    // Actualizar estados de carga
-    state = state.copyWith(
-      isLoadingLocal: localState.isLoading,
-      isLoadingCloud: cloudState.isLoading,
-      errorLocal: localState.error,
-      errorCloud: cloudState.error,
-    );
-
-    // Recombinar registros solo si no están cargando y hay cambios
-    if (!localState.isLoading && !cloudState.isLoading) {
-      _combineRecords();
-    }
-  }
-
-  // Limpiar registros duplicados
-  Future<Map<String, dynamic>> cleanupDuplicateRecords() async {
+  // Eliminar registro
+  Future<bool> deleteRecord(UnifiedFrapRecord record) async {
     try {
-      state = state.copyWith(isLoadingLocal: true);
+      bool success = false;
       
-      final result = await _cleanupService.cleanupDuplicateRecordsWithConfirmation(state.records);
+      if (record.localRecord != null) {
+        success = await _localNotifier.deleteLocalFrapRecord(record.id);
+      }
       
-      if (result['success'] == true) {
-        // Recargar registros después de la limpieza
+      if (success) {
         await loadAllRecords();
-        
+        return true;
+      } else {
+        state = state.copyWith(error: 'Error eliminando registro');
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(error: 'Error eliminando registro: $e');
+      return false;
+    }
+  }
+
+  // Sincronizar registros
+  Future<void> syncRecords() async {
+    state = state.copyWith(syncStatus: SyncStatus.syncing);
+
+    try {
+      final result = await _unifiedService.syncPendingRecords();
+      
+      if (result.success) {
         state = state.copyWith(
-          isLoadingLocal: false,
-          errorLocal: null,
+          syncStatus: SyncStatus.success,
+          lastSync: DateTime.now(),
         );
+        await loadAllRecords();
       } else {
         state = state.copyWith(
-          isLoadingLocal: false,
-          errorLocal: result['message'],
+          syncStatus: SyncStatus.error,
+          error: result.message,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        syncStatus: SyncStatus.error,
+        error: 'Error durante sincronización: $e',
+      );
+    }
+  }
+
+  // Sincronizar registros (versión que devuelve SyncResult)
+  Future<SyncResult> syncRecordsWithResult() async {
+    state = state.copyWith(syncStatus: SyncStatus.syncing);
+
+    try {
+      final result = await _unifiedService.syncPendingRecords();
+      
+      if (result.success) {
+        state = state.copyWith(
+          syncStatus: SyncStatus.success,
+          lastSync: DateTime.now(),
+        );
+        await loadAllRecords();
+      } else {
+        state = state.copyWith(
+          syncStatus: SyncStatus.error,
+          error: result.message,
         );
       }
       
       return result;
     } catch (e) {
       state = state.copyWith(
-        isLoadingLocal: false,
-        errorLocal: e.toString(),
+        syncStatus: SyncStatus.error,
+        error: 'Error durante sincronización: $e',
       );
-      return {
-        'success': false,
-        'message': 'Error durante la limpieza: $e',
-        'removedCount': 0,
-        'statistics': {},
-      };
+      
+      final errorResult = SyncResult();
+      errorResult.success = false;
+      errorResult.message = 'Error durante sincronización: $e';
+      return errorResult;
+    }
+  }
+
+  // Buscar registros
+  Future<void> searchRecords(String query) async {
+    if (query.isEmpty) {
+      await loadAllRecords();
+      return;
+    }
+
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final allRecords = await _unifiedService.getAllRecords();
+      final filteredRecords = allRecords.where((record) =>
+        record.patientName.toLowerCase().contains(query.toLowerCase())
+      ).toList();
+
+      final stats = _calculateStats(filteredRecords);
+
+      state = state.copyWith(
+        records: filteredRecords,
+        isLoading: false,
+        totalRecords: stats['total'],
+        localRecords: stats['local'],
+        cloudRecords: stats['cloud'],
+        syncedRecords: stats['synced'],
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Error buscando registros: $e',
+      );
+    }
+  }
+
+  // Filtrar por rango de fechas
+  Future<void> filterByDateRange(DateTime startDate, DateTime endDate) async {
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final allRecords = await _unifiedService.getAllRecords();
+      final filteredRecords = allRecords.where((record) =>
+        record.createdAt.isAfter(startDate.subtract(const Duration(days: 1))) &&
+        record.createdAt.isBefore(endDate.add(const Duration(days: 1)))
+      ).toList();
+
+      final stats = _calculateStats(filteredRecords);
+
+      state = state.copyWith(
+        records: filteredRecords,
+        isLoading: false,
+        totalRecords: stats['total'],
+        localRecords: stats['local'],
+        cloudRecords: stats['cloud'],
+        syncedRecords: stats['synced'],
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Error filtrando registros: $e',
+      );
+    }
+  }
+
+  // Limpiar errores
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
+
+  // Duplicar registro
+  Future<String?> duplicateRecord(UnifiedFrapRecord record) async {
+    try {
+      String? newRecordId;
+      
+      if (record.localRecord != null) {
+        newRecordId = await _localNotifier.duplicateLocalFrapRecord(record.id);
+      }
+      
+      if (newRecordId != null) {
+        await loadAllRecords();
+        return newRecordId;
+      } else {
+        state = state.copyWith(error: 'Error duplicando registro');
+        return null;
+      }
+    } catch (e) {
+      state = state.copyWith(error: 'Error duplicando registro: $e');
+      return null;
     }
   }
 
   // Sincronizar y limpiar duplicados
   Future<Map<String, dynamic>> syncAndCleanup() async {
     try {
-      state = state.copyWith(
-        isLoadingLocal: true,
-        isLoadingCloud: true,
-        errorLocal: null,
-        errorCloud: null,
-      );
-
-      // 1. Sincronizar registros locales a la nube
-      await _cloudNotifier.syncWithLocalRecords();
+      state = state.copyWith(syncStatus: SyncStatus.syncing);
       
-      // 2. Recargar todos los registros
-      await loadAllRecords();
+      // 1. Sincronizar registros
+      final syncResult = await _unifiedService.syncPendingRecords();
       
-      // 3. Limpiar duplicados
-      final cleanupResult = await cleanupDuplicateRecords();
-      
-      // 4. Recargar una vez más después de la limpieza
-      await loadAllRecords();
-      
-      return {
-        'success': true,
-        'message': 'Sincronización y limpieza completadas',
-        'syncSuccess': true,
-        'cleanupResult': cleanupResult,
-      };
+      if (syncResult.success) {
+        // 2. Recargar registros después de la sincronización
+        await loadAllRecords();
+        
+        state = state.copyWith(
+          syncStatus: SyncStatus.success,
+          lastSync: DateTime.now(),
+        );
+        
+        return {
+          'success': true,
+          'message': 'Sincronización completada exitosamente',
+          'syncedRecords': syncResult.successCount,
+        };
+      } else {
+        state = state.copyWith(
+          syncStatus: SyncStatus.error,
+          error: syncResult.message,
+        );
+        
+        return {
+          'success': false,
+          'message': syncResult.message,
+          'syncedRecords': 0,
+        };
+      }
     } catch (e) {
       state = state.copyWith(
-        isLoadingLocal: false,
-        isLoadingCloud: false,
-        errorLocal: e.toString(),
+        syncStatus: SyncStatus.error,
+        error: 'Error durante sincronización: $e',
       );
+      
       return {
         'success': false,
-        'message': 'Error durante sincronización y limpieza: $e',
-        'syncSuccess': false,
-        'cleanupResult': {
-          'success': false,
-          'message': 'No se pudo completar la limpieza',
-          'removedCount': 0,
-          'statistics': {},
-        },
+        'message': 'Error durante sincronización: $e',
+        'syncedRecords': 0,
       };
     }
   }
 
-  // Obtener estadísticas de limpieza
-  Future<Map<String, dynamic>> getCleanupStatistics() async {
-    try {
-      return await _cleanupService.getCleanupStatistics(state.records);
-    } catch (e) {
-      return {
-        'error': e.toString(),
-        'totalLocal': 0,
-        'totalCloud': 0,
-        'totalDuplicates': 0,
-        'localDuplicates': 0,
-        'estimatedSpaceFreedKB': 0,
-        'estimatedSpaceFreedMB': '0.00',
-      };
-    }
-  }
-
-  // Crear backup antes de limpiar
-  Future<List<Map<String, dynamic>>> createBackupBeforeCleanup() async {
-    try {
-      return await _cleanupService.createBackupBeforeCleanup();
-    } catch (e) {
-      throw Exception('Error al crear backup: $e');
-    }
+  @override
+  void dispose() {
+    _unifiedService.dispose();
+    super.dispose();
   }
 }
 
-// Provider principal unificado
-final unifiedFrapProvider = StateNotifierProvider<UnifiedFrapNotifier, UnifiedFrapState>((ref) {
-  final localNotifier = ref.watch(frapLocalProvider.notifier);
-  final cloudNotifier = ref.watch(frapFirestoreProvider.notifier);
-  
-  final unifiedNotifier = UnifiedFrapNotifier(localNotifier, cloudNotifier);
-  
-  // Escuchar cambios en los providers subyacentes con debounce
-  ref.listen<FrapLocalState>(frapLocalProvider, (previous, next) {
-    if (previous != next && !next.isLoading) {
-      // Solo actualizar si el estado cambió y no está cargando
-      // Aumentar debounce para evitar actualizaciones muy frecuentes
-      Future.delayed(const Duration(milliseconds: 300), () {
-        unifiedNotifier.updateFromProviders(next, ref.read(frapFirestoreProvider));
-      });
-    }
-  });
-  
-  ref.listen<FrapFirestoreState>(frapFirestoreProvider, (previous, next) {
-    if (previous != next && !next.isLoading) {
-      // Solo actualizar si el estado cambió y no está cargando
-      // Aumentar debounce para evitar actualizaciones muy frecuentes
-      Future.delayed(const Duration(milliseconds: 300), () {
-        unifiedNotifier.updateFromProviders(ref.read(frapLocalProvider), next);
-      });
-    }
-  });
-  
-  return unifiedNotifier;
+// Providers de servicios que se necesitan
+final frapLocalServiceProvider = Provider<FrapLocalService>((ref) {
+  return FrapLocalService();
 });
 
-// Provider para estadísticas unificadas
-final unifiedFrapStatisticsProvider = Provider<Map<String, dynamic>>((ref) {
-  final state = ref.watch(unifiedFrapProvider);
-  return state.statistics ?? {};
+final frapFirestoreServiceProvider = Provider<FrapFirestoreService>((ref) {
+  return FrapFirestoreService();
 });
 
-// Provider para obtener un registro específico por ID
-final unifiedFrapRecordProvider = Provider.family<UnifiedFrapRecord?, String>((ref, recordId) {
-  final state = ref.watch(unifiedFrapProvider);
-  try {
-    return state.records.firstWhere((record) => record.id == recordId);
-  } catch (e) {
-    return null;
-  }
-}); 
-
-// Provider para el servicio unificado
+// Provider del servicio unificado
 final frapUnifiedServiceProvider = Provider<FrapUnifiedService>((ref) {
   final localService = ref.watch(frapLocalServiceProvider);
   final cloudService = ref.watch(frapFirestoreServiceProvider);
@@ -594,66 +409,31 @@ final frapUnifiedServiceProvider = Provider<FrapUnifiedService>((ref) {
   );
 });
 
-// Provider para los registros unificados
-final unifiedRecordsProvider = FutureProvider<List<UnifiedFrapRecord>>((ref) async {
+// Provider principal
+final unifiedFrapProvider = StateNotifierProvider<UnifiedFrapNotifier, UnifiedFrapState>((ref) {
   final unifiedService = ref.watch(frapUnifiedServiceProvider);
-  return await unifiedService.getAllRecords();
+  final localNotifier = ref.watch(frapLocalProvider.notifier);
+  
+  return UnifiedFrapNotifier(unifiedService, localNotifier);
 });
 
-// Provider para guardar registros
-final saveFrapRecordProvider = FutureProvider.family<UnifiedSaveResult, FrapData>((ref, frapData) async {
-  final unifiedService = ref.watch(frapUnifiedServiceProvider);
-  return await unifiedService.saveFrapRecord(frapData);
+// Provider para estadísticas (para compatibilidad)
+final unifiedFrapStatisticsProvider = Provider<Map<String, dynamic>>((ref) {
+  final state = ref.watch(unifiedFrapProvider);
+  return {
+    'total': state.totalRecords,
+    'local': state.localRecords,
+    'cloud': state.cloudRecords,
+    'synced': state.syncedRecords,
+    'duplicates': state.duplicateCount,
+    'localDuplicates': state.localDuplicatesCount,
+  };
 });
 
-// Provider para sincronizar registros pendientes
-final syncRecordsProvider = FutureProvider<SyncResult>((ref) async {
+// Provider para el notificador de registros unificados (para compatibilidad)
+final unifiedRecordsNotifierProvider = StateNotifierProvider<UnifiedFrapNotifier, UnifiedFrapState>((ref) {
   final unifiedService = ref.watch(frapUnifiedServiceProvider);
-  return await unifiedService.syncPendingRecords();
-});
-
-// Notifier para manejar el estado de los registros
-class UnifiedRecordsNotifier extends StateNotifier<AsyncValue<List<UnifiedFrapRecord>>> {
-  final FrapUnifiedService _unifiedService;
-
-  UnifiedRecordsNotifier(this._unifiedService) : super(const AsyncValue.loading()) {
-    _loadRecords();
-  }
-
-  Future<void> _loadRecords() async {
-    state = const AsyncValue.loading();
-    try {
-      final records = await _unifiedService.getAllRecords();
-      state = AsyncValue.data(records);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
-    }
-  }
-
-  Future<void> refreshRecords() async {
-    await _loadRecords();
-  }
-
-  Future<UnifiedSaveResult> saveRecord(FrapData frapData) async {
-    final result = await _unifiedService.saveFrapRecord(frapData);
-    
-    // Recargar registros después de guardar
-    await _loadRecords();
-    
-    return result;
-  }
-
-  Future<SyncResult> syncRecords() async {
-    final result = await _unifiedService.syncPendingRecords();
-    
-    // Recargar registros después de sincronizar
-    await _loadRecords();
-    
-    return result;
-  }
-}
-
-final unifiedRecordsNotifierProvider = StateNotifierProvider<UnifiedRecordsNotifier, AsyncValue<List<UnifiedFrapRecord>>>((ref) {
-  final unifiedService = ref.watch(frapUnifiedServiceProvider);
-  return UnifiedRecordsNotifier(unifiedService);
+  final localNotifier = ref.watch(frapLocalProvider.notifier);
+  
+  return UnifiedFrapNotifier(unifiedService, localNotifier);
 }); 
