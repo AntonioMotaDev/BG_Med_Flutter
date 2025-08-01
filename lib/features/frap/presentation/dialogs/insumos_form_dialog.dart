@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:bg_med/core/theme/app_theme.dart';
 
 class InsumosFormDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onSave;
   final Map<String, dynamic>? initialData;
 
-  const InsumosFormDialog({
-    super.key,
-    required this.onSave,
-    this.initialData,
-  });
+  const InsumosFormDialog({super.key, required this.onSave, this.initialData});
 
   @override
   State<InsumosFormDialog> createState() => _InsumosFormDialogState();
@@ -30,23 +27,25 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
   void _initializeForm() {
     if (widget.initialData != null) {
       final data = widget.initialData!;
-      
+
       // Si hay insumos guardados en formato de tabla
       if (data['insumosList'] != null && data['insumosList'] is List) {
         final List<dynamic> insumosList = data['insumosList'];
-        _insumos = insumosList.map((insumo) {
-          return InsumoRow(
-            cantidad: insumo['cantidad'] ?? 0,
-            articulo: insumo['articulo'] ?? '',
-          );
-        }).toList();
-      } else if (data['insumos'] != null && data['insumos'].toString().isNotEmpty) {
+        _insumos =
+            insumosList.map((insumo) {
+              return InsumoRow(
+                cantidad: insumo['cantidad'] ?? 0,
+                articulo: insumo['articulo'] ?? '',
+              );
+            }).toList();
+      } else if (data['insumos'] != null &&
+          data['insumos'].toString().isNotEmpty) {
         // Migrar de formato texto libre a tabla
         final String insumosText = data['insumos'];
         _insumos = _parseTextToInsumos(insumosText);
       }
     }
-    
+
     // Si no hay insumos, agregar una fila vacía
     if (_insumos.isEmpty) {
       _addInsumoRow();
@@ -56,27 +55,21 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
   List<InsumoRow> _parseTextToInsumos(String text) {
     final List<InsumoRow> insumos = [];
     final lines = text.split('\n');
-    
+
     for (final line in lines) {
       if (line.trim().isNotEmpty) {
         // Intentar parsear líneas con formato común
         final parts = line.split(' - ');
         if (parts.length >= 2) {
           final cantidad = int.tryParse(parts[0].trim()) ?? 0;
-          insumos.add(InsumoRow(
-            cantidad: cantidad,
-            articulo: parts[1].trim(),
-          ));
+          insumos.add(InsumoRow(cantidad: cantidad, articulo: parts[1].trim()));
         } else {
           // Si no se puede parsear, agregar como artículo general
-          insumos.add(InsumoRow(
-            cantidad: 1,
-            articulo: line.trim(),
-          ));
+          insumos.add(InsumoRow(cantidad: 1, articulo: line.trim()));
         }
       }
     }
-    
+
     return insumos;
   }
 
@@ -119,7 +112,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.orange[600],
+                color: AppTheme.primaryBlue,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -127,11 +120,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.inventory,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  const Icon(Icons.inventory, color: Colors.white, size: 24),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -192,7 +181,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                           icon: const Icon(Icons.add),
                           label: const Text('Agregar Insumo'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange[600],
+                            backgroundColor: AppTheme.primaryBlue,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 20,
@@ -211,10 +200,10 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.orange[50],
+                          color: AppTheme.primaryBlue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.orange[200]!,
+                            color: AppTheme.primaryBlue.withOpacity(0.3),
                             width: 1,
                           ),
                         ),
@@ -225,7 +214,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                               children: [
                                 Icon(
                                   Icons.info_outline,
-                                  color: Colors.orange[700],
+                                  color: AppTheme.primaryBlue,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
@@ -233,7 +222,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                                   'Información importante:',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.orange[700],
+                                    color: AppTheme.primaryBlue,
                                     fontSize: 14,
                                   ),
                                 ),
@@ -247,7 +236,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                               '• Puede agregar o eliminar insumos según sea necesario',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.orange[800],
+                                color: AppTheme.primaryBlue.withOpacity(0.8),
                                 height: 1.4,
                               ),
                             ),
@@ -279,19 +268,24 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
+                    icon:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.save),
+                    label: Text(
+                      _isLoading ? 'Guardando...' : 'Guardar Sección',
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange[600],
+                      backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
@@ -319,12 +313,12 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.orange[600]!.withOpacity(0.1),
+            color: AppTheme.primaryBlue.withOpacity(0.1),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(8),
               topRight: Radius.circular(8),
             ),
-            border: Border.all(color: Colors.orange[600]!.withOpacity(0.3)),
+            border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.3)),
           ),
           child: Row(
             children: [
@@ -333,7 +327,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                   'Cantidad',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange[600],
+                    color: AppTheme.primaryBlue,
                     fontSize: 14,
                   ),
                 ),
@@ -344,7 +338,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                   'Artículo',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange[600],
+                    color: AppTheme.primaryBlue,
                     fontSize: 14,
                   ),
                 ),
@@ -365,7 +359,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
   Widget _buildInsumoRow(int index) {
     final insumo = _insumos[index];
     final isLastRow = index == _insumos.length - 1;
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: isLastRow ? 0 : 8),
       decoration: BoxDecoration(
@@ -387,11 +381,15 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
             // Cantidad
             Expanded(
               child: TextFormField(
-                initialValue: insumo.cantidad > 0 ? insumo.cantidad.toString() : '',
+                initialValue:
+                    insumo.cantidad > 0 ? insumo.cantidad.toString() : '',
                 decoration: const InputDecoration(
                   hintText: '1',
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                 ),
                 style: const TextStyle(fontSize: 14),
                 keyboardType: TextInputType.number,
@@ -421,7 +419,10 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                 decoration: const InputDecoration(
                   hintText: 'Ej: Gasas estériles',
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                 ),
                 style: const TextStyle(fontSize: 14),
                 validator: (value) {
@@ -443,10 +444,7 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
                 onPressed: () => _removeInsumoRow(index),
                 icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               )
             else
               const SizedBox(width: 32),
@@ -486,30 +484,43 @@ class _InsumosFormDialogState extends State<InsumosFormDialog> {
 
     try {
       // Filtrar insumos con datos
-      final validInsumos = _insumos.where((insumo) => 
-        insumo.cantidad > 0 && insumo.articulo.isNotEmpty
-      ).toList();
+      final validInsumos =
+          _insumos
+              .where(
+                (insumo) => insumo.cantidad > 0 && insumo.articulo.isNotEmpty,
+              )
+              .toList();
 
       final formData = {
-        'insumosList': validInsumos.map((insumo) => {
-          'cantidad': insumo.cantidad,
-          'articulo': insumo.articulo,
-        }).toList(),
-        'insumos': validInsumos.map((insumo) => 
-          '${insumo.cantidad} - ${insumo.articulo}'
-        ).join('\n'),
+        'insumosList':
+            validInsumos
+                .map(
+                  (insumo) => {
+                    'cantidad': insumo.cantidad,
+                    'articulo': insumo.articulo,
+                  },
+                )
+                .toList(),
+        'insumos': validInsumos
+            .map((insumo) => '${insumo.cantidad} - ${insumo.articulo}')
+            .join('\n'),
         'totalInsumos': validInsumos.length,
-        'totalCantidad': validInsumos.fold(0, (sum, insumo) => sum + insumo.cantidad),
+        'totalCantidad': validInsumos.fold(
+          0,
+          (sum, insumo) => sum + insumo.cantidad,
+        ),
         'timestamp': DateTime.now().toIso8601String(),
       };
 
       widget.onSave(formData);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${validInsumos.length} insumo(s) guardado(s) correctamente'),
+            content: Text(
+              '${validInsumos.length} insumo(s) guardado(s) correctamente',
+            ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -552,18 +563,12 @@ class InsumoRow {
   final int cantidad;
   final String articulo;
 
-  const InsumoRow({
-    this.cantidad = 0,
-    this.articulo = '',
-  });
+  const InsumoRow({this.cantidad = 0, this.articulo = ''});
 
-  InsumoRow copyWith({
-    int? cantidad,
-    String? articulo,
-  }) {
+  InsumoRow copyWith({int? cantidad, String? articulo}) {
     return InsumoRow(
       cantidad: cantidad ?? this.cantidad,
       articulo: articulo ?? this.articulo,
     );
   }
-} 
+}

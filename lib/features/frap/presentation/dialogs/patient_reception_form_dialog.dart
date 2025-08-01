@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 import 'dart:convert';
+import 'dart:typed_data'; // Added for Uint8List
 
 class PatientReceptionFormDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onSave;
@@ -13,10 +14,12 @@ class PatientReceptionFormDialog extends StatefulWidget {
   });
 
   @override
-  State<PatientReceptionFormDialog> createState() => _PatientReceptionFormDialogState();
+  State<PatientReceptionFormDialog> createState() =>
+      _PatientReceptionFormDialogState();
 }
 
-class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog> {
+class _PatientReceptionFormDialogState
+    extends State<PatientReceptionFormDialog> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
@@ -87,11 +90,7 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.how_to_reg,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  const Icon(Icons.how_to_reg, color: Colors.white, size: 24),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -168,9 +167,45 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Signature(
-                            controller: _doctorSignatureController,
-                            backgroundColor: Colors.white,
+                          child: Stack(
+                            children: [
+                              // Si hay datos base64 guardados, mostrar la imagen
+                              if (_doctorSignatureData != null)
+                                Container(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    image: DecorationImage(
+                                      image: MemoryImage(
+                                        _getImageBytesFromBase64(
+                                          _doctorSignatureData!,
+                                        ),
+                                      ),
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                )
+                              else
+                                // Área de firma normal
+                                Signature(
+                                  controller: _doctorSignatureController,
+                                  backgroundColor: Colors.white,
+                                ),
+
+                              // Texto de instrucción (solo visible cuando está vacía y no hay datos guardados)
+                              if (_doctorSignatureController.isEmpty &&
+                                  _doctorSignatureData == null)
+                                const Center(
+                                  child: Text(
+                                    'Firme aquí',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -184,7 +219,9 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
                             child: OutlinedButton.icon(
                               onPressed: () {
                                 _doctorSignatureController.clear();
-                                _doctorSignatureData = null;
+                                setState(() {
+                                  _doctorSignatureData = null;
+                                });
                               },
                               icon: const Icon(Icons.clear),
                               label: const Text('Limpiar'),
@@ -214,7 +251,11 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
                           padding: const EdgeInsets.only(top: 8),
                           child: Row(
                             children: [
-                              const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 16,
+                              ),
                               const SizedBox(width: 8),
                               const Text(
                                 'Firma capturada',
@@ -252,17 +293,22 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
+                    icon:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.save),
+                    label: Text(
+                      _isLoading ? 'Guardando...' : 'Guardar Sección',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal[600],
                       foregroundColor: Colors.white,
@@ -304,14 +350,24 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
     );
   }
 
+  Uint8List _getImageBytesFromBase64(String base64Data) {
+    try {
+      final base64String = base64Data.split(',').last;
+      return base64Decode(base64String);
+    } catch (e) {
+      return Uint8List(0);
+    }
+  }
+
   Future<void> _captureSignature() async {
     if (_doctorSignatureController.isNotEmpty) {
       final signature = await _doctorSignatureController.toPngBytes();
       if (signature != null) {
         setState(() {
-          _doctorSignatureData = base64Encode(signature);
+          _doctorSignatureData =
+              'data:image/png;base64,${base64Encode(signature)}';
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -340,27 +396,53 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
       return;
     }
 
+    // Validar que la firma esté presente
+    if (_doctorSignatureController.isEmpty && _doctorSignatureData == null) {
+      _showErrorDialog(
+        'Firma requerida',
+        'Por favor, complete la firma del doctor antes de guardar.',
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final formData = {
-        'doctorName': _doctorNameController.text.trim(),
-        'doctorCedula': _doctorCedulaController.text.trim(),
-        'doctorSignature': _doctorSignatureData,
-      };
+      String? signatureData = _doctorSignatureData;
 
-      widget.onSave(formData);
-      
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Información de recepción guardada'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      // Si no hay datos guardados pero hay una firma nueva, convertirla
+      if (_doctorSignatureData == null &&
+          _doctorSignatureController.isNotEmpty) {
+        final signatureBytes = await _doctorSignatureController.toPngBytes();
+        if (signatureBytes != null) {
+          signatureData =
+              'data:image/png;base64,${base64Encode(signatureBytes)}';
+        }
+      }
+
+      if (signatureData != null) {
+        final formData = {
+          'doctorName': _doctorNameController.text.trim(),
+          'doctorCedula': _doctorCedulaController.text.trim(),
+          'doctorSignature': signatureData,
+          'timestamp': DateTime.now().toIso8601String(),
+        };
+
+        widget.onSave(formData);
+
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Información de recepción guardada'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception('Error al procesar la firma');
       }
     } catch (e) {
       if (mounted) {
@@ -379,4 +461,21 @@ class _PatientReceptionFormDialogState extends State<PatientReceptionFormDialog>
       }
     }
   }
-} 
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+  }
+}

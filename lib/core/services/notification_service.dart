@@ -28,33 +28,27 @@ class NotificationService {
 
   // Notificar errores de red
   void showNetworkError(BuildContext context, String message) {
-    _showSnackBar(
-      context,
-      '❌ Error de conexión',
-      message,
-      AppTheme.accentRed,
-    );
+    _showSnackBar(context, '❌ Error de conexión', message, AppTheme.accentRed);
   }
 
   // Notificar limpieza de duplicados
-  void showCleanupResult(BuildContext context, int recordsRemoved, int spaceFreed) {
+  void showCleanupResult(
+    BuildContext context,
+    int recordsRemoved,
+    int spaceFreed,
+  ) {
     final spaceMB = (spaceFreed / 1024 / 1024).toStringAsFixed(2);
     _showSnackBar(
       context,
       '🧹 Limpieza completada',
-      'Se eliminaron $recordsRemoved duplicados (${spaceMB} MB liberados)',
+      'Se eliminaron $recordsRemoved duplicados ($spaceMB MB liberados)',
       AppTheme.primaryBlue,
     );
   }
 
   // Notificar error de limpieza
   void showCleanupError(BuildContext context, String error) {
-    _showSnackBar(
-      context,
-      '❌ Error en limpieza',
-      error,
-      AppTheme.accentRed,
-    );
+    _showSnackBar(context, '❌ Error en limpieza', error, AppTheme.accentRed);
   }
 
   // Notificar modo offline
@@ -112,31 +106,33 @@ class NotificationService {
   Future<bool> showConfirmationDialog(
     BuildContext context,
     String title,
-    String message,
-    {String confirmText = 'Confirmar', String cancelText = 'Cancelar'}
-  ) async {
+    String message, {
+    String confirmText = 'Confirmar',
+    String cancelText = 'Cancelar',
+  }) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(cancelText),
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(cancelText),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(confirmText),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(confirmText),
-          ),
-        ],
-      ),
     );
-    
+
     return result ?? false;
   }
 
@@ -145,15 +141,16 @@ class NotificationService {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 16),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      ),
+      builder:
+          (context) => AlertDialog(
+            content: Row(
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(width: 16),
+                Expanded(child: Text(message)),
+              ],
+            ),
+          ),
     );
   }
 
@@ -180,24 +177,16 @@ class NotificationService {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 4),
-            Text(
-              message,
-              style: const TextStyle(fontSize: 12),
-            ),
+            Text(message, style: const TextStyle(fontSize: 12)),
           ],
         ),
         backgroundColor: backgroundColor,
         duration: duration,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
         action: SnackBarAction(
           label: 'Cerrar',
@@ -211,40 +200,48 @@ class NotificationService {
   }
 
   // Mostrar toast personalizado
-  void showToast(BuildContext context, String message, {Color? backgroundColor}) {
+  void showToast(
+    BuildContext context,
+    String message, {
+    Color? backgroundColor,
+  }) {
     final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: MediaQuery.of(context).padding.top + 50,
-        left: 16,
-        right: 16,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: backgroundColor ?? AppTheme.primaryBlue,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+      builder:
+          (context) => Positioned(
+            top: MediaQuery.of(context).padding.top + 50,
+            left: 16,
+            right: 16,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-              ],
-            ),
-            child: Text(
-              message,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+                decoration: BoxDecoration(
+                  color: backgroundColor ?? AppTheme.primaryBlue,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
           ),
-        ),
-      ),
     );
 
     overlay.insert(overlayEntry);
@@ -253,4 +250,4 @@ class NotificationService {
       overlayEntry.remove();
     });
   }
-} 
+}

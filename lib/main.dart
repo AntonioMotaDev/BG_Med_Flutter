@@ -25,7 +25,7 @@ import 'package:bg_med/features/patients/presentation/providers/patients_provide
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Configurar orientación
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -40,7 +40,7 @@ void main() async {
 
     // Inicializar Hive
     await Hive.initFlutter();
-    
+
     // Registrar adaptadores
     Hive.registerAdapter(PatientAdapter());
     Hive.registerAdapter(ClinicalHistoryAdapter());
@@ -63,7 +63,6 @@ void main() async {
         print('Error inicializando base de datos local: $e2');
       }
     }
-
   } catch (e) {
     print('Error durante inicialización: $e');
   }
@@ -93,7 +92,7 @@ final frapFirestoreServiceProvider = Provider<FrapFirestoreService>((ref) {
 final frapUnifiedServiceProvider = Provider<FrapUnifiedService>((ref) {
   final localService = ref.watch(frapLocalServiceProvider);
   final cloudService = ref.watch(frapFirestoreServiceProvider);
-  
+
   return FrapUnifiedService(
     localService: localService,
     cloudService: cloudService,
@@ -101,6 +100,8 @@ final frapUnifiedServiceProvider = Provider<FrapUnifiedService>((ref) {
 });
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -109,9 +110,7 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       home: const AuthWrapper(),
-      routes: {
-        '/dashboard': (context) => DashboardScreen(),
-      },
+      routes: {'/dashboard': (context) => DashboardScreen()},
     );
   }
-} 
+}

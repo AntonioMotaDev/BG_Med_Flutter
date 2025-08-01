@@ -6,46 +6,46 @@ class FrapFirestore extends Equatable {
   final String userId; // ID del usuario que creó el registro
   final DateTime createdAt;
   final DateTime updatedAt;
-  
+
   // Información del Servicio
   final Map<String, dynamic> serviceInfo;
-  
+
   // Información del Registro
   final Map<String, dynamic> registryInfo;
-  
+
   // Información del Paciente
   final Map<String, dynamic> patientInfo;
-  
+
   // Manejo
   final Map<String, dynamic> management;
-  
+
   // Medicamentos
   final Map<String, dynamic> medications;
-  
+
   // Gineco-Obstétrico
   final Map<String, dynamic> gynecoObstetric;
-  
+
   // Negativa de Atención
   final Map<String, dynamic> attentionNegative;
-  
+
   // Antecedentes Patológicos
   final Map<String, dynamic> pathologicalHistory;
-  
+
   // Historia Clínica
   final Map<String, dynamic> clinicalHistory;
-  
+
   // Examen Físico
   final Map<String, dynamic> physicalExam;
-  
+
   // Justificación de Prioridad
   final Map<String, dynamic> priorityJustification;
-  
+
   // Localización de Lesiones
   final Map<String, dynamic> injuryLocation;
-  
+
   // Unidad Receptora
   final Map<String, dynamic> receivingUnit;
-  
+
   // Recepción del Paciente
   final Map<String, dynamic> patientReception;
 
@@ -73,9 +73,9 @@ class FrapFirestore extends Equatable {
   // Factory constructor desde Firestore
   factory FrapFirestore.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     // Helper function para convertir timestamps de manera segura
-    DateTime _parseTimestamp(dynamic timestamp) {
+    DateTime parseTimestamp(dynamic timestamp) {
       if (timestamp == null) {
         return DateTime.now();
       }
@@ -87,39 +87,39 @@ class FrapFirestore extends Equatable {
       }
       return DateTime.now();
     }
-    
+
     // Helper function para convertir Maps de manera segura
-    Map<String, dynamic> _parseMap(dynamic mapData) {
+    Map<String, dynamic> parseMap(dynamic mapData) {
       if (mapData == null) return {};
       if (mapData is Map<String, dynamic>) return mapData;
       return {};
     }
-    
+
     return FrapFirestore(
       id: doc.id,
       userId: data['userId'] ?? '',
-      createdAt: _parseTimestamp(data['createdAt']),
-      updatedAt: _parseTimestamp(data['updatedAt']),
-      serviceInfo: _parseMap(data['serviceInfo']),
-      registryInfo: _parseMap(data['registryInfo']),
-      patientInfo: _parseMap(data['patientInfo']),
-      management: _parseMap(data['management']),
-      medications: _parseMap(data['medications']),
-      gynecoObstetric: _parseMap(data['gynecoObstetric']),
-      attentionNegative: _parseMap(data['attentionNegative']),
-      pathologicalHistory: _parseMap(data['pathologicalHistory']),
-      clinicalHistory: _parseMap(data['clinicalHistory']),
-      physicalExam: _parseMap(data['physicalExam']),
-      priorityJustification: _parseMap(data['priorityJustification']),
-      injuryLocation: _parseMap(data['injuryLocation']),
-      receivingUnit: _parseMap(data['receivingUnit']),
-      patientReception: _parseMap(data['patientReception']),
+      createdAt: parseTimestamp(data['createdAt']),
+      updatedAt: parseTimestamp(data['updatedAt']),
+      serviceInfo: parseMap(data['serviceInfo']),
+      registryInfo: parseMap(data['registryInfo']),
+      patientInfo: parseMap(data['patientInfo']),
+      management: parseMap(data['management']),
+      medications: parseMap(data['medications']),
+      gynecoObstetric: parseMap(data['gynecoObstetric']),
+      attentionNegative: parseMap(data['attentionNegative']),
+      pathologicalHistory: parseMap(data['pathologicalHistory']),
+      clinicalHistory: parseMap(data['clinicalHistory']),
+      physicalExam: parseMap(data['physicalExam']),
+      priorityJustification: parseMap(data['priorityJustification']),
+      injuryLocation: parseMap(data['injuryLocation']),
+      receivingUnit: parseMap(data['receivingUnit']),
+      patientReception: parseMap(data['patientReception']),
     );
   }
 
   // Factory constructor desde Map
   factory FrapFirestore.fromMap(Map<String, dynamic> data, String id) {
-    DateTime _parseTimestamp(dynamic timestamp) {
+    DateTime parseTimestamp(dynamic timestamp) {
       if (timestamp == null) {
         return DateTime.now();
       }
@@ -135,32 +135,32 @@ class FrapFirestore extends Equatable {
       }
       return DateTime.now();
     }
-    
-    Map<String, dynamic> _parseMap(dynamic mapData) {
+
+    Map<String, dynamic> parseMap(dynamic mapData) {
       if (mapData == null) return {};
       if (mapData is Map<String, dynamic>) return mapData;
       return {};
     }
-    
+
     return FrapFirestore(
       id: id,
       userId: data['userId'] ?? '',
-      createdAt: _parseTimestamp(data['createdAt']),
-      updatedAt: _parseTimestamp(data['updatedAt']),
-      serviceInfo: _parseMap(data['serviceInfo']),
-      registryInfo: _parseMap(data['registryInfo']),
-      patientInfo: _parseMap(data['patientInfo']),
-      management: _parseMap(data['management']),
-      medications: _parseMap(data['medications']),
-      gynecoObstetric: _parseMap(data['gynecoObstetric']),
-      attentionNegative: _parseMap(data['attentionNegative']),
-      pathologicalHistory: _parseMap(data['pathologicalHistory']),
-      clinicalHistory: _parseMap(data['clinicalHistory']),
-      physicalExam: _parseMap(data['physicalExam']),
-      priorityJustification: _parseMap(data['priorityJustification']),
-      injuryLocation: _parseMap(data['injuryLocation']),
-      receivingUnit: _parseMap(data['receivingUnit']),
-      patientReception: _parseMap(data['patientReception']),
+      createdAt: parseTimestamp(data['createdAt']),
+      updatedAt: parseTimestamp(data['updatedAt']),
+      serviceInfo: parseMap(data['serviceInfo']),
+      registryInfo: parseMap(data['registryInfo']),
+      patientInfo: parseMap(data['patientInfo']),
+      management: parseMap(data['management']),
+      medications: parseMap(data['medications']),
+      gynecoObstetric: parseMap(data['gynecoObstetric']),
+      attentionNegative: parseMap(data['attentionNegative']),
+      pathologicalHistory: parseMap(data['pathologicalHistory']),
+      clinicalHistory: parseMap(data['clinicalHistory']),
+      physicalExam: parseMap(data['physicalExam']),
+      priorityJustification: parseMap(data['priorityJustification']),
+      injuryLocation: parseMap(data['injuryLocation']),
+      receivingUnit: parseMap(data['receivingUnit']),
+      patientReception: parseMap(data['patientReception']),
     );
   }
 
@@ -247,7 +247,8 @@ class FrapFirestore extends Equatable {
       pathologicalHistory: pathologicalHistory ?? this.pathologicalHistory,
       clinicalHistory: clinicalHistory ?? this.clinicalHistory,
       physicalExam: physicalExam ?? this.physicalExam,
-      priorityJustification: priorityJustification ?? this.priorityJustification,
+      priorityJustification:
+          priorityJustification ?? this.priorityJustification,
       injuryLocation: injuryLocation ?? this.injuryLocation,
       receivingUnit: receivingUnit ?? this.receivingUnit,
       patientReception: patientReception ?? this.patientReception,
@@ -299,11 +300,13 @@ class FrapFirestore extends Equatable {
     final firstName = patientInfo['firstName'] ?? '';
     final paternalLastName = patientInfo['paternalLastName'] ?? '';
     final maternalLastName = patientInfo['maternalLastName'] ?? '';
-    
-    if (firstName.isEmpty && paternalLastName.isEmpty && maternalLastName.isEmpty) {
+
+    if (firstName.isEmpty &&
+        paternalLastName.isEmpty &&
+        maternalLastName.isEmpty) {
       return 'Sin nombre';
     }
-    
+
     return '$firstName $paternalLastName $maternalLastName'.trim();
   }
 
@@ -320,16 +323,16 @@ class FrapFirestore extends Equatable {
   // Verificar si el registro está completo
   bool get isComplete {
     return serviceInfo.isNotEmpty &&
-           registryInfo.isNotEmpty &&
-           patientInfo.isNotEmpty &&
-           management.isNotEmpty;
+        registryInfo.isNotEmpty &&
+        patientInfo.isNotEmpty &&
+        management.isNotEmpty;
   }
 
   // Obtener porcentaje de completitud
   double get completionPercentage {
     int totalSections = 14;
     int completedSections = 0;
-    
+
     if (serviceInfo.isNotEmpty) completedSections++;
     if (registryInfo.isNotEmpty) completedSections++;
     if (patientInfo.isNotEmpty) completedSections++;
@@ -344,34 +347,34 @@ class FrapFirestore extends Equatable {
     if (injuryLocation.isNotEmpty) completedSections++;
     if (receivingUnit.isNotEmpty) completedSections++;
     if (patientReception.isNotEmpty) completedSections++;
-    
+
     return (completedSections / totalSections) * 100;
   }
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        createdAt,
-        updatedAt,
-        serviceInfo,
-        registryInfo,
-        patientInfo,
-        management,
-        medications,
-        gynecoObstetric,
-        attentionNegative,
-        pathologicalHistory,
-        clinicalHistory,
-        physicalExam,
-        priorityJustification,
-        injuryLocation,
-        receivingUnit,
-        patientReception,
-      ];
+    id,
+    userId,
+    createdAt,
+    updatedAt,
+    serviceInfo,
+    registryInfo,
+    patientInfo,
+    management,
+    medications,
+    gynecoObstetric,
+    attentionNegative,
+    pathologicalHistory,
+    clinicalHistory,
+    physicalExam,
+    priorityJustification,
+    injuryLocation,
+    receivingUnit,
+    patientReception,
+  ];
 
   @override
   String toString() {
     return 'FrapFirestore(id: $id, patient: $patientName, age: $patientAge, completion: ${completionPercentage.toStringAsFixed(1)}%)';
   }
-} 
+}

@@ -50,7 +50,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
     'Urgencia',
     'Estudio',
     'Cuidados Intensivos',
-    'Otro'
+    'Otro',
   ];
 
   final List<String> _lugaresOcurrencia = [
@@ -59,14 +59,10 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
     'Trabajo',
     'Recreativo',
     'Vía pública',
-    'Otro'
+    'Otro',
   ];
 
-  final List<String> _tiposUrgencia = [
-    'Clínico',
-    'Trauma',
-    'Otro'
-  ];
+  final List<String> _tiposUrgencia = ['Clínico', 'Trauma', 'Otro'];
 
   @override
   void initState() {
@@ -86,39 +82,124 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
   void _initializeForm() {
     if (widget.initialData != null) {
       final data = widget.initialData!;
-      
+
       // Campos de texto
       _tiempoEsperaArriboController.text = data['tiempoEsperaArribo'] ?? '';
       _tiempoEsperaLlegadaController.text = data['tiempoEsperaLlegada'] ?? '';
       _ubicacionController.text = data['ubicacion'] ?? '';
-      _tipoServicioEspecifiqueController.text = data['tipoServicioEspecifique'] ?? '';
-      _lugarOcurrenciaEspecifiqueController.text = data['lugarOcurrenciaEspecifique'] ?? '';
+      _tipoServicioEspecifiqueController.text =
+          data['tipoServicioEspecifique'] ?? '';
+      _lugarOcurrenciaEspecifiqueController.text =
+          data['lugarOcurrenciaEspecifique'] ?? '';
       _urgenciaEspecifiqueController.text = data['urgenciaEspecifique'] ?? '';
-      
+
       // Selecciones
       _tipoServicioSeleccionado = data['tipoServicio'] ?? '';
       _lugarOcurrenciaSeleccionado = data['lugarOcurrencia'] ?? '';
       _tipoUrgenciaSeleccionado = data['tipoUrgencia'] ?? '';
-      
+
       // Firma
       _consentimientoSignatureData = data['consentimientoSignature'];
-      
-      // Horarios
-      if (data['horaLlamada'] != null) {
-        final parts = data['horaLlamada'].split(':');
-        _horaLlamada = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+
+      // Horarios - con validación mejorada
+      try {
+        if (data['horaLlamada'] != null &&
+            data['horaLlamada'].toString().isNotEmpty) {
+          final timeString = data['horaLlamada'].toString();
+          if (timeString.contains(':')) {
+            final parts = timeString.split(':');
+            if (parts.length >= 2) {
+              final hour = int.tryParse(parts[0]);
+              final minute = int.tryParse(parts[1]);
+              if (hour != null &&
+                  minute != null &&
+                  hour >= 0 &&
+                  hour <= 23 &&
+                  minute >= 0 &&
+                  minute <= 59) {
+                _horaLlamada = TimeOfDay(hour: hour, minute: minute);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('Error parsing horaLlamada: $e');
+        _horaLlamada = null;
       }
-      if (data['horaArribo'] != null) {
-        final parts = data['horaArribo'].split(':');
-        _horaArribo = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+
+      try {
+        if (data['horaArribo'] != null &&
+            data['horaArribo'].toString().isNotEmpty) {
+          final timeString = data['horaArribo'].toString();
+          if (timeString.contains(':')) {
+            final parts = timeString.split(':');
+            if (parts.length >= 2) {
+              final hour = int.tryParse(parts[0]);
+              final minute = int.tryParse(parts[1]);
+              if (hour != null &&
+                  minute != null &&
+                  hour >= 0 &&
+                  hour <= 23 &&
+                  minute >= 0 &&
+                  minute <= 59) {
+                _horaArribo = TimeOfDay(hour: hour, minute: minute);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('Error parsing horaArribo: $e');
+        _horaArribo = null;
       }
-      if (data['horaLlegada'] != null) {
-        final parts = data['horaLlegada'].split(':');
-        _horaLlegada = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+
+      try {
+        if (data['horaLlegada'] != null &&
+            data['horaLlegada'].toString().isNotEmpty) {
+          final timeString = data['horaLlegada'].toString();
+          if (timeString.contains(':')) {
+            final parts = timeString.split(':');
+            if (parts.length >= 2) {
+              final hour = int.tryParse(parts[0]);
+              final minute = int.tryParse(parts[1]);
+              if (hour != null &&
+                  minute != null &&
+                  hour >= 0 &&
+                  hour <= 23 &&
+                  minute >= 0 &&
+                  minute <= 59) {
+                _horaLlegada = TimeOfDay(hour: hour, minute: minute);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('Error parsing horaLlegada: $e');
+        _horaLlegada = null;
       }
-      if (data['horaTermino'] != null) {
-        final parts = data['horaTermino'].split(':');
-        _horaTermino = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+
+      try {
+        if (data['horaTermino'] != null &&
+            data['horaTermino'].toString().isNotEmpty) {
+          final timeString = data['horaTermino'].toString();
+          if (timeString.contains(':')) {
+            final parts = timeString.split(':');
+            if (parts.length >= 2) {
+              final hour = int.tryParse(parts[0]);
+              final minute = int.tryParse(parts[1]);
+              if (hour != null &&
+                  minute != null &&
+                  hour >= 0 &&
+                  hour <= 23 &&
+                  minute >= 0 &&
+                  minute <= 59) {
+                _horaTermino = TimeOfDay(hour: hour, minute: minute);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('Error parsing horaTermino: $e');
+        _horaTermino = null;
       }
     }
   }
@@ -160,11 +241,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.info,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  const Icon(Icons.info, color: Colors.white, size: 24),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -242,17 +319,22 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
+                    icon:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.save),
+                    label: Text(
+                      _isLoading ? 'Guardando...' : 'Guardar Sección',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
@@ -287,7 +369,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Primera fila
         Row(
           children: [
@@ -309,7 +391,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
           ],
         ),
         const SizedBox(height: 16),
-        
+
         // Segunda fila
         Row(
           children: [
@@ -331,7 +413,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
           ],
         ),
         const SizedBox(height: 16),
-        
+
         // Tiempos de espera
         Row(
           children: [
@@ -370,44 +452,39 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
       children: [
         const Text(
           'Tipo de Servicio',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _tiposServicio.map((tipo) {
-            return SizedBox(
-              width: (MediaQuery.of(context).size.width - 80) / 3,
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: CheckboxListTile(
-                  title: Text(
-                    tipo,
-                    style: const TextStyle(fontSize: 12),
+          children:
+              _tiposServicio.map((tipo) {
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width - 80) / 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: CheckboxListTile(
+                      title: Text(tipo, style: const TextStyle(fontSize: 12)),
+                      value: _tipoServicioSeleccionado == tipo,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _tipoServicioSeleccionado = value == true ? tipo : '';
+                          // Limpiar tipo de urgencia si no es "Urgencia"
+                          if (tipo != 'Urgencia') {
+                            _tipoUrgenciaSeleccionado = '';
+                          }
+                        });
+                      },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      dense: true,
+                    ),
                   ),
-                  value: _tipoServicioSeleccionado == tipo,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      _tipoServicioSeleccionado = value == true ? tipo : '';
-                      // Limpiar tipo de urgencia si no es "Urgencia"
-                      if (tipo != 'Urgencia') {
-                        _tipoUrgenciaSeleccionado = '';
-                      }
-                    });
-                  },
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                  dense: true,
-                ),
-              ),
-            );
-          }).toList(),
+                );
+              }).toList(),
         ),
         if (_tipoServicioSeleccionado == 'Otro') ...[
           const SizedBox(height: 12),
@@ -418,7 +495,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
               border: OutlineInputBorder(),
             ),
             validator: (value) {
-              if (_tipoServicioSeleccionado == 'Otro' && 
+              if (_tipoServicioSeleccionado == 'Otro' &&
                   (value == null || value.trim().isEmpty)) {
                 return 'Especifique el tipo de servicio';
               }
@@ -462,34 +539,32 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _tiposUrgencia.map((tipo) {
-            return SizedBox(
-              width: (MediaQuery.of(context).size.width - 80) / 3,
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blue[300]!),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: CheckboxListTile(
-                  title: Text(
-                    tipo,
-                    style: const TextStyle(fontSize: 12),
+          children:
+              _tiposUrgencia.map((tipo) {
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width - 80) / 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.blue[300]!),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: CheckboxListTile(
+                      title: Text(tipo, style: const TextStyle(fontSize: 12)),
+                      value: _tipoUrgenciaSeleccionado == tipo,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _tipoUrgenciaSeleccionado = value == true ? tipo : '';
+                          if (tipo != 'Otro') {
+                            _urgenciaEspecifiqueController.clear();
+                          }
+                        });
+                      },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      dense: true,
+                    ),
                   ),
-                  value: _tipoUrgenciaSeleccionado == tipo,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      _tipoUrgenciaSeleccionado = value == true ? tipo : '';
-                      if (tipo != 'Otro') {
-                        _urgenciaEspecifiqueController.clear();
-                      }
-                    });
-                  },
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                  dense: true,
-                ),
-              ),
-            );
-          }).toList(),
+                );
+              }).toList(),
         ),
         if (_tipoUrgenciaSeleccionado == 'Otro') ...[
           const SizedBox(height: 12),
@@ -500,7 +575,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
               border: OutlineInputBorder(),
             ),
             validator: (value) {
-              if (_tipoUrgenciaSeleccionado == 'Otro' && 
+              if (_tipoUrgenciaSeleccionado == 'Otro' &&
                   (value == null || value.trim().isEmpty)) {
                 return 'Especifique el tipo de urgencia';
               }
@@ -518,43 +593,39 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
       children: [
         const Text(
           'Lugar de Ocurrencia',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _lugaresOcurrencia.map((lugar) {
-            return SizedBox(
-              width: (MediaQuery.of(context).size.width - 80) / 3,
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: CheckboxListTile(
-                  title: Text(
-                    lugar,
-                    style: const TextStyle(fontSize: 12),
+          children:
+              _lugaresOcurrencia.map((lugar) {
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width - 80) / 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: CheckboxListTile(
+                      title: Text(lugar, style: const TextStyle(fontSize: 12)),
+                      value: _lugarOcurrenciaSeleccionado == lugar,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _lugarOcurrenciaSeleccionado =
+                              value == true ? lugar : '';
+                          if (lugar != 'Otro') {
+                            _lugarOcurrenciaEspecifiqueController.clear();
+                          }
+                        });
+                      },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      dense: true,
+                    ),
                   ),
-                  value: _lugarOcurrenciaSeleccionado == lugar,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      _lugarOcurrenciaSeleccionado = value == true ? lugar : '';
-                      if (lugar != 'Otro') {
-                        _lugarOcurrenciaEspecifiqueController.clear();
-                      }
-                    });
-                  },
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                  dense: true,
-                ),
-              ),
-            );
-          }).toList(),
+                );
+              }).toList(),
         ),
         if (_lugarOcurrenciaSeleccionado == 'Otro') ...[
           const SizedBox(height: 12),
@@ -565,7 +636,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
               border: OutlineInputBorder(),
             ),
             validator: (value) {
-              if (_lugarOcurrenciaSeleccionado == 'Otro' && 
+              if (_lugarOcurrenciaSeleccionado == 'Otro' &&
                   (value == null || value.trim().isEmpty)) {
                 return 'Especifique el lugar de ocurrencia';
               }
@@ -583,10 +654,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
       children: [
         const Text(
           'Ubicación',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 12),
         TextFormField(
@@ -640,11 +708,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
           ),
           child: const Text(
             'El paciente debe firmar para confirmar que acepta recibir el servicio médico prehospitalario proporcionado por el personal de BG Med.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
           ),
         ),
         const SizedBox(height: 16),
@@ -694,10 +758,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -763,19 +824,16 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
                   controller: controller,
                   backgroundColor: Colors.white,
                 ),
-              
+
               // Texto de instrucción (solo visible cuando está vacía y no hay datos guardados)
               if (controller.isEmpty && base64Data == null)
                 const Center(
                   child: Text(
                     'Firme aquí',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
                   ),
                 ),
-              
+
               // Botón de limpiar
               Positioned(
                 top: 4,
@@ -793,11 +851,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
                     ],
                   ),
                   child: IconButton(
-                    icon: const Icon(
-                      Icons.clear,
-                      size: 16,
-                      color: Colors.red,
-                    ),
+                    icon: const Icon(Icons.clear, size: 16, color: Colors.red),
                     onPressed: () {
                       onClear();
                       // Si hay datos guardados, también los limpiamos
@@ -819,18 +873,12 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          height: 2,
-          color: Colors.black,
-        ),
+        Container(height: 2, color: Colors.black),
         const SizedBox(height: 4),
         Center(
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-            ),
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
           ),
         ),
       ],
@@ -852,8 +900,12 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
     }
 
     // Validar que la firma esté presente
-    if (_consentimientoSignatureController.isEmpty && _consentimientoSignatureData == null) {
-      _showErrorDialog('Firma requerida', 'Por favor, complete la firma del consentimiento de servicio.');
+    if (_consentimientoSignatureController.isEmpty &&
+        _consentimientoSignatureData == null) {
+      _showErrorDialog(
+        'Firma requerida',
+        'Por favor, complete la firma del consentimiento de servicio.',
+      );
       return;
     }
 
@@ -863,12 +915,15 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
 
     try {
       String? signatureData = _consentimientoSignatureData;
-      
+
       // Si no hay datos guardados pero hay una firma nueva, convertirla
-      if (_consentimientoSignatureData == null && _consentimientoSignatureController.isNotEmpty) {
-        final signatureBytes = await _consentimientoSignatureController.toPngBytes();
+      if (_consentimientoSignatureData == null &&
+          _consentimientoSignatureController.isNotEmpty) {
+        final signatureBytes =
+            await _consentimientoSignatureController.toPngBytes();
         if (signatureBytes != null) {
-          signatureData = 'data:image/png;base64,${base64Encode(signatureBytes)}';
+          signatureData =
+              'data:image/png;base64,${base64Encode(signatureBytes)}';
         }
       }
 
@@ -881,18 +936,20 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
           'tiempoEsperaArribo': _tiempoEsperaArriboController.text.trim(),
           'tiempoEsperaLlegada': _tiempoEsperaLlegadaController.text.trim(),
           'tipoServicio': _tipoServicioSeleccionado,
-          'tipoServicioEspecifique': _tipoServicioEspecifiqueController.text.trim(),
+          'tipoServicioEspecifique':
+              _tipoServicioEspecifiqueController.text.trim(),
           'tipoUrgencia': _tipoUrgenciaSeleccionado,
           'urgenciaEspecifique': _urgenciaEspecifiqueController.text.trim(),
           'lugarOcurrencia': _lugarOcurrenciaSeleccionado,
-          'lugarOcurrenciaEspecifique': _lugarOcurrenciaEspecifiqueController.text.trim(),
+          'lugarOcurrenciaEspecifique':
+              _lugarOcurrenciaEspecifiqueController.text.trim(),
           'ubicacion': _ubicacionController.text.trim(),
           'consentimientoSignature': signatureData,
           'timestamp': DateTime.now().toIso8601String(),
         };
 
         widget.onSave(formData);
-        
+
         if (mounted) {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -926,16 +983,17 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
-} 
+}

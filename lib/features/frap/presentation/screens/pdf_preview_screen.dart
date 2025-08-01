@@ -12,10 +12,7 @@ import 'package:printing/printing.dart';
 class PdfPreviewScreen extends StatefulWidget {
   final UnifiedFrapRecord record;
 
-  const PdfPreviewScreen({
-    Key? key,
-    required this.record,
-  }) : super(key: key);
+  const PdfPreviewScreen({super.key, required this.record});
 
   @override
   State<PdfPreviewScreen> createState() => _PdfPreviewScreenState();
@@ -62,38 +59,39 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                     break;
                 }
               },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'download',
-                  child: Row(
-                    children: [
-                      Icon(Icons.download, size: 20, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('Descargar PDF'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'print',
-                  child: Row(
-                    children: [
-                      Icon(Icons.print, size: 20, color: Colors.green),
-                      SizedBox(width: 8),
-                      Text('Imprimir'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'share',
-                  child: Row(
-                    children: [
-                      Icon(Icons.share, size: 20, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text('Compartir'),
-                    ],
-                  ),
-                ),
-              ],
+              itemBuilder:
+                  (context) => [
+                    const PopupMenuItem(
+                      value: 'download',
+                      child: Row(
+                        children: [
+                          Icon(Icons.download, size: 20, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('Descargar PDF'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'print',
+                      child: Row(
+                        children: [
+                          Icon(Icons.print, size: 20, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text('Imprimir'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'share',
+                      child: Row(
+                        children: [
+                          Icon(Icons.share, size: 20, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('Compartir'),
+                        ],
+                      ),
+                    ),
+                  ],
             ),
         ],
       ),
@@ -134,15 +132,12 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                 ),
                 Text(
                   'Fecha: ${_formatDate(widget.record.createdAt)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
-          
+
           // Error message if any
           if (_errorMessage != null)
             Container(
@@ -161,16 +156,13 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: TextStyle(
-                        color: Colors.red[700],
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.red[700], fontSize: 14),
                     ),
                   ),
                 ],
               ),
             ),
-          
+
           // PDF Preview
           Expanded(
             child: Container(
@@ -200,7 +192,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
               ),
             ),
           ),
-          
+
           // Action buttons
           Container(
             padding: const EdgeInsets.all(16),
@@ -228,7 +220,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                     ),
                   ),
                 ),
-            
+
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
@@ -277,7 +269,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
 
     try {
       final filePath = await _pdfService.savePdfToFile(widget.record);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -322,7 +314,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
 
     try {
       await _pdfService.printPdf(widget.record);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -361,7 +353,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
 
     try {
       await _pdfService.sharePdf(widget.record);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -390,4 +382,4 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
       }
     }
   }
-} 
+}

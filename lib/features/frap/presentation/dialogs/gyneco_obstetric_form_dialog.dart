@@ -11,7 +11,8 @@ class GynecoObstetricFormDialog extends StatefulWidget {
   });
 
   @override
-  State<GynecoObstetricFormDialog> createState() => _GynecoObstetricFormDialogState();
+  State<GynecoObstetricFormDialog> createState() =>
+      _GynecoObstetricFormDialogState();
 }
 
 class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
@@ -39,12 +40,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
     '10min': 0,
   };
 
-  Map<String, int> _apgar = {
-    'minuto': 0,
-    '3min': 0,
-    '5min': 0,
-    '10min': 0,
-  };
+  Map<String, int> _apgar = {'minuto': 0, '3min': 0, '5min': 0, '10min': 0};
 
   @override
   void initState() {
@@ -55,23 +51,26 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
   void _initializeForm() {
     if (widget.initialData != null) {
       final data = widget.initialData!;
-      
+
       // Campos de texto
       _fumController.text = data['fum'] ?? '';
       _semanasGestacionController.text = data['semanasGestacion'] ?? '';
       _observacionesController.text = data['observaciones'] ?? '';
-      _frecuenciaCardiacaFetalController.text = data['frecuenciaCardiacaFetal'] ?? '';
+      _frecuenciaCardiacaFetalController.text =
+          data['frecuenciaCardiacaFetal'] ?? '';
       _contraccionesController.text = data['contracciones'] ?? '';
-      
+
       // Checkboxes
       _isParto = data['isParto'] ?? false;
       _isAborto = data['isAborto'] ?? false;
       _isHxVaginal = data['isHxVaginal'] ?? false;
       _ruidosFetalesPerceptibles = data['ruidosFetalesPerceptibles'] ?? false;
-      
+
       // Escalas
       if (data['silvermanAnderson'] != null) {
-        final silvermanData = Map<String, dynamic>.from(data['silvermanAnderson']);
+        final silvermanData = Map<String, dynamic>.from(
+          data['silvermanAnderson'],
+        );
         _silvermanAnderson = {
           'minuto': silvermanData['minuto'] ?? 0,
           '3min': silvermanData['3min'] ?? 0,
@@ -79,7 +78,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
           '10min': silvermanData['10min'] ?? 0,
         };
       }
-      
+
       if (data['apgar'] != null) {
         final apgarData = Map<String, dynamic>.from(data['apgar']);
         _apgar = {
@@ -163,7 +162,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                       // Tipo de Urgencia
                       _buildSectionTitle('TIPO DE URGENCIA'),
                       const SizedBox(height: 16),
-                      
+
                       _buildCheckboxOption(
                         title: 'Parto',
                         value: _isParto,
@@ -173,7 +172,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                           });
                         },
                       ),
-                      
+
                       _buildCheckboxOption(
                         title: 'Aborto',
                         value: _isAborto,
@@ -183,7 +182,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                           });
                         },
                       ),
-                      
+
                       _buildCheckboxOption(
                         title: 'Hx Vaginal',
                         value: _isHxVaginal,
@@ -193,13 +192,13 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                           });
                         },
                       ),
-                      
+
                       const SizedBox(height: 24),
 
                       // Información General
                       _buildSectionTitle('INFORMACIÓN GENERAL'),
                       const SizedBox(height: 16),
-                      
+
                       // F.U.M. y Semanas de Gestación
                       Row(
                         children: [
@@ -227,13 +226,13 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 24),
 
                       // Ruidos Fetales
                       _buildSectionTitle('RUIDOS FETALES'),
                       const SizedBox(height: 16),
-                      
+
                       _buildCheckboxOption(
                         title: 'Ruidos fetales perceptibles',
                         value: _ruidosFetalesPerceptibles,
@@ -243,7 +242,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                           });
                         },
                       ),
-                      
+
                       if (_ruidosFetalesPerceptibles) ...[
                         const SizedBox(height: 16),
                         TextFormField(
@@ -257,13 +256,13 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                           keyboardType: TextInputType.number,
                         ),
                       ],
-                      
+
                       const SizedBox(height: 24),
 
                       // Contracciones
                       _buildSectionTitle('CONTRACCIONES'),
                       const SizedBox(height: 16),
-                      
+
                       TextFormField(
                         controller: _contraccionesController,
                         decoration: const InputDecoration(
@@ -273,14 +272,14 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                         ),
                         maxLines: 2,
                       ),
-                      
+
                       const SizedBox(height: 24),
 
                       // Escalas (solo si es parto)
                       if (_isParto) ...[
                         _buildSectionTitle('ESCALAS OBSTÉTRICAS'),
                         const SizedBox(height: 16),
-                        
+
                         // Silverman Anderson
                         _buildScaleSection(
                           title: 'Silverman Anderson',
@@ -291,9 +290,9 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                             });
                           },
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Apgar
                         _buildScaleSection(
                           title: 'Apgar',
@@ -304,14 +303,14 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                             });
                           },
                         ),
-                        
+
                         const SizedBox(height: 24),
                       ],
 
                       // Observaciones
                       _buildSectionTitle('OBSERVACIONES GENERALES'),
                       const SizedBox(height: 16),
-                      
+
                       TextFormField(
                         controller: _observacionesController,
                         decoration: const InputDecoration(
@@ -346,17 +345,22 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
+                    icon:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.save),
+                    label: Text(
+                      _isLoading ? 'Guardando...' : 'Guardar Sección',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.pink[600],
                       foregroundColor: Colors.white,
@@ -460,7 +464,7 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Grid de inputs para los tiempos
           GridView.count(
             shrinkWrap: true,
@@ -469,17 +473,18 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
             childAspectRatio: 2.5,
-            children: scale.entries.map((entry) {
-              return _buildScaleInput(
-                label: entry.key == 'minuto' ? 'Minuto' : '${entry.key}',
-                value: entry.value,
-                onChanged: (newValue) {
-                  final newScale = Map<String, int>.from(scale);
-                  newScale[entry.key] = newValue;
-                  onScaleChanged(newScale);
-                },
-              );
-            }).toList(),
+            children:
+                scale.entries.map((entry) {
+                  return _buildScaleInput(
+                    label: entry.key == 'minuto' ? 'Minuto' : entry.key,
+                    value: entry.value,
+                    onChanged: (newValue) {
+                      final newScale = Map<String, int>.from(scale);
+                      newScale[entry.key] = newValue;
+                      onScaleChanged(newScale);
+                    },
+                  );
+                }).toList(),
           ),
         ],
       ),
@@ -515,12 +520,10 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            items: List.generate(10, (index) => index + 1).map((score) {
-              return DropdownMenuItem(
-                value: score,
-                child: Text('$score'),
-              );
-            }).toList(),
+            items:
+                List.generate(10, (index) => index + 1).map((score) {
+                  return DropdownMenuItem(value: score, child: Text('$score'));
+                }).toList(),
             onChanged: (newValue) {
               onChanged(newValue ?? 0);
             },
@@ -547,7 +550,8 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
         'fum': _fumController.text.trim(),
         'semanasGestacion': _semanasGestacionController.text.trim(),
         'ruidosFetalesPerceptibles': _ruidosFetalesPerceptibles,
-        'frecuenciaCardiacaFetal': _frecuenciaCardiacaFetalController.text.trim(),
+        'frecuenciaCardiacaFetal':
+            _frecuenciaCardiacaFetalController.text.trim(),
         'contracciones': _contraccionesController.text.trim(),
         'silvermanAnderson': _silvermanAnderson,
         'apgar': _apgar,
@@ -556,12 +560,14 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
       };
 
       widget.onSave(formData);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Información gineco-obstétrica guardada exitosamente'),
+            content: Text(
+              'Información gineco-obstétrica guardada exitosamente',
+            ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -597,4 +603,4 @@ class _GynecoObstetricFormDialogState extends State<GynecoObstetricFormDialog> {
       }
     }
   }
-} 
+}

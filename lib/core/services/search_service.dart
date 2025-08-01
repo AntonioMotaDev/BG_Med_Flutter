@@ -1,5 +1,4 @@
 import 'package:bg_med/core/models/frap_firestore.dart';
-import 'package:bg_med/core/models/patient_firestore.dart';
 import 'package:flutter/material.dart';
 
 class SearchFilters {
@@ -60,25 +59,26 @@ class SearchFilters {
       gender: gender ?? this.gender,
       allergies: allergies ?? this.allergies,
       vitalSigns: vitalSigns ?? this.vitalSigns,
-      hasPathologicalHistory: hasPathologicalHistory ?? this.hasPathologicalHistory,
+      hasPathologicalHistory:
+          hasPathologicalHistory ?? this.hasPathologicalHistory,
       priorityLevel: priorityLevel ?? this.priorityLevel,
     );
   }
 
   bool get isEmpty {
     return dateRange == null &&
-           patientName == null &&
-           emergencyType == null &&
-           receivingUnit == null &&
-           isSynced == null &&
-           createdBy == null &&
-           minAge == null &&
-           maxAge == null &&
-           gender == null &&
-           allergies == null &&
-           vitalSigns == null &&
-           hasPathologicalHistory == null &&
-           priorityLevel == null;
+        patientName == null &&
+        emergencyType == null &&
+        receivingUnit == null &&
+        isSynced == null &&
+        createdBy == null &&
+        minAge == null &&
+        maxAge == null &&
+        gender == null &&
+        allergies == null &&
+        vitalSigns == null &&
+        hasPathologicalHistory == null &&
+        priorityLevel == null;
   }
 }
 
@@ -98,44 +98,49 @@ class SearchService {
   // Buscar registros por texto
   List<FrapFirestore> searchRecords(List<FrapFirestore> records, String query) {
     if (query.isEmpty) return records;
-    
+
     final lowercaseQuery = query.toLowerCase();
     return records.where((record) {
       // Buscar en información del paciente
       if (record.patientInfo.isNotEmpty) {
         final patientName = record.patientInfo['firstName']?.toString() ?? '';
-        final patientLastName = record.patientInfo['paternalLastName']?.toString() ?? '';
+        final patientLastName =
+            record.patientInfo['paternalLastName']?.toString() ?? '';
         final patientPhone = record.patientInfo['phone']?.toString() ?? '';
-        
+
         if (patientName.toLowerCase().contains(lowercaseQuery) ||
             patientLastName.toLowerCase().contains(lowercaseQuery) ||
             patientPhone.toLowerCase().contains(lowercaseQuery)) {
           return true;
         }
       }
-      
+
       // Buscar en información del servicio
       if (record.serviceInfo.isNotEmpty) {
-        final lugarOcurrencia = record.serviceInfo['lugarOcurrencia']?.toString() ?? '';
-        final tipoUrgencia = record.serviceInfo['tipoUrgencia']?.toString() ?? '';
-        
+        final lugarOcurrencia =
+            record.serviceInfo['lugarOcurrencia']?.toString() ?? '';
+        final tipoUrgencia =
+            record.serviceInfo['tipoUrgencia']?.toString() ?? '';
+
         if (lugarOcurrencia.toLowerCase().contains(lowercaseQuery) ||
             tipoUrgencia.toLowerCase().contains(lowercaseQuery)) {
           return true;
         }
       }
-      
+
       // Buscar en unidad receptora
       if (record.receivingUnit.isNotEmpty) {
-        final lugarDestino = record.receivingUnit['lugarDestino']?.toString() ?? '';
-        final lugarConsulta = record.receivingUnit['lugarConsulta']?.toString() ?? '';
-        
+        final lugarDestino =
+            record.receivingUnit['lugarDestino']?.toString() ?? '';
+        final lugarConsulta =
+            record.receivingUnit['lugarConsulta']?.toString() ?? '';
+
         if (lugarDestino.toLowerCase().contains(lowercaseQuery) ||
             lugarConsulta.toLowerCase().contains(lowercaseQuery)) {
           return true;
         }
       }
-      
+
       return false;
     }).toList();
   }
@@ -151,42 +156,44 @@ class SearchService {
         final recordDate = record.createdAt;
         final fromDate = DateTime.parse(filters['dateFrom']);
         final toDate = DateTime.parse(filters['dateTo']);
-        
+
         if (recordDate.isBefore(fromDate) || recordDate.isAfter(toDate)) {
           return false;
         }
       }
-      
+
       // Filtro por nombre del paciente
       if (filters['patientName'] != null && filters['patientName'].isNotEmpty) {
         if (record.patientInfo.isEmpty) return false;
-        
+
         final firstName = record.patientInfo['firstName']?.toString() ?? '';
-        final lastName = record.patientInfo['paternalLastName']?.toString() ?? '';
+        final lastName =
+            record.patientInfo['paternalLastName']?.toString() ?? '';
         final patientName = '$firstName $lastName'.toLowerCase();
-        
+
         if (!patientName.contains(filters['patientName'].toLowerCase())) {
           return false;
         }
       }
-      
+
       // Filtro por tipo de urgencia
       if (filters['type'] != null && filters['type'].isNotEmpty) {
         if (record.serviceInfo.isEmpty) return false;
-        
-        final tipoUrgencia = record.serviceInfo['tipoUrgencia']?.toString() ?? '';
+
+        final tipoUrgencia =
+            record.serviceInfo['tipoUrgencia']?.toString() ?? '';
         if (tipoUrgencia != filters['type']) {
           return false;
         }
       }
-      
+
       // Filtro por estado de sincronización (todos los registros de Firestore están sincronizados)
       if (filters['status'] != null && filters['status'].isNotEmpty) {
         if (filters['status'] == 'Local') {
           return false; // Los registros de Firestore no son locales
         }
       }
-      
+
       return true;
     }).toList();
   }
@@ -194,50 +201,50 @@ class SearchService {
   // Obtener sugerencias de búsqueda
   List<String> getSearchSuggestions(List<dynamic> records, String query) {
     if (query.isEmpty) return [];
-    
+
     final suggestions = <String>{};
     final lowercaseQuery = query.toLowerCase();
-    
+
     for (final record in records) {
       if (record is FrapFirestore) {
         // Sugerencias de nombres de pacientes
         if (record.patientInfo.isNotEmpty) {
           final firstName = record.patientInfo['firstName']?.toString() ?? '';
-          final lastName = record.patientInfo['paternalLastName']?.toString() ?? '';
+          final lastName =
+              record.patientInfo['paternalLastName']?.toString() ?? '';
           final fullName = '$firstName $lastName';
           if (fullName.toLowerCase().contains(lowercaseQuery)) {
             suggestions.add(fullName);
           }
         }
-        
+
         // Sugerencias de tipos de urgencia
         if (record.serviceInfo.isNotEmpty) {
-          final tipoUrgencia = record.serviceInfo['tipoUrgencia']?.toString() ?? '';
+          final tipoUrgencia =
+              record.serviceInfo['tipoUrgencia']?.toString() ?? '';
           if (tipoUrgencia.toLowerCase().contains(lowercaseQuery)) {
             suggestions.add(tipoUrgencia);
           }
         }
-        
+
         // Sugerencias de lugares
         if (record.serviceInfo.isNotEmpty) {
-          final lugarOcurrencia = record.serviceInfo['lugarOcurrencia']?.toString() ?? '';
+          final lugarOcurrencia =
+              record.serviceInfo['lugarOcurrencia']?.toString() ?? '';
           if (lugarOcurrencia.toLowerCase().contains(lowercaseQuery)) {
             suggestions.add(lugarOcurrencia);
           }
         }
       }
     }
-    
+
     return suggestions.take(5).toList();
   }
 
   // Ordenar registros
-  List<FrapFirestore> sortRecords(
-    List<FrapFirestore> records,
-    String sortBy,
-  ) {
+  List<FrapFirestore> sortRecords(List<FrapFirestore> records, String sortBy) {
     final sortedRecords = List<FrapFirestore>.from(records);
-    
+
     switch (sortBy) {
       case 'Más reciente':
         sortedRecords.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -260,7 +267,7 @@ class SearchService {
         });
         break;
     }
-    
+
     return sortedRecords;
   }
 
@@ -270,20 +277,20 @@ class SearchService {
     Map<String, dynamic> criteria,
   ) {
     List<FrapFirestore> results = records;
-    
+
     // Aplicar filtros uno por uno
     if (criteria['query'] != null && criteria['query'].isNotEmpty) {
       results = searchRecords(results, criteria['query']);
     }
-    
+
     if (criteria['filters'] != null) {
       results = filterRecords(results, criteria['filters']);
     }
-    
+
     if (criteria['sortBy'] != null) {
       results = sortRecords(results, criteria['sortBy']);
     }
-    
+
     return results;
   }
-} 
+}

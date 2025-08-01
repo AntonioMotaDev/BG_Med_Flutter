@@ -9,16 +9,17 @@ import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
 class FrapRecordsListScreen extends ConsumerStatefulWidget {
-  const FrapRecordsListScreen({Key? key}) : super(key: key);
+  const FrapRecordsListScreen({super.key});
 
   @override
-  ConsumerState<FrapRecordsListScreen> createState() => _FrapRecordsListScreenState();
+  ConsumerState<FrapRecordsListScreen> createState() =>
+      _FrapRecordsListScreenState();
 }
 
 class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
-  
+
   // Estados de filtrado y paginación
   String _sortBy = 'date';
   bool _sortAscending = false;
@@ -26,12 +27,12 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   String _filterType = 'all'; // all, local, cloud
-  
+
   // Paginación
   int _currentPage = 1;
-  int _itemsPerPage = 25;
+  final int _itemsPerPage = 25;
   final List<int> _itemsPerPageOptions = [10, 25, 50, 100];
-  
+
   @override
   void initState() {
     super.initState();
@@ -50,7 +51,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
   }
 
   void _onSearchChanged() {
-              setState(() {
+    setState(() {
       _searchQuery = _searchController.text;
       _currentPage = 1;
     });
@@ -59,7 +60,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
 
   Future<void> _applyFilter() async {
     final notifier = ref.read(unifiedFrapProvider.notifier);
-    
+
     if (_searchQuery.isNotEmpty) {
       await notifier.searchRecords(_searchQuery);
     } else if (_startDate != null && _endDate != null) {
@@ -67,13 +68,15 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
     } else {
       await notifier.loadAllRecords();
     }
-    
+
     setState(() {
       _currentPage = 1; // Reset pagination when filter changes
     });
   }
 
-  List<UnifiedFrapRecord> _getFilteredAndSortedRecords(List<UnifiedFrapRecord> allRecords) {
+  List<UnifiedFrapRecord> _getFilteredAndSortedRecords(
+    List<UnifiedFrapRecord> allRecords,
+  ) {
     List<UnifiedFrapRecord> filtered = allRecords;
 
     // Filtrar por tipo (local/cloud)
@@ -111,12 +114,14 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
     return filtered;
   }
 
-  List<UnifiedFrapRecord> _getPaginatedRecords(List<UnifiedFrapRecord> records) {
+  List<UnifiedFrapRecord> _getPaginatedRecords(
+    List<UnifiedFrapRecord> records,
+  ) {
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
-    
+
     if (startIndex >= records.length) return [];
-    
+
     return records.sublist(
       startIndex,
       endIndex > records.length ? records.length : endIndex,
@@ -124,7 +129,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
   }
 
   void _goToPage(int page) {
-                              setState(() {
+    setState(() {
       _currentPage = page;
     });
     _scrollController.animateTo(
@@ -139,13 +144,14 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: _startDate != null && _endDate != null
-          ? DateTimeRange(start: _startDate!, end: _endDate!)
-                        : null,
+      initialDateRange:
+          _startDate != null && _endDate != null
+              ? DateTimeRange(start: _startDate!, end: _endDate!)
+              : null,
     );
 
     if (picked != null) {
-                    setState(() {
+      setState(() {
         _startDate = picked.start;
         _endDate = picked.end;
         _currentPage = 1;
@@ -183,12 +189,12 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
         onTap: () => _showRecordDetails(record),
         child: Padding(
           padding: const EdgeInsets.all(16),
-              child: Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -205,7 +211,10 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: record.isLocal ? AppTheme.primaryBlue : AppTheme.primaryGreen,
+                                color:
+                                    record.isLocal
+                                        ? AppTheme.primaryBlue
+                                        : AppTheme.primaryGreen,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -215,10 +224,10 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                         const SizedBox(height: 4),
                         Text(
                           'Edad: ${record.patientAge} años • ${record.patientGender}',
@@ -228,49 +237,65 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                           const SizedBox(height: 2),
                           Text(
                             record.patientAddress,
-                            style: const TextStyle(color: Colors.grey, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                ],
-              ),
-            ),
+                  ),
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       switch (value) {
                         case 'view':
                           _showRecordDetails(record);
-                    break;
+                          break;
                         case 'edit':
                           _editRecord(record);
-                    break;
+                          break;
                         case 'duplicate':
                           _duplicateRecord(record);
-                    break;
+                          break;
                         case 'delete':
                           _deleteRecord(record);
-                    break;
-                }
+                          break;
+                      }
                     },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'view', child: Text('Ver detalles')),
-                      const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                      const PopupMenuItem(value: 'duplicate', child: Text('Duplicar')),
-                      const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
-                    ],
-          ),
-        ],
-      ),
+                    itemBuilder:
+                        (context) => [
+                          const PopupMenuItem(
+                            value: 'view',
+                            child: Text('Ver detalles'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Text('Editar'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'duplicate',
+                            child: Text('Duplicar'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Eliminar'),
+                          ),
+                        ],
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+                children: [
                   Text(
                     DateFormat('dd/MM/yyyy HH:mm').format(record.createdAt),
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
-          Row(
-            children: [
-              Text(
+                  Row(
+                    children: [
+                      Text(
                         'Completitud: ${record.completionPercentage.toStringAsFixed(1)}%',
                         style: const TextStyle(fontSize: 12),
                       ),
@@ -285,8 +310,8 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                             record.completionPercentage >= 80
                                 ? Colors.green
                                 : record.completionPercentage >= 50
-                                    ? Colors.orange
-                                    : Colors.red,
+                                ? Colors.orange
+                                : Colors.red,
                           ),
                         ),
                       ),
@@ -392,23 +417,28 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
+        child: Column(
+          children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(height: 4),
-          Text(
+            Text(
               value,
-            style: TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
             ),
-          Text(
+            Text(
               title,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
@@ -422,24 +452,25 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
-          children: [
+        children: [
           // Barra de búsqueda
-            Row(
-              children: [
+          Row(
+            children: [
               Expanded(
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar por nombre del paciente...',
                     prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
+                    suffixIcon:
+                        _searchQuery.isNotEmpty
+                            ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                            : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -464,23 +495,25 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           // Filtros de fecha y ordenamiento
           Row(
-                children: [
+            children: [
               // Filtro de fechas
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.date_range),
-                  label: Text(_startDate != null && _endDate != null
-                      ? '${DateFormat('dd/MM/yy').format(_startDate!)} - ${DateFormat('dd/MM/yy').format(_endDate!)}'
-                      : 'Filtrar por fecha'),
+                  label: Text(
+                    _startDate != null && _endDate != null
+                        ? '${DateFormat('dd/MM/yy').format(_startDate!)} - ${DateFormat('dd/MM/yy').format(_endDate!)}'
+                        : 'Filtrar por fecha',
+                  ),
                   onPressed: _selectDateRange,
                 ),
               ),
-              
+
               if (_startDate != null && _endDate != null) ...[
                 const SizedBox(width: 8),
                 IconButton(
@@ -488,12 +521,14 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                   onPressed: _clearDateFilter,
                 ),
               ],
-              
+
               const SizedBox(width: 8),
-              
+
               // Orden ascendente/descendente
               IconButton(
-                icon: Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
+                icon: Icon(
+                  _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                ),
                 onPressed: () {
                   setState(() {
                     _sortAscending = !_sortAscending;
@@ -509,16 +544,17 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
 
   Widget _buildPaginationInfo(int totalRecords) {
     final startIndex = (_currentPage - 1) * _itemsPerPage + 1;
-    final endIndex = (_currentPage * _itemsPerPage > totalRecords)
-        ? totalRecords
-        : _currentPage * _itemsPerPage;
-    
+    final endIndex =
+        (_currentPage * _itemsPerPage > totalRecords)
+            ? totalRecords
+            : _currentPage * _itemsPerPage;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
+        children: [
+          Text(
             'Mostrando $startIndex-$endIndex de $totalRecords registros',
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -534,7 +570,9 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
   void _editRecord(UnifiedFrapRecord record) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Función de edición para ${record.patientName} próximamente disponible'),
+        content: Text(
+          'Función de edición para ${record.patientName} próximamente disponible',
+        ),
         backgroundColor: Colors.orange,
       ),
     );
@@ -544,7 +582,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
     final notifier = ref.read(unifiedFrapProvider.notifier);
     final messenger = ScaffoldMessenger.of(context); // Store messenger locally
     final newRecordId = await notifier.duplicateRecord(record);
-    
+
     if (newRecordId != null && mounted) {
       messenger.showSnackBar(
         const SnackBar(
@@ -559,34 +597,40 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
     final context = this.context; // Store context locally
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text('¿Está seguro de eliminar el registro de ${record.patientName}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar eliminación'),
+            content: Text(
+              '¿Está seguro de eliminar el registro de ${record.patientName}?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Eliminar'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
     );
 
     if (confirmed == true) {
       final notifier = ref.read(unifiedFrapProvider.notifier);
-      final messenger = ScaffoldMessenger.of(context); // Store messenger locally
+      final messenger = ScaffoldMessenger.of(
+        context,
+      ); // Store messenger locally
       final success = await notifier.deleteRecord(record);
-      
+
       if (mounted) {
         messenger.showSnackBar(
-      SnackBar(
-            content: Text(success 
-              ? 'Registro eliminado exitosamente' 
-              : 'Error al eliminar el registro'
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Registro eliminado exitosamente'
+                  : 'Error al eliminar el registro',
             ),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
@@ -599,104 +643,124 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
     final context = this.context; // Store context locally to avoid async gap
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sincronizar y Limpiar Registros'),
-        content: const Text(
-          'Esta acción realizará:\n\n'
-          '1. Sincronizar registros locales con la nube\n'
-          '2. Detectar registros duplicados\n'
-          '3. Eliminar duplicados del almacenamiento local\n\n'
-          '¿Desea continuar?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final navigator = Navigator.of(context); // Store navigator locally
-              final messenger = ScaffoldMessenger.of(context); // Store messenger locally
-              navigator.pop();
-              
-              // Mostrar indicador de progreso
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Row(
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Text('Sincronizando y limpiando registros...'),
-                    ],
-                  ),
-                  duration: Duration(seconds: 30), // Duración larga para operación
-                ),
-              );
-              
-              try {
-                final result = await ref.read(unifiedFrapProvider.notifier).syncAndCleanup();
-                
-                if (mounted) {
-                  // Cerrar el snackbar de progreso
-                  messenger.hideCurrentSnackBar();
-                  
-                  if (result['success'] == true) {
-                    final cleanupResult = result['cleanupResult'] as Map<String, dynamic>;
-                    final removedCount = cleanupResult['removedCount'] ?? 0;
-                    final statistics = cleanupResult['statistics'] as Map<String, dynamic>;
-                    final spaceFreed = statistics['estimatedSpaceFreedMB'] ?? '0.00';
-                    
-                    String message = 'Sincronización completada';
-                    if (removedCount > 0) {
-                      message += '\nSe eliminaron $removedCount registros duplicados';
-                      message += '\nEspacio liberado: ${spaceFreed} MB';
-                    } else {
-                      message += '\nNo se encontraron duplicados para eliminar';
-                    }
-                    
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(message),
-                        backgroundColor: Colors.green,
-                        duration: const Duration(seconds: 5),
-                      ),
-                    );
-                  } else {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(result['message'] ?? 'Error durante la sincronización'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 5),
-                      ),
-                    );
-                  }
-                }
-              } catch (e) {
-                if (mounted) {
-                  // Cerrar el snackbar de progreso
-                  messenger.hideCurrentSnackBar();
-                  
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Sincronizar y Limpiar Registros'),
+            content: const Text(
+              'Esta acción realizará:\n\n'
+              '1. Sincronizar registros locales con la nube\n'
+              '2. Detectar registros duplicados\n'
+              '3. Eliminar duplicados del almacenamiento local\n\n'
+              '¿Desea continuar?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final navigator = Navigator.of(
+                    context,
+                  ); // Store navigator locally
+                  final messenger = ScaffoldMessenger.of(
+                    context,
+                  ); // Store messenger locally
+                  navigator.pop();
+
+                  // Mostrar indicador de progreso
                   messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 5),
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Text('Sincronizando y limpiando registros...'),
+                        ],
+                      ),
+                      duration: Duration(
+                        seconds: 30,
+                      ), // Duración larga para operación
                     ),
                   );
-                }
-              }
-            },
-            child: const Text('Sincronizar y Limpiar'),
+
+                  try {
+                    final result =
+                        await ref
+                            .read(unifiedFrapProvider.notifier)
+                            .syncAndCleanup();
+
+                    if (mounted) {
+                      // Cerrar el snackbar de progreso
+                      messenger.hideCurrentSnackBar();
+
+                      if (result['success'] == true) {
+                        final cleanupResult =
+                            result['cleanupResult'] as Map<String, dynamic>;
+                        final removedCount = cleanupResult['removedCount'] ?? 0;
+                        final statistics =
+                            cleanupResult['statistics'] as Map<String, dynamic>;
+                        final spaceFreed =
+                            statistics['estimatedSpaceFreedMB'] ?? '0.00';
+
+                        String message = 'Sincronización completada';
+                        if (removedCount > 0) {
+                          message +=
+                              '\nSe eliminaron $removedCount registros duplicados';
+                          message += '\nEspacio liberado: $spaceFreed MB';
+                        } else {
+                          message +=
+                              '\nNo se encontraron duplicados para eliminar';
+                        }
+
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(message),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      } else {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              result['message'] ??
+                                  'Error durante la sincronización',
+                            ),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      // Cerrar el snackbar de progreso
+                      messenger.hideCurrentSnackBar();
+
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $e'),
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 5),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Sincronizar y Limpiar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -704,7 +768,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
   Widget build(BuildContext context) {
     final unifiedState = ref.watch(unifiedFrapProvider);
     final statistics = ref.watch(unifiedFrapStatisticsProvider);
-    
+
     final filteredRecords = _getFilteredAndSortedRecords(unifiedState.records);
     final paginatedRecords = _getPaginatedRecords(filteredRecords);
     final totalPages = (filteredRecords.length / _itemsPerPage).ceil();
@@ -725,11 +789,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.warning,
-                    size: 16,
-                    color: Colors.white,
-                  ),
+                  const Icon(Icons.warning, size: 16, color: Colors.white),
                   const SizedBox(width: 4),
                   Text(
                     '${unifiedState.localDuplicatesCount} duplicados',
@@ -749,9 +809,10 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
           IconButton(
             icon: const Icon(Icons.cloud_sync),
             onPressed: _showSyncDialog,
-            tooltip: unifiedState.localDuplicatesCount > 0 
-                ? 'Sincronizar y limpiar duplicados' 
-                : 'Sincronizar registros',
+            tooltip:
+                unifiedState.localDuplicatesCount > 0
+                    ? 'Sincronizar y limpiar duplicados'
+                    : 'Sincronizar registros',
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -760,12 +821,25 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                 _currentPage = 1;
               });
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'date', child: Text('Ordenar por fecha')),
-              const PopupMenuItem(value: 'patient', child: Text('Ordenar por paciente')),
-              const PopupMenuItem(value: 'age', child: Text('Ordenar por edad')),
-              const PopupMenuItem(value: 'completion', child: Text('Ordenar por completitud')),
-            ],
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'date',
+                    child: Text('Ordenar por fecha'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'patient',
+                    child: Text('Ordenar por paciente'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'age',
+                    child: Text('Ordenar por edad'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'completion',
+                    child: Text('Ordenar por completitud'),
+                  ),
+                ],
           ),
         ],
       ),
@@ -773,56 +847,63 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
         children: [
           // Estadísticas
           _buildStatisticsRow(statistics),
-          
+
           // Filtros
           _buildFiltersSection(),
-          
+
           // Lista de registros
           Expanded(
-            child: unifiedState.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : unifiedState.error != null
+            child:
+                unifiedState.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : unifiedState.error != null
                     ? _buildErrorView(unifiedState.error!)
                     : filteredRecords.isEmpty
-                        ? _buildEmptyView()
-                        : Column(
-                            children: [
-                              // Información de paginación
-                              _buildPaginationInfo(filteredRecords.length),
-                              
-                              // Lista de registros
-                              Expanded(
-                                child: ListView.builder(
-                                  controller: _scrollController,
-                                  itemCount: paginatedRecords.length,
-                                  itemBuilder: (context, index) {
-                                    final record = paginatedRecords[index];
-                                    return _buildRecordCard(record);
-                                  },
-                                ),
-                              ),
-                              
-                              // Paginación
-                              if (totalPages > 1)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      IconButton(
-                                        onPressed: _currentPage > 1 ? () => setState(() => _currentPage--) : null,
-                                        icon: const Icon(Icons.chevron_left),
-                                      ),
-                                      Text('Página $_currentPage de $totalPages'),
-                                      IconButton(
-                                        onPressed: _currentPage < totalPages ? () => setState(() => _currentPage++) : null,
-                                        icon: const Icon(Icons.chevron_right),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
+                    ? _buildEmptyView()
+                    : Column(
+                      children: [
+                        // Información de paginación
+                        _buildPaginationInfo(filteredRecords.length),
+
+                        // Lista de registros
+                        Expanded(
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            itemCount: paginatedRecords.length,
+                            itemBuilder: (context, index) {
+                              final record = paginatedRecords[index];
+                              return _buildRecordCard(record);
+                            },
                           ),
+                        ),
+
+                        // Paginación
+                        if (totalPages > 1)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  onPressed:
+                                      _currentPage > 1
+                                          ? () => setState(() => _currentPage--)
+                                          : null,
+                                  icon: const Icon(Icons.chevron_left),
+                                ),
+                                Text('Página $_currentPage de $totalPages'),
+                                IconButton(
+                                  onPressed:
+                                      _currentPage < totalPages
+                                          ? () => setState(() => _currentPage++)
+                                          : null,
+                                  icon: const Icon(Icons.chevron_right),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
           ),
         ],
       ),
@@ -831,15 +912,13 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
           // Navegar a la pantalla de creación de FRAP
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const FrapScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const FrapScreen()),
           );
         },
         child: const Icon(Icons.add),
-                  ),
-                );
-              }
+      ),
+    );
+  }
 
   Widget _buildErrorView(String error) {
     return Center(
@@ -895,4 +974,4 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
       ),
     );
   }
-} 
+}

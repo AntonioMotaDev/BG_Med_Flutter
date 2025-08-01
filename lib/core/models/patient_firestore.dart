@@ -39,20 +39,22 @@ class PatientFirestore extends Equatable {
   });
 
   // Getter para el nombre completo
-  String get fullName => '$firstName $paternalLastName $maternalLastName'.trim();
+  String get fullName =>
+      '$firstName $paternalLastName $maternalLastName'.trim();
 
   // Getter para la dirección completa
   String get fullAddress {
-    final interior = interiorNumber?.isNotEmpty == true ? ', Int. $interiorNumber' : '';
+    final interior =
+        interiorNumber?.isNotEmpty == true ? ', Int. $interiorNumber' : '';
     return '$street $exteriorNumber$interior, $neighborhood, $city';
   }
 
   // Factory constructor desde Firestore
   factory PatientFirestore.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     // Helper function para convertir timestamps de manera segura
-    DateTime _parseTimestamp(dynamic timestamp) {
+    DateTime parseTimestamp(dynamic timestamp) {
       if (timestamp == null) {
         return DateTime.now();
       }
@@ -64,12 +66,12 @@ class PatientFirestore extends Equatable {
       }
       return DateTime.now();
     }
-    
+
     return PatientFirestore(
       id: doc.id,
       age: data['age'] ?? 0,
       city: data['city'] ?? '',
-      createdAt: _parseTimestamp(data['createdAt']),
+      createdAt: parseTimestamp(data['createdAt']),
       exteriorNumber: data['exteriorNumber'] ?? '',
       firstName: data['firstName'] ?? '',
       insurance: data['insurance'] ?? '',
@@ -81,14 +83,14 @@ class PatientFirestore extends Equatable {
       responsiblePerson: data['responsiblePerson'],
       sex: data['sex'] ?? '',
       street: data['street'] ?? '',
-      updatedAt: _parseTimestamp(data['updatedAt']),
+      updatedAt: parseTimestamp(data['updatedAt']),
     );
   }
 
   // Factory constructor desde Map
   factory PatientFirestore.fromMap(Map<String, dynamic> data, String id) {
     // Helper function para convertir timestamps de manera segura
-    DateTime _parseTimestamp(dynamic timestamp) {
+    DateTime parseTimestamp(dynamic timestamp) {
       if (timestamp == null) {
         return DateTime.now();
       }
@@ -104,12 +106,12 @@ class PatientFirestore extends Equatable {
       }
       return DateTime.now();
     }
-    
+
     return PatientFirestore(
       id: id,
       age: data['age'] ?? 0,
       city: data['city'] ?? '',
-      createdAt: _parseTimestamp(data['createdAt']),
+      createdAt: parseTimestamp(data['createdAt']),
       exteriorNumber: data['exteriorNumber'] ?? '',
       firstName: data['firstName'] ?? '',
       insurance: data['insurance'] ?? '',
@@ -121,7 +123,7 @@ class PatientFirestore extends Equatable {
       responsiblePerson: data['responsiblePerson'],
       sex: data['sex'] ?? '',
       street: data['street'] ?? '',
-      updatedAt: _parseTimestamp(data['updatedAt']),
+      updatedAt: parseTimestamp(data['updatedAt']),
     );
   }
 
@@ -245,26 +247,26 @@ class PatientFirestore extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        age,
-        city,
-        createdAt,
-        exteriorNumber,
-        firstName,
-        insurance,
-        interiorNumber,
-        maternalLastName,
-        neighborhood,
-        paternalLastName,
-        phone,
-        responsiblePerson,
-        sex,
-        street,
-        updatedAt,
-      ];
+    id,
+    age,
+    city,
+    createdAt,
+    exteriorNumber,
+    firstName,
+    insurance,
+    interiorNumber,
+    maternalLastName,
+    neighborhood,
+    paternalLastName,
+    phone,
+    responsiblePerson,
+    sex,
+    street,
+    updatedAt,
+  ];
 
   @override
   String toString() {
     return 'PatientFirestore(id: $id, name: $fullName, age: $age, sex: $sex)';
   }
-} 
+}

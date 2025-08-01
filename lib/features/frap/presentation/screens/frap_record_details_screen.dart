@@ -12,16 +12,15 @@ import 'package:bg_med/features/frap/presentation/providers/frap_unified_provide
 class FrapRecordDetailsScreen extends ConsumerStatefulWidget {
   final UnifiedFrapRecord record;
 
-  const FrapRecordDetailsScreen({
-    Key? key,
-    required this.record,
-  }) : super(key: key);
+  const FrapRecordDetailsScreen({super.key, required this.record});
 
   @override
-  ConsumerState<FrapRecordDetailsScreen> createState() => _FrapRecordDetailsScreenState();
+  ConsumerState<FrapRecordDetailsScreen> createState() =>
+      _FrapRecordDetailsScreenState();
 }
 
-class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScreen> {
+class _FrapRecordDetailsScreenState
+    extends ConsumerState<FrapRecordDetailsScreen> {
   late Map<String, dynamic> _detailedInfo;
   bool _isLoading = true;
 
@@ -38,7 +37,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
 
     // Cargar información detallada del registro
     _detailedInfo = widget.record.getDetailedInfo();
-    
+
     setState(() {
       _isLoading = false;
     });
@@ -56,116 +55,128 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
   }
 
   // Método para mostrar firma en tamaño grande
-  void _showSignatureFullScreen(String title, String base64Data, {String? doctorName}) {
+  void _showSignatureFullScreen(
+    String title,
+    String base64Data, {
+    String? doctorName,
+  }) {
     try {
       final decodedBytes = _getImageBytesFromBase64(base64Data);
       if (decodedBytes.isNotEmpty) {
         showDialog(
           context: context,
-          builder: (context) => Dialog(
-            backgroundColor: Colors.transparent,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: MediaQuery.of(context).size.height * 0.8,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.edit,
+          builder:
+              (context) => Dialog(
+                backgroundColor: Colors.transparent,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  height: MediaQuery.of(context).size.height * 0.8,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      // Header
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
                           color: Colors.white,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            // title,
-                            '',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close, color: Colors.black),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Contenido de la firma
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: InteractiveViewer(
-                          child: Image.memory(
-                            decodedBytes,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
                               child: Text(
-                                'Error al cargar la firma',
-                                style: TextStyle(color: Colors.red),
+                                // title,
+                                '',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Contenido de la firma
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: InteractiveViewer(
+                              child: Image.memory(
+                                decodedBytes,
+                                fit: BoxFit.contain,
+                                errorBuilder:
+                                    (context, error, stackTrace) =>
+                                        const Center(
+                                          child: Text(
+                                            'Error al cargar la firma',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  
-                  // Footer con información
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            doctorName != null ? 'Médico: $doctorName' : 'Medico que recibe el paciente',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
+
+                      // Footer con información
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(16),
+                            bottomRight: Radius.circular(16),
                           ),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                doctorName != null
+                                    ? 'Médico: $doctorName'
+                                    : 'Medico que recibe el paciente',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
         );
       }
     } catch (e) {
@@ -207,106 +218,108 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                   break;
               }
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'pdf',
-                child: Row(
-                  children: [
-                    Icon(Icons.picture_as_pdf, size: 20, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Generar PDF'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete, size: 20, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Eliminar', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(Icons.share, size: 20),
-                    SizedBox(width: 8),
-                    Text('Compartir'),
-                  ],
-                ),
-              ),
-            ],
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'pdf',
+                    child: Row(
+                      children: [
+                        Icon(Icons.picture_as_pdf, size: 20, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Generar PDF'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, size: 20, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Eliminar', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'share',
+                    child: Row(
+                      children: [
+                        Icon(Icons.share, size: 20),
+                        SizedBox(width: 8),
+                        Text('Compartir'),
+                      ],
+                    ),
+                  ),
+                ],
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header con información básica
-                  _buildHeaderCard(),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Información del servicio
-                  _buildServiceInfoSection(),
-                  
-                  // Información del registro
-                  _buildRegistryInfoSection(),
-                  
-                  // Información del paciente
-                  _buildPatientInfoSection(),
-                  
-                  // Manejo
-                  _buildManagementSection(),
-                  
-                  // Medicamentos
-                  _buildMedicationsSection(),
-                  
-                  // Gineco-obstétrica
-                  _buildGynecoObstetricSection(),
-                  
-                  // Atención negativa
-                  _buildAttentionNegativeSection(),
-                  
-                  // Historia patológica
-                  _buildPathologicalHistorySection(),
-                  
-                  // Historia clínica
-                  _buildClinicalHistorySection(),
-                  
-                  // Examen físico
-                  _buildPhysicalExamSection(),
-                  
-                  // Justificación de prioridad
-                  _buildPriorityJustificationSection(),
-                  
-                  // Localización de lesiones
-                  _buildInjuryLocationSection(),
-                  
-                  // Unidad receptora
-                  _buildReceivingUnitSection(),
-                  
-                  // Recepción del paciente
-                  _buildPatientReceptionSection(),
-                  
-                  // Nuevas secciones agregadas
-                  _buildInsumosSection(),
-                  
-                  _buildPersonalMedicoSection(),
-                  
-                  _buildEscalasObstetricasSection(),
-                  
-                  const SizedBox(height: 32),
-                ],
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header con información básica
+                    _buildHeaderCard(),
+
+                    const SizedBox(height: 16),
+
+                    // Información del servicio
+                    _buildServiceInfoSection(),
+
+                    // Información del registro
+                    _buildRegistryInfoSection(),
+
+                    // Información del paciente
+                    _buildPatientInfoSection(),
+
+                    // Manejo
+                    _buildManagementSection(),
+
+                    // Medicamentos
+                    _buildMedicationsSection(),
+
+                    // Gineco-obstétrica
+                    _buildGynecoObstetricSection(),
+
+                    // Atención negativa
+                    _buildAttentionNegativeSection(),
+
+                    // Historia patológica
+                    _buildPathologicalHistorySection(),
+
+                    // Historia clínica
+                    _buildClinicalHistorySection(),
+
+                    // Examen físico
+                    _buildPhysicalExamSection(),
+
+                    // Justificación de prioridad
+                    _buildPriorityJustificationSection(),
+
+                    // Localización de lesiones
+                    _buildInjuryLocationSection(),
+
+                    // Unidad receptora
+                    _buildReceivingUnitSection(),
+
+                    // Recepción del paciente
+                    _buildPatientReceptionSection(),
+
+                    // Nuevas secciones agregadas
+                    _buildInsumosSection(),
+
+                    _buildPersonalMedicoSection(),
+
+                    _buildEscalasObstetricasSection(),
+
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-            ),
     );
   }
 
@@ -318,9 +331,10 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
-            colors: widget.record.patientGender.toLowerCase() == 'femenino'
-                ? [AppTheme.primaryGreen, AppTheme.primaryGreen]
-                : [AppTheme.primaryBlue, AppTheme.primaryBlue],
+            colors:
+                widget.record.patientGender.toLowerCase() == 'femenino'
+                    ? [AppTheme.primaryGreen, AppTheme.primaryGreen]
+                    : [AppTheme.primaryBlue, AppTheme.primaryBlue],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -334,11 +348,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                 CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white.withOpacity(0.2),
-                  child: Icon(
-                    Icons.person,
-                    size: 32,
-                    color: Colors.white,
-                  ),
+                  child: Icon(Icons.person, size: 32, color: Colors.white),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -365,7 +375,10 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -381,16 +394,18 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Información adicional
             Row(
               children: [
                 Expanded(
                   child: _buildInfoItem(
                     'Fecha de creación',
-                    DateFormat('dd/MM/yyyy HH:mm').format(widget.record.createdAt),
+                    DateFormat(
+                      'dd/MM/yyyy HH:mm',
+                    ).format(widget.record.createdAt),
                     Icons.calendar_today,
                   ),
                 ),
@@ -404,9 +419,9 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Barra de progreso
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,8 +441,8 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                     widget.record.completionPercentage >= 80
                         ? Colors.green[300]!
                         : widget.record.completionPercentage >= 50
-                            ? Colors.orange[300]!
-                            : Colors.red[300]!,
+                        ? Colors.orange[300]!
+                        : Colors.red[300]!,
                   ),
                   minHeight: 8,
                 ),
@@ -481,14 +496,26 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     final details = [
       {'label': 'Hora de llamada', 'value': serviceInfoMap['horaLlamada']},
       {'label': 'Hora de arribo', 'value': serviceInfoMap['horaArribo']},
-      {'label': 'Tiempo de espera arribo', 'value': serviceInfoMap['tiempoEsperaArribo']},
+      {
+        'label': 'Tiempo de espera arribo',
+        'value': serviceInfoMap['tiempoEsperaArribo'],
+      },
       {'label': 'Hora de llegada', 'value': serviceInfoMap['horaLlegada']},
-      {'label': 'Tiempo de espera llegada', 'value': serviceInfoMap['tiempoEsperaLlegada']},
+      {
+        'label': 'Tiempo de espera llegada',
+        'value': serviceInfoMap['tiempoEsperaLlegada'],
+      },
       {'label': 'Hora de terminación', 'value': serviceInfoMap['horaTermino']},
       {'label': 'Ubicacion', 'value': serviceInfoMap['ubicacion']},
       {'label': 'Tipo de servicio', 'value': serviceInfoMap['tipoServicio']},
-      {'label': 'Especifique', 'value': serviceInfoMap['tipoServicioEspecifique']},
-      {'label': 'Lugar de ocurrencia', 'value': serviceInfoMap['lugarOcurrencia']},
+      {
+        'label': 'Especifique',
+        'value': serviceInfoMap['tipoServicioEspecifique'],
+      },
+      {
+        'label': 'Lugar de ocurrencia',
+        'value': serviceInfoMap['lugarOcurrencia'],
+      },
     ];
 
     return _buildSectionCard(
@@ -529,17 +556,41 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (patientInfo is Map) {
       patientInfoMap = Map<String, dynamic>.from(patientInfo);
     }
-    
+
     final details = [
-      {'label': 'Nombre completo', 'value': patientInfoMap['name'] ?? widget.record.patientName},
-      {'label': 'Edad', 'value': patientInfoMap['age'] != null ? '${patientInfoMap['age']} años' : '${widget.record.patientAge} años'},
-      {'label': 'Sexo', 'value': patientInfoMap['sex'] ?? widget.record.patientGender}, // Cambiado de gender a sex
-      {'label': 'Dirección', 'value': patientInfoMap['address'] ?? widget.record.patientAddress},
+      {
+        'label': 'Nombre completo',
+        'value': patientInfoMap['name'] ?? widget.record.patientName,
+      },
+      {
+        'label': 'Edad',
+        'value':
+            patientInfoMap['age'] != null
+                ? '${patientInfoMap['age']} años'
+                : '${widget.record.patientAge} años',
+      },
+      {
+        'label': 'Sexo',
+        'value': patientInfoMap['sex'] ?? widget.record.patientGender,
+      }, // Cambiado de gender a sex
+      {
+        'label': 'Dirección',
+        'value': patientInfoMap['address'] ?? widget.record.patientAddress,
+      },
       {'label': 'Teléfono', 'value': patientInfoMap['phone']},
       {'label': 'Seguro médico', 'value': patientInfoMap['insurance']},
-      {'label': 'Padecimiento actual', 'value': patientInfoMap['currentCondition']},
-      {'label': 'Contacto de emergencia', 'value': patientInfoMap['emergencyContact']},
-      {'label': 'Persona responsable', 'value': patientInfoMap['responsiblePerson']},
+      {
+        'label': 'Padecimiento actual',
+        'value': patientInfoMap['currentCondition'],
+      },
+      {
+        'label': 'Contacto de emergencia',
+        'value': patientInfoMap['emergencyContact'],
+      },
+      {
+        'label': 'Persona responsable',
+        'value': patientInfoMap['responsiblePerson'],
+      },
     ];
 
     return _buildSectionCard(
@@ -560,19 +611,34 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
 
     final details = [
       ...[
-        if (managementMap['viaAerea'] == true) {'label': 'Vía aérea', 'value': 'Sí'},
-        if (managementMap['canalizacion'] == true) {'label': 'Canalización', 'value': 'Sí'},
-        if (managementMap['empaquetamiento'] == true) {'label': 'Empaquetamiento', 'value': 'Sí'},
-        if (managementMap['inmovilizacion'] == true) {'label': 'Inmovilización', 'value': ''},
-        if (managementMap['monitor'] == true) {'label': 'Monitor', 'value': 'Sí'},
-        if (managementMap['rcpBasica'] == true) {'label': 'RCP básica', 'value': 'Sí'},
-        if (managementMap['mastPna'] == true) {'label': 'MAST/PNA', 'value': 'Sí'},
-        if (managementMap['collarinCervical'] == true) {'label': 'Collarín cervical', 'value': 'Sí'},
-        if (managementMap['desfibrilacion'] == true) {'label': 'Desfibrilación', 'value': 'Sí'},
-        if (managementMap['apoyoVent'] == true) {'label': 'Apoyo ventilatorio', 'value': 'Sí'},
+        if (managementMap['viaAerea'] == true)
+          {'label': 'Vía aérea', 'value': 'Sí'},
+        if (managementMap['canalizacion'] == true)
+          {'label': 'Canalización', 'value': 'Sí'},
+        if (managementMap['empaquetamiento'] == true)
+          {'label': 'Empaquetamiento', 'value': 'Sí'},
+        if (managementMap['inmovilizacion'] == true)
+          {'label': 'Inmovilización', 'value': ''},
+        if (managementMap['monitor'] == true)
+          {'label': 'Monitor', 'value': 'Sí'},
+        if (managementMap['rcpBasica'] == true)
+          {'label': 'RCP básica', 'value': 'Sí'},
+        if (managementMap['mastPna'] == true)
+          {'label': 'MAST/PNA', 'value': 'Sí'},
+        if (managementMap['collarinCervical'] == true)
+          {'label': 'Collarín cervical', 'value': 'Sí'},
+        if (managementMap['desfibrilacion'] == true)
+          {'label': 'Desfibrilación', 'value': 'Sí'},
+        if (managementMap['apoyoVent'] == true)
+          {'label': 'Apoyo ventilatorio', 'value': 'Sí'},
         if (managementMap['oxigeno'] != null)
-          {'label': 'Oxígeno', 'value': managementMap['oxigeno'] == true ? 'Sí' : 'No'},
-        if (managementMap['oxigeno'] == true && managementMap['ltMin'] != null && managementMap['ltMin'].toString().isNotEmpty)
+          {
+            'label': 'Oxígeno',
+            'value': managementMap['oxigeno'] == true ? 'Sí' : 'No',
+          },
+        if (managementMap['oxigeno'] == true &&
+            managementMap['ltMin'] != null &&
+            managementMap['ltMin'].toString().isNotEmpty)
           {'label': 'Lt/min', 'value': managementMap['ltMin']},
       ],
     ];
@@ -615,14 +681,26 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
 
     final details = [
       {'label': 'Última menstruación', 'value': gynecoObstetricMap['fum']},
-      {'label': 'Semanas de gestación', 'value': gynecoObstetricMap['semanasGestacion']},
+      {
+        'label': 'Semanas de gestación',
+        'value': gynecoObstetricMap['semanasGestacion'],
+      },
       {'label': 'Gesta', 'value': gynecoObstetricMap['gesta']},
       {'label': 'Abortos', 'value': gynecoObstetricMap['abortos']},
       {'label': 'Partos', 'value': gynecoObstetricMap['partos']},
       {'label': 'Cesáreas', 'value': gynecoObstetricMap['cesareas']},
-      {'label': 'Métodos anticonceptivos', 'value': gynecoObstetricMap['metodosAnticonceptivos']},
-      {'label': 'Ruidos cardiacos fetales', 'value': gynecoObstetricMap['ruidosCardiacosFetales']},
-      {'label': 'Expulsión de placenta', 'value': gynecoObstetricMap['expulsionPlacenta']},
+      {
+        'label': 'Métodos anticonceptivos',
+        'value': gynecoObstetricMap['metodosAnticonceptivos'],
+      },
+      {
+        'label': 'Ruidos cardiacos fetales',
+        'value': gynecoObstetricMap['ruidosCardiacosFetales'],
+      },
+      {
+        'label': 'Expulsión de placenta',
+        'value': gynecoObstetricMap['expulsionPlacenta'],
+      },
       {'label': 'Hora', 'value': gynecoObstetricMap['hora']},
     ];
 
@@ -645,68 +723,88 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     final details = [
       {
         'label': 'Firma paciente',
-        'value': (() {
-          try {
-            final signatureData = attentionNegativeMap['patientSignature'];
-            if (signatureData != null && signatureData.toString().isNotEmpty) {
-              final decodedBytes = _getImageBytesFromBase64(signatureData.toString());
-              if (decodedBytes.isNotEmpty) {
-                return GestureDetector(
-                  onTap: () => _showSignatureFullScreen('Firma del Paciente', signatureData.toString()),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Image.memory(
-                      decodedBytes,
-                      height: 60,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
-                    ),
-                  ),
-                );
+        'value':
+            (() {
+              try {
+                final signatureData = attentionNegativeMap['patientSignature'];
+                if (signatureData != null &&
+                    signatureData.toString().isNotEmpty) {
+                  final decodedBytes = _getImageBytesFromBase64(
+                    signatureData.toString(),
+                  );
+                  if (decodedBytes.isNotEmpty) {
+                    return GestureDetector(
+                      onTap:
+                          () => _showSignatureFullScreen(
+                            'Firma del Paciente',
+                            signatureData.toString(),
+                          ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Image.memory(
+                          decodedBytes,
+                          height: 60,
+                          fit: BoxFit.contain,
+                          errorBuilder:
+                              (context, error, stackTrace) =>
+                                  const Text('Firma no disponible'),
+                        ),
+                      ),
+                    );
+                  }
+                }
+                return const Text('No registrada');
+              } catch (e) {
+                // Si hay error decodificando base64, mostrar mensaje de error
+                return const Text('Firma corrupta');
               }
-            }
-            return const Text('No registrada');
-          } catch (e) {
-            // Si hay error decodificando base64, mostrar mensaje de error
-            return const Text('Firma corrupta');
-          }
-        })(),
+            })(),
         'isSignature': true,
       },
       {
         'label': 'Firma Testigo',
-        'value': (() {
-          try {
-            final signatureData = attentionNegativeMap['witnessSignature'];
-            if (signatureData != null && signatureData.toString().isNotEmpty) {
-              final decodedBytes = _getImageBytesFromBase64(signatureData.toString());
-              if (decodedBytes.isNotEmpty) {
-                return GestureDetector(
-                  onTap: () => _showSignatureFullScreen('Firma del Testigo', signatureData.toString()),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Image.memory(
-                      decodedBytes,
-                      height: 60,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
-                    ),
-                  ),
-                );
+        'value':
+            (() {
+              try {
+                final signatureData = attentionNegativeMap['witnessSignature'];
+                if (signatureData != null &&
+                    signatureData.toString().isNotEmpty) {
+                  final decodedBytes = _getImageBytesFromBase64(
+                    signatureData.toString(),
+                  );
+                  if (decodedBytes.isNotEmpty) {
+                    return GestureDetector(
+                      onTap:
+                          () => _showSignatureFullScreen(
+                            'Firma del Testigo',
+                            signatureData.toString(),
+                          ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Image.memory(
+                          decodedBytes,
+                          height: 60,
+                          fit: BoxFit.contain,
+                          errorBuilder:
+                              (context, error, stackTrace) =>
+                                  const Text('Firma no disponible'),
+                        ),
+                      ),
+                    );
+                  }
+                }
+                return const Text('No registrada');
+              } catch (e) {
+                // Si hay error decodificando base64, mostrar mensaje de error
+                return const Text('Firma corrupta');
               }
-            }
-            return const Text('No registrada');
-          } catch (e) {
-            // Si hay error decodificando base64, mostrar mensaje de error
-            return const Text('Firma corrupta');
-          }
-        })(),
+            })(),
         'isSignature': true,
       },
     ];
@@ -728,19 +826,41 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (pathologicalHistoryMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Respiratoria', 'value': pathologicalHistoryMap['respiratoria'] == true ? 'Sí' : 'No'},
-      {'label': 'Emocional', 'value': pathologicalHistoryMap['emocional'] == true ? 'Sí' : 'No'},
-      {'label': 'Traumática', 'value': pathologicalHistoryMap['traumatica'] == true ? 'Sí' : 'No'},
-      {'label': 'Cardiovascular', 'value': pathologicalHistoryMap['cardiovascular'] == true ? 'Sí' : 'No'},
-      {'label': 'Neurológica', 'value': pathologicalHistoryMap['neurologica'] == true ? 'Sí' : 'No'},
-      {'label': 'Alérgico', 'value': pathologicalHistoryMap['alergico'] == true ? 'Sí' : 'No'},
+      {
+        'label': 'Respiratoria',
+        'value': pathologicalHistoryMap['respiratoria'] == true ? 'Sí' : 'No',
+      },
+      {
+        'label': 'Emocional',
+        'value': pathologicalHistoryMap['emocional'] == true ? 'Sí' : 'No',
+      },
+      {
+        'label': 'Traumática',
+        'value': pathologicalHistoryMap['traumatica'] == true ? 'Sí' : 'No',
+      },
+      {
+        'label': 'Cardiovascular',
+        'value': pathologicalHistoryMap['cardiovascular'] == true ? 'Sí' : 'No',
+      },
+      {
+        'label': 'Neurológica',
+        'value': pathologicalHistoryMap['neurologica'] == true ? 'Sí' : 'No',
+      },
+      {
+        'label': 'Alérgico',
+        'value': pathologicalHistoryMap['alergico'] == true ? 'Sí' : 'No',
+      },
       {
         'label': 'Otro',
-        'value': pathologicalHistoryMap['otro'] == true
-            ? (pathologicalHistoryMap['otherDescription'] ?? '')
-            : 'No'
+        'value':
+            pathologicalHistoryMap['otro'] == true
+                ? (pathologicalHistoryMap['otherDescription'] ?? '')
+                : 'No',
       },
-      {'label': 'Metabólica', 'value': pathologicalHistoryMap['metabolica'] == true ? 'Sí' : 'No'},
+      {
+        'label': 'Metabólica',
+        'value': pathologicalHistoryMap['metabolica'] == true ? 'Sí' : 'No',
+      },
     ];
 
     return _buildSectionCard(
@@ -761,26 +881,43 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
 
     final details = [
       ...[
-        if (clinicalHistoryMap['atropellado'] == true) {'label': 'Atropellado', 'value': 'Sí'},
-        if (clinicalHistoryMap['lxPorCaida'] == true) {'label': 'Lx por caída', 'value': 'Sí'},
-        if (clinicalHistoryMap['intoxicacion'] == true) {'label': 'Intoxicación', 'value': 'Sí'},
-        if (clinicalHistoryMap['amputacion'] == true) {'label': 'Amputación', 'value': 'Sí'},
-        if (clinicalHistoryMap['choque'] == true) {'label': 'Choque', 'value': 'Sí'},
-        if (clinicalHistoryMap['agresion'] == true) {'label': 'Agresión', 'value': 'Sí'},
-        if (clinicalHistoryMap['hpaf'] == true) {'label': 'HPAF', 'value': 'Sí'},
-        if (clinicalHistoryMap['hpab'] == true) {'label': 'HPAB', 'value': 'Sí'},
-        if (clinicalHistoryMap['volcadura'] == true) {'label': 'Volcadura', 'value': 'Sí'},
-        if (clinicalHistoryMap['quemadura'] == true) {'label': 'Quemadura', 'value': 'Sí'},
+        if (clinicalHistoryMap['atropellado'] == true)
+          {'label': 'Atropellado', 'value': 'Sí'},
+        if (clinicalHistoryMap['lxPorCaida'] == true)
+          {'label': 'Lx por caída', 'value': 'Sí'},
+        if (clinicalHistoryMap['intoxicacion'] == true)
+          {'label': 'Intoxicación', 'value': 'Sí'},
+        if (clinicalHistoryMap['amputacion'] == true)
+          {'label': 'Amputación', 'value': 'Sí'},
+        if (clinicalHistoryMap['choque'] == true)
+          {'label': 'Choque', 'value': 'Sí'},
+        if (clinicalHistoryMap['agresion'] == true)
+          {'label': 'Agresión', 'value': 'Sí'},
+        if (clinicalHistoryMap['hpaf'] == true)
+          {'label': 'HPAF', 'value': 'Sí'},
+        if (clinicalHistoryMap['hpab'] == true)
+          {'label': 'HPAB', 'value': 'Sí'},
+        if (clinicalHistoryMap['volcadura'] == true)
+          {'label': 'Volcadura', 'value': 'Sí'},
+        if (clinicalHistoryMap['quemadura'] == true)
+          {'label': 'Quemadura', 'value': 'Sí'},
       ],
       {
         'label': 'Otro tipo',
-        'value': clinicalHistoryMap['otroTipo'] == true
-            ? (clinicalHistoryMap['otherTypeDescription'] ?? '')
-            : 'No'
+        'value':
+            clinicalHistoryMap['otroTipo'] == true
+                ? (clinicalHistoryMap['otherTypeDescription'] ?? '')
+                : 'No',
       },
-      {'label': 'Agente causal', 'value': clinicalHistoryMap['agenteCausal'] ?? ''},
+      {
+        'label': 'Agente causal',
+        'value': clinicalHistoryMap['agenteCausal'] ?? '',
+      },
       {'label': 'Cinemática', 'value': clinicalHistoryMap['cinematica'] ?? ''},
-      {'label': 'Medida de Seguridad', 'value': clinicalHistoryMap['medidaSeguridad'] ?? ''},
+      {
+        'label': 'Medida de Seguridad',
+        'value': clinicalHistoryMap['medidaSeguridad'] ?? '',
+      },
     ];
 
     return _buildSectionCard(
@@ -812,18 +949,24 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
       ])
         {
           'label': vitalSign['label'],
-          'value': (() {
-            // Si hay columnas de tiempo, mostrar los valores por hora
-            if (physicalExamMap['timeColumns'] != null && physicalExamMap[vitalSign['key']] != null) {
-              final timeColumns = List<String>.from(physicalExamMap['timeColumns']);
-              final values = Map<String, dynamic>.from(physicalExamMap[vitalSign['key']]);
-              return timeColumns
-                  .map((col) => '${col}: ${values[col] ?? ''}')
-                  .join('\n');
-            }
-            // Si no, mostrar el valor directo (por compatibilidad)
-            return physicalExamMap[vitalSign['key']];
-          })(),
+          'value':
+              (() {
+                // Si hay columnas de tiempo, mostrar los valores por hora
+                if (physicalExamMap['timeColumns'] != null &&
+                    physicalExamMap[vitalSign['key']] != null) {
+                  final timeColumns = List<String>.from(
+                    physicalExamMap['timeColumns'],
+                  );
+                  final values = Map<String, dynamic>.from(
+                    physicalExamMap[vitalSign['key']],
+                  );
+                  return timeColumns
+                      .map((col) => '$col: ${values[col] ?? ''}')
+                      .join('\n');
+                }
+                // Si no, mostrar el valor directo (por compatibilidad)
+                return physicalExamMap[vitalSign['key']];
+              })(),
         },
     ];
 
@@ -839,7 +982,9 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     final priorityJustification = _detailedInfo['priorityJustification'];
     Map<String, dynamic> priorityJustificationMap = {};
     if (priorityJustification is Map) {
-      priorityJustificationMap = Map<String, dynamic>.from(priorityJustification);
+      priorityJustificationMap = Map<String, dynamic>.from(
+        priorityJustification,
+      );
     }
     if (priorityJustificationMap.isEmpty) return const SizedBox.shrink();
 
@@ -848,13 +993,21 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
       {'label': 'Pupilas', 'value': priorityJustificationMap['pupils']},
       {'label': 'Color piel', 'value': priorityJustificationMap['skinColor']},
       {'label': 'Piel', 'value': priorityJustificationMap['skin']},
-      {'label': 'Temperatura', 'value': priorityJustificationMap['temperature']},
+      {
+        'label': 'Temperatura',
+        'value': priorityJustificationMap['temperature'],
+      },
       {
         'label': 'Influenciado por',
-        'value': (priorityJustificationMap['influence'] == 'Otro' &&
-                  (priorityJustificationMap['especifique'] != null && priorityJustificationMap['especifique'].toString().trim().isNotEmpty))
-            ? priorityJustificationMap['especifique']
-            : priorityJustificationMap['influence'],
+        'value':
+            (priorityJustificationMap['influence'] == 'Otro' &&
+                    (priorityJustificationMap['especifique'] != null &&
+                        priorityJustificationMap['especifique']
+                            .toString()
+                            .trim()
+                            .isNotEmpty))
+                ? priorityJustificationMap['especifique']
+                : priorityJustificationMap['influence'],
       },
     ];
 
@@ -880,45 +1033,50 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     // Procesar lesiones dibujadas si existen
     if (injuryLocationMap['drawnInjuries'] != null) {
       final List<dynamic> injuriesData = injuryLocationMap['drawnInjuries'];
-      
+
       if (injuriesData.isNotEmpty) {
         // Convertir datos a objetos DrawnInjuryDisplay
-        drawnInjuries = injuriesData.map((injury) {
-          final List<dynamic> pointsData = injury['points'];
-          final points = pointsData.map((point) => Offset(point['dx'], point['dy'])).toList();
-          final injuryType = injury['injuryType'] as int;
-          
-          return DrawnInjuryDisplay(
-            points: points,
-            injuryType: injuryType,
-          );
-        }).toList();
-        
+        drawnInjuries =
+            injuriesData.map((injury) {
+              final List<dynamic> pointsData = injury['points'];
+              final points =
+                  pointsData
+                      .map((point) => Offset(point['dx'], point['dy']))
+                      .toList();
+              final injuryType = injury['injuryType'] as int;
+
+              return DrawnInjuryDisplay(points: points, injuryType: injuryType);
+            }).toList();
+
         // Agrupar lesiones por tipo para mostrar resumen
         Map<int, int> injuriesByType = {};
         for (var injury in drawnInjuries) {
-          injuriesByType[injury.injuryType] = (injuriesByType[injury.injuryType] ?? 0) + 1;
+          injuriesByType[injury.injuryType] =
+              (injuriesByType[injury.injuryType] ?? 0) + 1;
         }
-        
+
         // Crear detalles para cada tipo de lesión
         injuriesByType.forEach((typeIndex, count) {
           final typeName = _getInjuryTypeName(typeIndex);
           details.add({
             'label': typeName,
-            'value': '$count ${count == 1 ? 'lesión marcada' : 'lesiones marcadas'}',
+            'value':
+                '$count ${count == 1 ? 'lesión marcada' : 'lesiones marcadas'}',
           });
         });
-        
+
         // Mostrar total de lesiones
         details.add({
           'label': 'Total de lesiones',
-          'value': '${drawnInjuries.length} ${drawnInjuries.length == 1 ? 'lesión' : 'lesiones'} dibujadas',
+          'value':
+              '${drawnInjuries.length} ${drawnInjuries.length == 1 ? 'lesión' : 'lesiones'} dibujadas',
         });
       }
     }
 
     // Mostrar notas adicionales
-    if (injuryLocationMap['notes'] != null && injuryLocationMap['notes'].toString().trim().isNotEmpty) {
+    if (injuryLocationMap['notes'] != null &&
+        injuryLocationMap['notes'].toString().trim().isNotEmpty) {
       details.add({
         'label': 'Notas adicionales',
         'value': injuryLocationMap['notes'],
@@ -931,244 +1089,271 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
       icon: Icons.my_location,
       color: Colors.red,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Layout horizontal: Lista de lesiones + Mapa visual
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Layout horizontal: Lista de lesiones + Mapa visual
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Panel izquierdo - Lista de lesiones
-                  Container(
-                    width: 250,
-                    margin: const EdgeInsets.only(right: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Lesiones registradas:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black87,
+              // Panel izquierdo - Lista de lesiones
+              Container(
+                width: 250,
+                margin: const EdgeInsets.only(right: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Lesiones registradas:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Lista de lesiones
+                    if (drawnInjuries.isNotEmpty) ...[
+                      ...drawnInjuries.asMap().entries.map((entry) {
+                        final injury = entry.value;
+                        final typeName = _getInjuryTypeName(injury.injuryType);
+                        final color = _getInjuryTypeColor(injury.injuryType);
+                        final number = injury.injuryType + 1;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: color.withOpacity(0.3)),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // Lista de lesiones
-                        if (drawnInjuries.isNotEmpty) ...[
-                          ...drawnInjuries.asMap().entries.map((entry) {
-                            final injury = entry.value;
-                            final typeName = _getInjuryTypeName(injury.injuryType);
-                            final color = _getInjuryTypeColor(injury.injuryType);
-                            final number = injury.injuryType + 1;
-                            
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: color.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: color.withOpacity(0.3)),
-                              ),
-                              child: Row(
-                                children: [
-                                  // Número de la lesión
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
+                          child: Row(
+                            children: [
+                              // Número de la lesión
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '$number',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    child: Center(
-                                      child: Text(
-                                        '$number',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Información de la lesión
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      typeName,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: color.withOpacity(0.8),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  
-                                  // Información de la lesión
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          typeName,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: color.withOpacity(0.8),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${injury.points.length} ${injury.points.length == 1 ? 'punto' : 'puntos'} marcados',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${injury.points.length} ${injury.points.length == 1 ? 'punto' : 'puntos'} marcados',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            );
-                          }).toList(),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // Resumen
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(height: 16),
+
+                      // Resumen
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.blue[700],
+                              size: 20,
                             ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Total: ${drawnInjuries.length} ${drawnInjuries.length == 1 ? 'lesión' : 'lesiones'}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.blue[700],
-                                    ),
-                                  ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Total: ${drawnInjuries.length} ${drawnInjuries.length == 1 ? 'lesión' : 'lesiones'}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.blue[700],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ] else ...[
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[300]!),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
-                                const SizedBox(width: 8),
-                                const Expanded(
-                                  child: Text(
-                                    'No se han registrado lesiones',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  
-                  // Panel derecho - Mapa visual del cuerpo humano
-                  Expanded(
-                    child: Container(
-                      height: 400,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: InjuryLocationDisplayWidget(
-                          drawnInjuries: drawnInjuries,
-                          originalImageSize: injuryLocationMap['originalImageSize'] != null
-                              ? Size(
-                                  injuryLocationMap['originalImageSize']['width']?.toDouble() ?? 400.0,
-                                  injuryLocationMap['originalImageSize']['height']?.toDouble() ?? 600.0,
-                                )
-                              : null, // Para registros antiguos sin esta información
-                          originalImageRect: injuryLocationMap['originalImageRect'] != null
-                              ? Rect.fromLTWH(
-                                  injuryLocationMap['originalImageRect']['left']?.toDouble() ?? 0.0,
-                                  injuryLocationMap['originalImageRect']['top']?.toDouble() ?? 0.0,
-                                  injuryLocationMap['originalImageRect']['width']?.toDouble() ?? 400.0,
-                                  injuryLocationMap['originalImageRect']['height']?.toDouble() ?? 600.0,
-                                )
-                              : null, // Para registros antiguos sin esta información
+                          ],
                         ),
                       ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.grey[600],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'No se han registrado lesiones',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Panel derecho - Mapa visual del cuerpo humano
+              Expanded(
+                child: Container(
+                  height: 400,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: InjuryLocationDisplayWidget(
+                      drawnInjuries: drawnInjuries,
+                      originalImageSize:
+                          injuryLocationMap['originalImageSize'] != null
+                              ? Size(
+                                injuryLocationMap['originalImageSize']['width']
+                                        ?.toDouble() ??
+                                    400.0,
+                                injuryLocationMap['originalImageSize']['height']
+                                        ?.toDouble() ??
+                                    600.0,
+                              )
+                              : null, // Para registros antiguos sin esta información
+                      originalImageRect:
+                          injuryLocationMap['originalImageRect'] != null
+                              ? Rect.fromLTWH(
+                                injuryLocationMap['originalImageRect']['left']
+                                        ?.toDouble() ??
+                                    0.0,
+                                injuryLocationMap['originalImageRect']['top']
+                                        ?.toDouble() ??
+                                    0.0,
+                                injuryLocationMap['originalImageRect']['width']
+                                        ?.toDouble() ??
+                                    400.0,
+                                injuryLocationMap['originalImageRect']['height']
+                                        ?.toDouble() ??
+                                    600.0,
+                              )
+                              : null, // Para registros antiguos sin esta información
                     ),
                   ),
-                ],
+                ),
               ),
-              
-              const SizedBox(height: 16),
-              
-              // Leyenda de tipos de lesiones (ahora más compacta)
-              if (drawnInjuries.isNotEmpty) ...[
-                const Text(
-                  'Leyenda de tipos:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 6,
-                  children: _buildInjuryLegend(drawnInjuries),
-                ),
-                const SizedBox(height: 16),
-              ],
-              
-              // Detalles en texto
-              ...details.map((detail) {
-                if (detail['isFullWidth'] == true) {
-                  return _buildFullWidthDetail(detail['label'], detail['value']);
-                }
-                return _buildDetailRow(detail['label'], detail['value']);
-              }).toList(),
             ],
           ),
+
+          const SizedBox(height: 16),
+
+          // Leyenda de tipos de lesiones (ahora más compacta)
+          if (drawnInjuries.isNotEmpty) ...[
+            const Text(
+              'Leyenda de tipos:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: _buildInjuryLegend(drawnInjuries),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Detalles en texto
+          ...details.map((detail) {
+            if (detail['isFullWidth'] == true) {
+              return _buildFullWidthDetail(detail['label'], detail['value']);
+            }
+            return _buildDetailRow(detail['label'], detail['value']);
+          }),
+        ],
+      ),
     );
   }
 
   // Método auxiliar para obtener el nombre del tipo de lesión
   String _getInjuryTypeName(int typeIndex) {
     const injuryTypes = [
-      'Hemorragia',           // 0
-      'Herida',               // 1
-      'Contusión',            // 2
-      'Fractura',             // 3
-      'Luxación/Esguince',    // 4
-      'Objeto extraño',       // 5
-      'Quemadura',            // 6
-      'Picadura/Mordedura',   // 7
-      'Edema/Hematoma',       // 8
-      'Otro',                 // 9
+      'Hemorragia', // 0
+      'Herida', // 1
+      'Contusión', // 2
+      'Fractura', // 3
+      'Luxación/Esguince', // 4
+      'Objeto extraño', // 5
+      'Quemadura', // 6
+      'Picadura/Mordedura', // 7
+      'Edema/Hematoma', // 8
+      'Otro', // 9
     ];
-    
+
     if (typeIndex >= 0 && typeIndex < injuryTypes.length) {
       return injuryTypes[typeIndex];
     }
@@ -1205,10 +1390,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
             ),
             child: Text(
               value.toString(),
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
           ),
         ],
@@ -1227,11 +1409,20 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     final details = [
       {'label': 'Lugar de origen', 'value': receivingUnitMap['originPlace']},
       {'label': 'Lugar de consulta', 'value': receivingUnitMap['consultPlace']},
-      {'label': 'Lugar de destino', 'value': receivingUnitMap['destinationPlace']},
-      {'label': 'Numero de ambulancia', 'value': receivingUnitMap['ambulanceNumber']},
+      {
+        'label': 'Lugar de destino',
+        'value': receivingUnitMap['destinationPlace'],
+      },
+      {
+        'label': 'Numero de ambulancia',
+        'value': receivingUnitMap['ambulanceNumber'],
+      },
       {'label': 'Placa', 'value': receivingUnitMap['plate']},
       {'label': 'Personal', 'value': receivingUnitMap['personal']},
-      {'label': 'Doctor responsable', 'value': receivingUnitMap['responsibleDoctor']},
+      {
+        'label': 'Doctor responsable',
+        'value': receivingUnitMap['responsibleDoctor'],
+      },
     ];
 
     return _buildSectionCard(
@@ -1251,39 +1442,54 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     if (patientReceptionMap.isEmpty) return const SizedBox.shrink();
 
     final details = [
-      {'label': 'Medico que recibe', 'value': patientReceptionMap['receivingDoctor']},
+      {
+        'label': 'Medico que recibe',
+        'value': patientReceptionMap['receivingDoctor'],
+      },
       {
         'label': 'Firma del medico',
-        'value': (() {
-          try {
-            final signatureData = patientReceptionMap['doctorSignature'];
-            if (signatureData != null && signatureData.toString().isNotEmpty) {
-              final decodedBytes = _getImageBytesFromBase64(signatureData.toString());
-              if (decodedBytes.isNotEmpty) {
-                final doctorName = patientReceptionMap['receivingDoctor'] ?? '';
-                return GestureDetector(
-                  onTap: () => _showSignatureFullScreen('Firma del Médico', signatureData.toString(), doctorName: doctorName),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Image.memory(
-                      decodedBytes,
-                      height: 60,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Text('Firma no disponible'),
-                    ),
-                  ),
-                );
+        'value':
+            (() {
+              try {
+                final signatureData = patientReceptionMap['doctorSignature'];
+                if (signatureData != null &&
+                    signatureData.toString().isNotEmpty) {
+                  final decodedBytes = _getImageBytesFromBase64(
+                    signatureData.toString(),
+                  );
+                  if (decodedBytes.isNotEmpty) {
+                    final doctorName =
+                        patientReceptionMap['receivingDoctor'] ?? '';
+                    return GestureDetector(
+                      onTap:
+                          () => _showSignatureFullScreen(
+                            'Firma del Médico',
+                            signatureData.toString(),
+                            doctorName: doctorName,
+                          ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Image.memory(
+                          decodedBytes,
+                          height: 60,
+                          fit: BoxFit.contain,
+                          errorBuilder:
+                              (context, error, stackTrace) =>
+                                  const Text('Firma no disponible'),
+                        ),
+                      ),
+                    );
+                  }
+                }
+                return const Text('No registrada');
+              } catch (e) {
+                // Si hay error decodificando base64, mostrar mensaje de error
+                return const Text('Firma corrupta');
               }
-            }
-            return const Text('No registrada');
-          } catch (e) {
-            // Si hay error decodificando base64, mostrar mensaje de error
-            return const Text('Firma corrupta');
-          }
-        })(),
+            })(),
         'isSignature': true,
       },
     ];
@@ -1299,21 +1505,27 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
   Widget _buildInsumosSection() {
     // Obtener insumos del registro local o de la nube
     List<dynamic> insumosList = [];
-    
+
     if (widget.record.localRecord != null) {
       // Si hay registro local, obtener insumos del modelo local
-      insumosList = widget.record.localRecord!.insumos.map((insumo) => {
-        'cantidad': insumo.cantidad,
-        'articulo': insumo.articulo,
-      }).toList();
+      insumosList =
+          widget.record.localRecord!.insumos
+              .map(
+                (insumo) => {
+                  'cantidad': insumo.cantidad,
+                  'articulo': insumo.articulo,
+                },
+              )
+              .toList();
     } else if (widget.record.cloudRecord != null) {
       // Si es solo de la nube, buscar en las secciones de management o serviceInfo
       final cloudData = widget.record.cloudRecord!;
-      insumosList = cloudData.management['insumos'] ?? 
-                   cloudData.serviceInfo['insumos'] ?? 
-                   [];
+      insumosList =
+          cloudData.management['insumos'] ??
+          cloudData.serviceInfo['insumos'] ??
+          [];
     }
-    
+
     if (insumosList.isEmpty) return const SizedBox.shrink();
 
     return _buildSectionCard(
@@ -1359,7 +1571,8 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            insumosList[i]['articulo']?.toString() ?? 'Sin especificar',
+                            insumosList[i]['articulo']?.toString() ??
+                                'Sin especificar',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -1402,22 +1615,28 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
   Widget _buildPersonalMedicoSection() {
     // Obtener personal médico del registro local o de la nube
     List<dynamic> personalList = [];
-    
+
     if (widget.record.localRecord != null) {
       // Si hay registro local, obtener personal médico del modelo local
-      personalList = widget.record.localRecord!.personalMedico.map((personal) => {
-        'nombre': personal.nombre,
-        'especialidad': personal.especialidad,
-        'cedula': personal.cedula,
-      }).toList();
+      personalList =
+          widget.record.localRecord!.personalMedico
+              .map(
+                (personal) => {
+                  'nombre': personal.nombre,
+                  'especialidad': personal.especialidad,
+                  'cedula': personal.cedula,
+                },
+              )
+              .toList();
     } else if (widget.record.cloudRecord != null) {
       // Si es solo de la nube, buscar en las secciones de management o serviceInfo
       final cloudData = widget.record.cloudRecord!;
-      personalList = cloudData.management['personalMedico'] ?? 
-                    cloudData.serviceInfo['personalMedico'] ?? 
-                    [];
+      personalList =
+          cloudData.management['personalMedico'] ??
+          cloudData.serviceInfo['personalMedico'] ??
+          [];
     }
-    
+
     if (personalList.isEmpty) return const SizedBox.shrink();
 
     return _buildSectionCard(
@@ -1458,7 +1677,8 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            personalList[i]['nombre']?.toString() ?? 'Sin especificar',
+                            personalList[i]['nombre']?.toString() ??
+                                'Sin especificar',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -1466,7 +1686,10 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                             ),
                           ),
                           const SizedBox(height: 4),
-                          if (personalList[i]['especialidad']?.toString().isNotEmpty == true)
+                          if (personalList[i]['especialidad']
+                                  ?.toString()
+                                  .isNotEmpty ==
+                              true)
                             Text(
                               'Especialidad: ${personalList[i]['especialidad']}',
                               style: TextStyle(
@@ -1474,7 +1697,10 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                                 color: Colors.grey[600],
                               ),
                             ),
-                          if (personalList[i]['cedula']?.toString().isNotEmpty == true)
+                          if (personalList[i]['cedula']
+                                  ?.toString()
+                                  .isNotEmpty ==
+                              true)
                             Text(
                               'Cédula: ${personalList[i]['cedula']}',
                               style: TextStyle(
@@ -1510,8 +1736,9 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
   Widget _buildEscalasObstetricasSection() {
     // Obtener escalas obstétricas del registro local o de la nube
     Map<String, dynamic>? escalasData;
-    
-    if (widget.record.localRecord != null && widget.record.localRecord!.escalasObstetricas != null) {
+
+    if (widget.record.localRecord != null &&
+        widget.record.localRecord!.escalasObstetricas != null) {
       // Si hay registro local con escalas obstétricas
       final escalas = widget.record.localRecord!.escalasObstetricas!;
       escalasData = {
@@ -1523,17 +1750,20 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     } else if (widget.record.cloudRecord != null) {
       // Si es solo de la nube, buscar en la sección gynecoObstetric
       final cloudData = widget.record.cloudRecord!;
-      escalasData = cloudData.gynecoObstetric['escalasObstetricas'] ?? 
-                   cloudData.gynecoObstetric['escalas'];
+      escalasData =
+          cloudData.gynecoObstetric['escalasObstetricas'] ??
+          cloudData.gynecoObstetric['escalas'];
     }
-    
-    if (escalasData == null || escalasData.isEmpty) return const SizedBox.shrink();
+
+    if (escalasData == null || escalasData.isEmpty)
+      return const SizedBox.shrink();
 
     List<Map<String, dynamic>> details = [];
-    
+
     // Escala de Silverman-Anderson
     if (escalasData['silvermanAnderson'] != null) {
-      final silverman = escalasData['silvermanAnderson'] as Map<String, dynamic>;
+      final silverman =
+          escalasData['silvermanAnderson'] as Map<String, dynamic>;
       if (silverman.isNotEmpty) {
         details.add({
           'label': 'Escala Silverman-Anderson',
@@ -1542,7 +1772,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         });
       }
     }
-    
+
     // Escala APGAR
     if (escalasData['apgar'] != null) {
       final apgar = escalasData['apgar'] as Map<String, dynamic>;
@@ -1554,7 +1784,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         });
       }
     }
-    
+
     // Frecuencia cardíaca fetal
     if (escalasData['frecuenciaCardiacaFetal'] != null) {
       details.add({
@@ -1562,15 +1792,16 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         'value': '${escalasData['frecuenciaCardiacaFetal']} lpm',
       });
     }
-    
+
     // Contracciones
-    if (escalasData['contracciones'] != null && escalasData['contracciones'].toString().isNotEmpty) {
+    if (escalasData['contracciones'] != null &&
+        escalasData['contracciones'].toString().isNotEmpty) {
       details.add({
         'label': 'Contracciones',
         'value': escalasData['contracciones'].toString(),
       });
     }
-    
+
     if (details.isEmpty) return const SizedBox.shrink();
 
     return _buildSectionCard(
@@ -1594,10 +1825,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         children: [
           const Text(
             'Puntajes por criterio:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           ...silverman.entries.map((entry) {
@@ -1626,17 +1854,14 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                 ],
               ),
             );
-          }).toList(),
+          }),
           const Divider(),
           Row(
             children: [
               const Expanded(
                 child: Text(
                   'Puntaje total:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ),
               Text(
@@ -1667,10 +1892,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         children: [
           const Text(
             'Puntajes por criterio:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           ...apgar.entries.map((entry) {
@@ -1699,17 +1921,14 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
                 ],
               ),
             );
-          }).toList(),
+          }),
           const Divider(),
           Row(
             children: [
               const Expanded(
                 child: Text(
                   'Puntaje total:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ),
               Text(
@@ -1798,12 +2017,9 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
               ],
             ),
           ),
-          
+
           // Contenido de la sección
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.all(16), child: child),
         ],
       ),
     );
@@ -1811,11 +2027,17 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
 
   Widget _buildTwoColumnDetails(List<Map<String, dynamic>> details) {
     // Filtrar detalles que tienen valor
-    final detailsWithData = details.where((detail) => 
-      detail['value'] != null && 
-      (detail['value'] is Widget || (detail['value'] is String && detail['value'].toString().trim().isNotEmpty))
-    ).toList();
-    
+    final detailsWithData =
+        details
+            .where(
+              (detail) =>
+                  detail['value'] != null &&
+                  (detail['value'] is Widget ||
+                      (detail['value'] is String &&
+                          detail['value'].toString().trim().isNotEmpty)),
+            )
+            .toList();
+
     // Si no hay datos, mostrar mensaje
     if (detailsWithData.isEmpty) {
       return Center(
@@ -1832,13 +2054,14 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         ),
       );
     }
-    
+
     List<Widget> rows = [];
-    
+
     for (int i = 0; i < details.length; i++) {
       final detail = details[i];
-      final isFullWidth = detail['isFullWidth'] == true || detail['value'] is Widget;
-      
+      final isFullWidth =
+          detail['isFullWidth'] == true || detail['value'] is Widget;
+
       if (isFullWidth) {
         // Para campos que necesitan ancho completo (como firmas)
         rows.add(_buildDetailRow(detail['label'], detail['value']));
@@ -1846,12 +2069,17 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         // Para campos normales, intentar poner dos en una fila
         Widget leftColumn = _buildDetailRow(detail['label'], detail['value']);
         Widget? rightColumn;
-        
-        if (i + 1 < details.length && details[i + 1]['isFullWidth'] != true && details[i + 1]['value'] is! Widget) {
-          rightColumn = _buildDetailRow(details[i + 1]['label'], details[i + 1]['value']);
+
+        if (i + 1 < details.length &&
+            details[i + 1]['isFullWidth'] != true &&
+            details[i + 1]['value'] is! Widget) {
+          rightColumn = _buildDetailRow(
+            details[i + 1]['label'],
+            details[i + 1]['value'],
+          );
           i++; // Saltar el siguiente elemento ya que lo usamos aquí
         }
-        
+
         rows.add(
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1864,7 +2092,7 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
         );
       }
     }
-    
+
     return Column(children: rows);
   }
 
@@ -1917,15 +2145,16 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
           ),
           Expanded(
             flex: 3,
-            child: value is Widget 
-                ? value 
-                : Text(
-                    value.toString(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
+            child:
+                value is Widget
+                    ? value
+                    : Text(
+                      value.toString(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
                     ),
-                  ),
           ),
         ],
       ),
@@ -1935,7 +2164,9 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
   void _editRecord() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Función de edición para ${widget.record.patientName} próximamente disponible'),
+        content: Text(
+          'Función de edición para ${widget.record.patientName} próximamente disponible',
+        ),
         backgroundColor: Colors.orange,
       ),
     );
@@ -1954,42 +2185,46 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
     final context = this.context;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text('¿Está seguro de eliminar el registro de ${widget.record.patientName}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar eliminación'),
+            content: Text(
+              '¿Está seguro de eliminar el registro de ${widget.record.patientName}?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Eliminar'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
     );
 
     if (confirmed == true) {
       final notifier = ref.read(unifiedFrapProvider.notifier);
       final messenger = ScaffoldMessenger.of(context);
       final navigator = Navigator.of(context);
-      
+
       try {
         final success = await notifier.deleteRecord(widget.record);
-        
+
         if (mounted) {
           messenger.showSnackBar(
             SnackBar(
-              content: Text(success 
-                ? 'Registro eliminado exitosamente' 
-                : 'Error al eliminar el registro'
+              content: Text(
+                success
+                    ? 'Registro eliminado exitosamente'
+                    : 'Error al eliminar el registro',
               ),
               backgroundColor: success ? Colors.green : Colors.red,
             ),
           );
-          
+
           if (success) {
             navigator.pop(); // Regresar a la lista
           }
@@ -2020,12 +2255,12 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
   List<Widget> _buildInjuryLegend(List<DrawnInjuryDisplay> injuries) {
     // Obtener tipos únicos
     Set<int> uniqueTypes = injuries.map((injury) => injury.injuryType).toSet();
-    
+
     return uniqueTypes.map((typeIndex) {
       final typeName = _getInjuryTypeName(typeIndex);
       final color = _getInjuryTypeColor(typeIndex);
       final number = typeIndex + 1; // Los números van de 1-10
-      
+
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -2073,21 +2308,21 @@ class _FrapRecordDetailsScreenState extends ConsumerState<FrapRecordDetailsScree
   // Obtener color del tipo de lesión
   Color _getInjuryTypeColor(int typeIndex) {
     const colors = [
-      Colors.red,           // Hemorragia
-      Color(0xFF8D6E63),   // Herida (brown)
-      Colors.purple,        // Contusión
-      Colors.orange,        // Fractura
-      Colors.yellow,        // Luxación/Esguince
-      Colors.pink,          // Objeto extraño
-      Colors.deepOrange,    // Quemadura
-      Colors.green,         // Picadura/Mordedura
-      Colors.indigo,        // Edema/Hematoma
-      Colors.grey,          // Otro
+      Colors.red, // Hemorragia
+      Color(0xFF8D6E63), // Herida (brown)
+      Colors.purple, // Contusión
+      Colors.orange, // Fractura
+      Colors.yellow, // Luxación/Esguince
+      Colors.pink, // Objeto extraño
+      Colors.deepOrange, // Quemadura
+      Colors.green, // Picadura/Mordedura
+      Colors.indigo, // Edema/Hematoma
+      Colors.grey, // Otro
     ];
-    
+
     if (typeIndex >= 0 && typeIndex < colors.length) {
       return colors[typeIndex];
     }
     return Colors.grey;
   }
-} 
+}

@@ -12,10 +12,12 @@ class PriorityJustificationFormDialog extends StatefulWidget {
   });
 
   @override
-  State<PriorityJustificationFormDialog> createState() => _PriorityJustificationFormDialogState();
+  State<PriorityJustificationFormDialog> createState() =>
+      _PriorityJustificationFormDialogState();
 }
 
-class _PriorityJustificationFormDialogState extends State<PriorityJustificationFormDialog> {
+class _PriorityJustificationFormDialogState
+    extends State<PriorityJustificationFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _especifiqueController = TextEditingController();
   bool _isLoading = false;
@@ -37,8 +39,19 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
   ];
 
   // Opciones para cada categoría
-  final List<String> _pupilsOptions = ['Iguales', 'Midriasis', 'Miosis', 'Anisocoria', 'Arreflexia'];
-  final List<String> _skinColorOptions = ['Normal', 'Cianosis', 'Marmórea', 'Pálida'];
+  final List<String> _pupilsOptions = [
+    'Iguales',
+    'Midriasis',
+    'Miosis',
+    'Anisocoria',
+    'Arreflexia',
+  ];
+  final List<String> _skinColorOptions = [
+    'Normal',
+    'Cianosis',
+    'Marmórea',
+    'Pálida',
+  ];
   final List<String> _skinOptions = ['Seca', 'Húmeda'];
   final List<String> _temperatureOptions = ['Normal', 'Caliente', 'Fría'];
   final List<String> _influenceOptions = ['Alcohol', 'Otras drogas', 'Otro'];
@@ -130,11 +143,14 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
                       _buildSectionTitle('Nivel de Prioridad', Icons.flag),
                       const SizedBox(height: 16),
                       _buildPrioritySelector(),
-                      
+
                       const SizedBox(height: 24),
 
                       // Evaluaciones Clínicas
-                      _buildSectionTitle('Evaluación Clínica', Icons.medical_services),
+                      _buildSectionTitle(
+                        'Evaluación Clínica',
+                        Icons.medical_services,
+                      ),
                       const SizedBox(height: 16),
 
                       // Pupilas
@@ -142,7 +158,8 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
                         title: 'Pupilas:',
                         options: _pupilsOptions,
                         selectedValue: _selectedPupils,
-                        onChanged: (value) => setState(() => _selectedPupils = value),
+                        onChanged:
+                            (value) => setState(() => _selectedPupils = value),
                         icon: Icons.visibility,
                         color: Colors.purple,
                       ),
@@ -154,7 +171,9 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
                         title: 'Color Piel:',
                         options: _skinColorOptions,
                         selectedValue: _selectedSkinColor,
-                        onChanged: (value) => setState(() => _selectedSkinColor = value),
+                        onChanged:
+                            (value) =>
+                                setState(() => _selectedSkinColor = value),
                         icon: Icons.palette,
                         color: Colors.orange,
                       ),
@@ -166,7 +185,8 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
                         title: 'Piel:',
                         options: _skinOptions,
                         selectedValue: _selectedSkin,
-                        onChanged: (value) => setState(() => _selectedSkin = value),
+                        onChanged:
+                            (value) => setState(() => _selectedSkin = value),
                         icon: Icons.touch_app,
                         color: Colors.teal,
                       ),
@@ -178,7 +198,9 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
                         title: 'Temperatura:',
                         options: _temperatureOptions,
                         selectedValue: _selectedTemperature,
-                        onChanged: (value) => setState(() => _selectedTemperature = value),
+                        onChanged:
+                            (value) =>
+                                setState(() => _selectedTemperature = value),
                         icon: Icons.thermostat,
                         color: Colors.red,
                       ),
@@ -190,63 +212,73 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
                         title: 'Influenciado por:',
                         options: _influenceOptions,
                         selectedValue: _selectedInfluence,
-                        onChanged: (value) => setState(() => _selectedInfluence = value),
+                        onChanged:
+                            (value) =>
+                                setState(() => _selectedInfluence = value),
                         icon: Icons.psychology,
                         color: Colors.indigo,
                       ),
 
                       const SizedBox(height: 20),
 
-                      // Campo Especifique
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey[300]!),
-                          color: Colors.grey[50],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.blue[50],
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(12),
-                                  topRight: Radius.circular(12),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit_note, color: Colors.blue[700], size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Especifique:',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.blue[700],
-                                      fontSize: 14,
-                                    ),
+                      // Campo Especifique - solo aparece si se selecciona "Otro" en influenciado por
+                      if (_selectedInfluence == 'Otro') ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
+                            color: Colors.grey[50],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(12),
+                                    topRight: Radius.circular(12),
                                   ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: TextFormField(
-                                controller: _especifiqueController,
-                                maxLines: 3,
-                                decoration: const InputDecoration(
-                                  hintText: 'Describa información adicional relevante para la evaluación...',
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.all(12),
                                 ),
-                                style: const TextStyle(fontSize: 14),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.edit_note,
+                                      color: Colors.blue[700],
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Especifique:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue[700],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: TextFormField(
+                                  controller: _especifiqueController,
+                                  maxLines: 3,
+                                  decoration: const InputDecoration(
+                                    hintText:
+                                        'Describa información adicional relevante para la evaluación...',
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.all(12),
+                                  ),
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 20),
+                      ],
                     ],
                   ),
                 ),
@@ -272,17 +304,22 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
+                    icon:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.save),
+                    label: Text(
+                      _isLoading ? 'Guardando...' : 'Guardar Sección',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
@@ -357,35 +394,40 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
-              children: _priorityOptions.map((option) {
-                final isSelected = _selectedPriority == option['value'];
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedPriority = option['value']),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? option['color'] : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: option['color'],
-                          width: 2,
+              children:
+                  _priorityOptions.map((option) {
+                    final isSelected = _selectedPriority == option['value'];
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap:
+                            () => setState(
+                              () => _selectedPriority = option['value'],
+                            ),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isSelected ? option['color'] : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: option['color'],
+                              width: 2,
+                            ),
+                          ),
+                          child: Text(
+                            option['label'],
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color:
+                                  isSelected ? Colors.white : option['color'],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ),
-                      child: Text(
-                        option['label'],
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : option['color'],
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
           ),
         ],
@@ -439,28 +481,39 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: options.map((option) {
-                final isSelected = selectedValue == option;
-                return GestureDetector(
-                  onTap: () => onChanged(option),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? color : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: color),
-                    ),
-                    child: Text(
-                      option,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : color,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
+              children:
+                  options.map((option) {
+                    final isSelected = selectedValue == option;
+                    return GestureDetector(
+                      onTap: () {
+                        // Permitir deseleccionar: si ya está seleccionado, lo deselecciona
+                        if (isSelected) {
+                          onChanged(null);
+                        } else {
+                          onChanged(option);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected ? color : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: color),
+                        ),
+                        child: Text(
+                          option,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : color,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
           ),
         ],
@@ -485,7 +538,7 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
       };
 
       widget.onSave(formData);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -532,4 +585,4 @@ class _PriorityJustificationFormDialogState extends State<PriorityJustificationF
       }
     }
   }
-} 
+}

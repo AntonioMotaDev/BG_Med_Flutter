@@ -16,7 +16,8 @@ class PatientInfoFormDialog extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<PatientInfoFormDialog> createState() => _PatientInfoFormDialogState();
+  ConsumerState<PatientInfoFormDialog> createState() =>
+      _PatientInfoFormDialogState();
 }
 
 class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
@@ -60,7 +61,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     'Hospital',
     'Clínica',
     'Centro de Salud',
-    'Otro'
+    'Otro',
   ];
 
   final List<String> _segurosMedicos = [
@@ -69,7 +70,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     'PEMEX',
     'Particular',
     'Sin seguro',
-    'Otro'
+    'Otro',
   ];
 
   final List<String> _generos = [
@@ -77,7 +78,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     'Femenino',
     'No binario',
     'Prefiero no decir',
-    'Otro'
+    'Otro',
   ];
 
   @override
@@ -104,7 +105,14 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _currentConditionController.text = data['currentCondition'] ?? '';
       _emergencyContactController.text = data['emergencyContact'] ?? '';
       _responsiblePersonController.text = data['responsiblePerson'] ?? '';
-      
+
+      // Campos adicionales que estaban faltando
+      _entreCallesController.text = data['entreCalles'] ?? '';
+      _tipoEntregaSeleccionado = data['tipoEntrega'] ?? '';
+      _tipoEntregaOtroController.text = data['tipoEntregaOtro'] ?? '';
+      _generoSeleccionado = data['genero'] ?? '';
+      _seguroMedicoSeleccionado = data['seguroMedico'] ?? '';
+
       // Si ya hay datos, probablemente es un paciente seleccionado
       if (data['patientId'] != null) {
         // Buscar el paciente en la lista para establecer _selectedPatient
@@ -144,7 +152,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
   @override
   Widget build(BuildContext context) {
     final patientsState = ref.watch(patientsNotifierProvider);
-    
+
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
@@ -168,7 +176,10 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppTheme.primaryBlue, AppTheme.primaryBlue.withOpacity(0.8)],
+                  colors: [
+                    AppTheme.primaryBlue,
+                    AppTheme.primaryBlue.withOpacity(0.8),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -208,17 +219,18 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                         SizedBox(height: 4),
                         Text(
                           'Complete los datos del paciente',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                     style: IconButton.styleFrom(
                       backgroundColor: Colors.white.withOpacity(0.2),
                       padding: const EdgeInsets.all(8),
@@ -274,9 +286,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
                 ),
-                border: Border(
-                  top: BorderSide(color: Colors.grey[200]!),
-                ),
+                border: Border(top: BorderSide(color: Colors.grey[200]!)),
               ),
               child: Row(
                 children: [
@@ -286,7 +296,10 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     label: const Text('Cancelar'),
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.grey[600],
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                   const Spacer(),
@@ -297,28 +310,37 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                       label: const Text('Limpiar'),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.orange[600],
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                   ],
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save_rounded),
+                    icon:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.save_rounded),
                     label: Text(_isLoading ? 'Guardando...' : 'Guardar Datos'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -374,10 +396,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     ),
                     Text(
                       'Seleccione un paciente de la base de datos',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
                     ),
                   ],
                 ),
@@ -404,7 +423,10 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
               filled: true,
               fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
             ),
             onChanged: (value) {
               setState(() {
@@ -413,8 +435,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             },
           ),
           const SizedBox(height: 12),
-          
-          if (_searchController.text.isNotEmpty && patientsState.patients.isNotEmpty) ...[
+
+          if (_searchController.text.isNotEmpty &&
+              patientsState.patients.isNotEmpty) ...[
             Container(
               constraints: const BoxConstraints(maxHeight: 200),
               decoration: BoxDecoration(
@@ -426,20 +449,34 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                 shrinkWrap: true,
                 itemCount: _getFilteredPatients(patientsState.patients).length,
                 itemBuilder: (context, index) {
-                  final patient = _getFilteredPatients(patientsState.patients)[index];
+                  final patient =
+                      _getFilteredPatients(patientsState.patients)[index];
                   final isSelected = _selectedPatient?.id == patient.id;
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppTheme.primaryBlue.withOpacity(0.1) : Colors.transparent,
+                      color:
+                          isSelected
+                              ? AppTheme.primaryBlue.withOpacity(0.1)
+                              : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
-                      border: isSelected 
-                          ? Border.all(color: AppTheme.primaryBlue, width: 2)
-                          : null,
+                      border:
+                          isSelected
+                              ? Border.all(
+                                color: AppTheme.primaryBlue,
+                                width: 2,
+                              )
+                              : null,
                     ),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: isSelected ? AppTheme.primaryBlue : Colors.grey[300],
+                        backgroundColor:
+                            isSelected
+                                ? AppTheme.primaryBlue
+                                : Colors.grey[300],
                         child: Text(
                           patient.firstName.substring(0, 1).toUpperCase(),
                           style: TextStyle(
@@ -451,19 +488,30 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                       title: Text(
                         '${patient.firstName} ${patient.paternalLastName} ${patient.maternalLastName}',
                         style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          color: isSelected ? AppTheme.primaryBlue : Colors.black87,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              isSelected
+                                  ? AppTheme.primaryBlue
+                                  : Colors.black87,
                         ),
                       ),
                       subtitle: Text(
                         'Edad: ${patient.age} • Teléfono: ${patient.phone}',
                         style: TextStyle(
-                          color: isSelected ? AppTheme.primaryBlue.withOpacity(0.8) : Colors.grey[600],
+                          color:
+                              isSelected
+                                  ? AppTheme.primaryBlue.withOpacity(0.8)
+                                  : Colors.grey[600],
                         ),
                       ),
-                      trailing: isSelected 
-                          ? Icon(Icons.check_circle, color: AppTheme.primaryBlue)
-                          : null,
+                      trailing:
+                          isSelected
+                              ? Icon(
+                                Icons.check_circle,
+                                color: AppTheme.primaryBlue,
+                              )
+                              : null,
                       onTap: () => _selectPatient(patient),
                     ),
                   );
@@ -471,7 +519,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
               ),
             ),
           ],
-          
+
           if (_selectedPatient != null) ...[
             const SizedBox(height: 16),
             Container(
@@ -557,9 +605,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             ),
           ),
         ),
-        Expanded(
-          child: Divider(color: color.withOpacity(0.3)),
-        ),
+        Expanded(child: Divider(color: color.withOpacity(0.3))),
       ],
     );
   }
@@ -581,7 +627,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _firstNameController,
                     label: 'Nombre *',
                     icon: Icons.person,
-                    enabled: _selectedPatient == null || _firstNameController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _firstNameController.text.trim().isEmpty,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'El nombre es requerido';
@@ -596,7 +644,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _paternalLastNameController,
                     label: 'Apellido Paterno *',
                     icon: Icons.person,
-                    enabled: _selectedPatient == null || _paternalLastNameController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _paternalLastNameController.text.trim().isEmpty,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'El apellido paterno es requerido';
@@ -608,7 +658,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             Row(
               children: [
                 Expanded(
@@ -616,7 +666,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _maternalLastNameController,
                     label: 'Apellido Materno *',
                     icon: Icons.person,
-                    enabled: _selectedPatient == null || _maternalLastNameController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _maternalLastNameController.text.trim().isEmpty,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'El apellido materno es requerido';
@@ -632,7 +684,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     label: 'Edad *',
                     icon: Icons.cake,
                     keyboardType: TextInputType.number,
-                    enabled: _selectedPatient == null || _ageController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _ageController.text.trim().isEmpty,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(3),
@@ -663,13 +717,14 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     icon: Icons.wc,
                     items: _sexOptions,
                     enabled: (_selectedPatient == null || _sexSelected.isEmpty),
-                    onChanged: (_selectedPatient == null || _sexSelected.isEmpty) 
-                        ? (value) {
-                            setState(() {
-                              _sexSelected = value ?? '';
-                            });
-                          }
-                        : null,
+                    onChanged:
+                        (_selectedPatient == null || _sexSelected.isEmpty)
+                            ? (value) {
+                              setState(() {
+                                _sexSelected = value ?? '';
+                              });
+                            }
+                            : null,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Seleccione el sexo';
@@ -685,7 +740,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     label: 'Teléfono *',
                     icon: Icons.phone,
                     keyboardType: TextInputType.phone,
-                    enabled: _selectedPatient == null || _phoneController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _phoneController.text.trim().isEmpty,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'El teléfono es requerido';
@@ -698,7 +755,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
 
         // Sección: Dirección
@@ -716,7 +773,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _streetController,
                     label: 'Calle *',
                     icon: Icons.streetview,
-                    enabled: _selectedPatient == null || _streetController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _streetController.text.trim().isEmpty,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'La calle es requerida';
@@ -731,7 +790,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _exteriorNumberController,
                     label: 'Núm. Ext. *',
                     icon: Icons.home,
-                    enabled: _selectedPatient == null || _exteriorNumberController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _exteriorNumberController.text.trim().isEmpty,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Número requerido';
@@ -752,7 +813,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _interiorNumberController,
                     label: 'Núm. Int.',
                     icon: Icons.home_work,
-                    enabled: _selectedPatient == null || _interiorNumberController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _interiorNumberController.text.trim().isEmpty,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -761,7 +824,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _neighborhoodController,
                     label: 'Colonia *',
                     icon: Icons.location_city,
-                    enabled: _selectedPatient == null || _neighborhoodController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _neighborhoodController.text.trim().isEmpty,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'La colonia es requerida';
@@ -782,7 +847,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _cityController,
                     label: 'Ciudad *',
                     icon: Icons.location_city,
-                    enabled: _selectedPatient == null || _cityController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _cityController.text.trim().isEmpty,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'La ciudad es requerida';
@@ -797,7 +864,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                     controller: _insuranceController,
                     label: 'Seguro Médico',
                     icon: Icons.medical_services,
-                    enabled: _selectedPatient == null || _insuranceController.text.trim().isEmpty,
+                    enabled:
+                        _selectedPatient == null ||
+                        _insuranceController.text.trim().isEmpty,
                   ),
                 ),
               ],
@@ -814,7 +883,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
 
         // Sección: Información Adicional
@@ -838,7 +907,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                 });
               },
             ),
-            
+
             if (_tipoEntregaSeleccionado == 'Otro') ...[
               const SizedBox(height: 12),
               _buildTextField(
@@ -846,7 +915,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                 label: 'Especifique tipo de entrega:',
                 icon: Icons.edit,
                 validator: (value) {
-                  if (_tipoEntregaSeleccionado == 'Otro' && 
+                  if (_tipoEntregaSeleccionado == 'Otro' &&
                       (value == null || value.trim().isEmpty)) {
                     return 'Especifique el tipo de entrega';
                   }
@@ -854,7 +923,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                 },
               ),
             ],
-            
+
             const SizedBox(height: 16),
 
             // Género
@@ -869,7 +938,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
                 });
               },
             ),
-            
+
             const SizedBox(height: 16),
 
             // Seguro médico actualizado
@@ -886,7 +955,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
 
         // Sección: Información Médica
@@ -901,7 +970,8 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
               label: 'Padecimiento Actual',
               icon: Icons.sick,
               maxLines: 3,
-              hintText: 'Describe el padecimiento o síntomas actuales del paciente',
+              hintText:
+                  'Describe el padecimiento o síntomas actuales del paciente',
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 16),
@@ -930,7 +1000,12 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     );
   }
 
-  Widget _buildFormSection(String title, IconData icon, Color color, List<Widget> children) {
+  Widget _buildFormSection(
+    String title,
+    IconData icon,
+    Color color,
+    List<Widget> children,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -992,7 +1067,10 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
-        prefixIcon: Icon(icon, color: enabled ? Colors.grey[600] : Colors.grey[400]),
+        prefixIcon: Icon(
+          icon,
+          color: enabled ? Colors.grey[600] : Colors.grey[400],
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -1015,14 +1093,15 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         ),
         filled: true,
         fillColor: enabled ? Colors.white : Colors.grey[100],
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         labelStyle: TextStyle(
           color: enabled ? Colors.grey[700] : Colors.grey[400],
         ),
       ),
-      style: TextStyle(
-        color: enabled ? Colors.black87 : Colors.grey[600],
-      ),
+      style: TextStyle(color: enabled ? Colors.black87 : Colors.grey[600]),
     );
   }
 
@@ -1039,7 +1118,10 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       value: value,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: enabled ? Colors.grey[600] : Colors.grey[400]),
+        prefixIcon: Icon(
+          icon,
+          color: enabled ? Colors.grey[600] : Colors.grey[400],
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -1062,22 +1144,21 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         ),
         filled: true,
         fillColor: enabled ? Colors.white : Colors.grey[100],
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         labelStyle: TextStyle(
           color: enabled ? Colors.grey[700] : Colors.grey[400],
         ),
       ),
-      items: items.map((item) {
-        return DropdownMenuItem(
-          value: item,
-          child: Text(item),
-        );
-      }).toList(),
+      items:
+          items.map((item) {
+            return DropdownMenuItem(value: item, child: Text(item));
+          }).toList(),
       onChanged: onChanged,
       validator: validator,
-      style: TextStyle(
-        color: enabled ? Colors.black87 : Colors.grey[600],
-      ),
+      style: TextStyle(color: enabled ? Colors.black87 : Colors.grey[600]),
     );
   }
 
@@ -1109,31 +1190,39 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: options.map((option) {
-            final isSelected = selectedValue == option;
-            return GestureDetector(
-              onTap: () => onChanged(isSelected ? '' : option),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.primaryBlue : Colors.white,
-                  border: Border.all(
-                    color: isSelected ? AppTheme.primaryBlue : Colors.grey[300]!,
-                    width: isSelected ? 2 : 1,
+          children:
+              options.map((option) {
+                final isSelected = selectedValue == option;
+                return GestureDetector(
+                  onTap: () => onChanged(isSelected ? '' : option),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.primaryBlue : Colors.white,
+                      border: Border.all(
+                        color:
+                            isSelected
+                                ? AppTheme.primaryBlue
+                                : Colors.grey[300]!,
+                        width: isSelected ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      option,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: isSelected ? Colors.white : Colors.grey[700],
+                      ),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  option,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: isSelected ? Colors.white : Colors.grey[700],
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
+                );
+              }).toList(),
         ),
       ],
     );
@@ -1141,19 +1230,19 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
 
   List<PatientFirestore> _getFilteredPatients(List<PatientFirestore> patients) {
     if (_searchController.text.isEmpty) return [];
-    
+
     final searchTerm = _searchController.text.toLowerCase();
     return patients.where((patient) {
       return patient.firstName.toLowerCase().contains(searchTerm) ||
-             patient.paternalLastName.toLowerCase().contains(searchTerm) ||
-             patient.maternalLastName.toLowerCase().contains(searchTerm);
+          patient.paternalLastName.toLowerCase().contains(searchTerm) ||
+          patient.maternalLastName.toLowerCase().contains(searchTerm);
     }).toList();
   }
-  
+
   void _selectPatient(PatientFirestore patient) {
     setState(() {
       _selectedPatient = patient;
-      
+
       // Llenar los campos con los datos del paciente seleccionado
       _firstNameController.text = patient.firstName;
       _paternalLastNameController.text = patient.paternalLastName;
@@ -1168,16 +1257,20 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _cityController.text = patient.city;
       _insuranceController.text = patient.insurance;
       _responsiblePersonController.text = patient.responsiblePerson ?? '';
-      
+
       // Nuevos campos - usar acceso seguro ya que pueden no existir en el modelo
-      _entreCallesController.text = ''; // Campo nuevo, no existe en PatientFirestore
-      _tipoEntregaSeleccionado = ''; // Campo nuevo, no existe en PatientFirestore
-      _tipoEntregaOtroController.text = ''; // Campo nuevo, no existe en PatientFirestore
+      _entreCallesController.text =
+          ''; // Campo nuevo, no existe en PatientFirestore
+      _tipoEntregaSeleccionado =
+          ''; // Campo nuevo, no existe en PatientFirestore
+      _tipoEntregaOtroController.text =
+          ''; // Campo nuevo, no existe en PatientFirestore
       _generoSeleccionado = ''; // Campo nuevo, no existe en PatientFirestore
-      _seguroMedicoSeleccionado = ''; // Campo nuevo, no existe en PatientFirestore
-      
+      _seguroMedicoSeleccionado =
+          ''; // Campo nuevo, no existe en PatientFirestore
+
       // No llenamos currentCondition y emergencyContact porque son específicos de cada consulta FRAP
-      
+
       // Limpiar búsqueda
       _searchController.clear();
     });
@@ -1186,7 +1279,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
   void _clearSelection() {
     setState(() {
       _selectedPatient = null;
-      
+
       // Limpiar todos los campos
       _firstNameController.clear();
       _paternalLastNameController.clear();
@@ -1204,7 +1297,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _currentConditionController.clear();
       _emergencyContactController.clear();
       _responsiblePersonController.clear();
-      
+
       // Limpiar nuevos campos
       _entreCallesController.clear();
       _tipoEntregaSeleccionado = '';
@@ -1259,7 +1352,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       }
 
       widget.onSave(formData);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1312,38 +1405,39 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
   Future<bool?> _showSavePatientDialog() async {
     return showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.save, color: AppTheme.primaryBlue),
-            const SizedBox(width: 12),
-            const Text('Guardar Nuevo Paciente'),
-          ],
-        ),
-        content: const Text(
-          '¿Deseas guardar este paciente en la base de datos para futuras consultas?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No guardar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Text('Guardar paciente'),
+            title: Row(
+              children: [
+                Icon(Icons.save, color: AppTheme.primaryBlue),
+                const SizedBox(width: 12),
+                const Text('Guardar Nuevo Paciente'),
+              ],
+            ),
+            content: const Text(
+              '¿Deseas guardar este paciente en la base de datos para futuras consultas?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('No guardar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Guardar paciente'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -1361,16 +1455,20 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         neighborhood: _neighborhoodController.text.trim(),
         city: _cityController.text.trim(),
         insurance: _insuranceController.text.trim(),
-        interiorNumber: _interiorNumberController.text.trim().isEmpty 
-            ? null 
-            : _interiorNumberController.text.trim(),
-        responsiblePerson: _responsiblePersonController.text.trim().isEmpty 
-            ? null 
-            : _responsiblePersonController.text.trim(),
+        interiorNumber:
+            _interiorNumberController.text.trim().isEmpty
+                ? null
+                : _interiorNumberController.text.trim(),
+        responsiblePerson:
+            _responsiblePersonController.text.trim().isEmpty
+                ? null
+                : _responsiblePersonController.text.trim(),
       );
 
-      await ref.read(patientsNotifierProvider.notifier).createPatient(newPatient);
-      
+      await ref
+          .read(patientsNotifierProvider.notifier)
+          .createPatient(newPatient);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1412,4 +1510,4 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       }
     }
   }
-} 
+}

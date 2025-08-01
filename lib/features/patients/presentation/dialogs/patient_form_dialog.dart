@@ -73,7 +73,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
       _neighborhoodController.text = patient.neighborhood;
       _cityController.text = patient.city;
       _responsiblePersonController.text = patient.responsiblePerson ?? '';
-      
+
       // Validar que el sexo del paciente esté en las opciones disponibles
       if (patient.sex.isNotEmpty && _sexOptions.contains(patient.sex)) {
         _selectedSex = patient.sex;
@@ -81,18 +81,23 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
         // Si el valor no está en las opciones, usar el valor por defecto
         _selectedSex = _sexOptions.first;
         if (patient.sex.isNotEmpty) {
-          print('Advertencia: Sexo "${patient.sex}" no encontrado en opciones, usando "${_selectedSex}"');
+          print(
+            'Advertencia: Sexo "${patient.sex}" no encontrado en opciones, usando "$_selectedSex"',
+          );
         }
       }
-      
+
       // Validar que el seguro del paciente esté en las opciones disponibles
-      if (patient.insurance.isNotEmpty && _insuranceOptions.contains(patient.insurance)) {
+      if (patient.insurance.isNotEmpty &&
+          _insuranceOptions.contains(patient.insurance)) {
         _selectedInsurance = patient.insurance;
       } else {
         // Si el valor no está en las opciones, usar el valor por defecto
         _selectedInsurance = _insuranceOptions.first;
         if (patient.insurance.isNotEmpty) {
-          print('Advertencia: Seguro "${patient.insurance}" no encontrado en opciones, usando "${_selectedInsurance}"');
+          print(
+            'Advertencia: Seguro "${patient.insurance}" no encontrado en opciones, usando "$_selectedInsurance"',
+          );
         }
       }
     }
@@ -121,9 +126,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
       child: Container(
         width: MediaQuery.of(context).size.width * 0.95,
         height: MediaQuery.of(context).size.height * 0.75,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
         child: Column(
           children: [
             // Header
@@ -171,7 +174,11 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
                   Expanded(child: _buildProgressLine(0)),
                   _buildProgressStep(1, 'Dirección', Icons.location_on),
                   Expanded(child: _buildProgressLine(1)),
-                  _buildProgressStep(2, 'Información Médica', Icons.medical_information),
+                  _buildProgressStep(
+                    2,
+                    'Información Médica',
+                    Icons.medical_information,
+                  ),
                 ],
               ),
             ),
@@ -227,16 +234,19 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
                   else
                     ElevatedButton.icon(
                       onPressed: _isLoading ? null : _savePatient,
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.save),
+                      icon:
+                          _isLoading
+                              ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                              : const Icon(Icons.save),
                       label: Text(_isLoading ? 'Guardando...' : 'Guardar'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryBlue,
@@ -255,16 +265,17 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
   Widget _buildProgressStep(int step, String title, IconData icon) {
     final isActive = _currentPage == step;
     final isCompleted = _currentPage > step;
-    
+
     return Column(
       children: [
         Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: isCompleted
-                ? Colors.green
-                : isActive
+            color:
+                isCompleted
+                    ? Colors.green
+                    : isActive
                     ? AppTheme.primaryBlue
                     : Colors.grey[300],
             shape: BoxShape.circle,
@@ -294,7 +305,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
 
   Widget _buildProgressLine(int step) {
     final isCompleted = _currentPage > step;
-    
+
     return Container(
       height: 2,
       margin: const EdgeInsets.only(bottom: 32),
@@ -310,13 +321,10 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
         children: [
           const Text(
             'Datos Personales',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          
+
           // Nombre
           TextFormField(
             controller: _firstNameController,
@@ -334,7 +342,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Apellido paterno
           TextFormField(
             controller: _paternalLastNameController,
@@ -352,7 +360,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Apellido materno
           TextFormField(
             controller: _maternalLastNameController,
@@ -370,7 +378,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               // Edad
@@ -401,22 +409,23 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
                 ),
               ),
               const SizedBox(width: 16),
-              
+
               // Sexo
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _sexOptions.contains(_selectedSex) ? _selectedSex : _sexOptions.first,
+                  value:
+                      _sexOptions.contains(_selectedSex)
+                          ? _selectedSex
+                          : _sexOptions.first,
                   decoration: const InputDecoration(
                     labelText: 'Sexo *',
                     prefixIcon: Icon(Icons.wc),
                     border: OutlineInputBorder(),
                   ),
-                  items: _sexOptions.map((sex) {
-                    return DropdownMenuItem(
-                      value: sex,
-                      child: Text(sex),
-                    );
-                  }).toList(),
+                  items:
+                      _sexOptions.map((sex) {
+                        return DropdownMenuItem(value: sex, child: Text(sex));
+                      }).toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedSex = value!;
@@ -427,7 +436,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Teléfono
           TextFormField(
             controller: _phoneController,
@@ -453,7 +462,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Persona responsable (opcional)
           TextFormField(
             controller: _responsiblePersonController,
@@ -478,13 +487,10 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
         children: [
           const Text(
             'Dirección',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          
+
           // Calle
           TextFormField(
             controller: _streetController,
@@ -502,7 +508,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               // Número exterior
@@ -524,7 +530,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
                 ),
               ),
               const SizedBox(width: 16),
-              
+
               // Número interior (opcional)
               Expanded(
                 flex: 2,
@@ -540,7 +546,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Colonia/Barrio
           TextFormField(
             controller: _neighborhoodController,
@@ -558,7 +564,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Ciudad
           TextFormField(
             controller: _cityController,
@@ -588,27 +594,28 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
         children: [
           const Text(
             'Información Médica',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          
+
           // Seguro médico
           DropdownButtonFormField<String>(
-            value: _insuranceOptions.contains(_selectedInsurance) ? _selectedInsurance : _insuranceOptions.first,
+            value:
+                _insuranceOptions.contains(_selectedInsurance)
+                    ? _selectedInsurance
+                    : _insuranceOptions.first,
             decoration: const InputDecoration(
               labelText: 'Seguro Médico *',
               prefixIcon: Icon(Icons.medical_services),
               border: OutlineInputBorder(),
             ),
-            items: _insuranceOptions.map((insurance) {
-              return DropdownMenuItem(
-                value: insurance,
-                child: Text(insurance),
-              );
-            }).toList(),
+            items:
+                _insuranceOptions.map((insurance) {
+                  return DropdownMenuItem(
+                    value: insurance,
+                    child: Text(insurance),
+                  );
+                }).toList(),
             onChanged: (value) {
               setState(() {
                 _selectedInsurance = value!;
@@ -616,7 +623,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             },
           ),
           const SizedBox(height: 32),
-          
+
           // Resumen de datos
           Container(
             padding: const EdgeInsets.all(16),
@@ -630,22 +637,26 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
               children: [
                 const Text(
                   'Resumen de Datos',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                _buildSummaryRow('Nombre completo', 
-                    '${_firstNameController.text} ${_paternalLastNameController.text} ${_maternalLastNameController.text}'),
+                _buildSummaryRow(
+                  'Nombre completo',
+                  '${_firstNameController.text} ${_paternalLastNameController.text} ${_maternalLastNameController.text}',
+                ),
                 _buildSummaryRow('Edad', '${_ageController.text} años'),
                 _buildSummaryRow('Sexo', _selectedSex),
                 _buildSummaryRow('Teléfono', _phoneController.text),
-                _buildSummaryRow('Dirección', 
-                    '${_streetController.text} ${_exteriorNumberController.text}${_interiorNumberController.text.isNotEmpty ? ', Int. ${_interiorNumberController.text}' : ''}, ${_neighborhoodController.text}, ${_cityController.text}'),
+                _buildSummaryRow(
+                  'Dirección',
+                  '${_streetController.text} ${_exteriorNumberController.text}${_interiorNumberController.text.isNotEmpty ? ', Int. ${_interiorNumberController.text}' : ''}, ${_neighborhoodController.text}, ${_cityController.text}',
+                ),
                 _buildSummaryRow('Seguro médico', _selectedInsurance),
                 if (_responsiblePersonController.text.isNotEmpty)
-                  _buildSummaryRow('Persona responsable', _responsiblePersonController.text),
+                  _buildSummaryRow(
+                    'Persona responsable',
+                    _responsiblePersonController.text,
+                  ),
               ],
             ),
           ),
@@ -673,9 +684,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
           Expanded(
             child: Text(
               value.isEmpty ? 'No especificado' : value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -691,7 +700,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
       // Validar dirección
       if (!_validateAddress()) return;
     }
-    
+
     _pageController.nextPage(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -707,18 +716,18 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
 
   bool _validatePersonalData() {
     return _firstNameController.text.trim().isNotEmpty &&
-           _paternalLastNameController.text.trim().isNotEmpty &&
-           _maternalLastNameController.text.trim().isNotEmpty &&
-           _ageController.text.trim().isNotEmpty &&
-           _phoneController.text.trim().isNotEmpty &&
-           _phoneController.text.length == 10;
+        _paternalLastNameController.text.trim().isNotEmpty &&
+        _maternalLastNameController.text.trim().isNotEmpty &&
+        _ageController.text.trim().isNotEmpty &&
+        _phoneController.text.trim().isNotEmpty &&
+        _phoneController.text.length == 10;
   }
 
   bool _validateAddress() {
     return _streetController.text.trim().isNotEmpty &&
-           _exteriorNumberController.text.trim().isNotEmpty &&
-           _neighborhoodController.text.trim().isNotEmpty &&
-           _cityController.text.trim().isNotEmpty;
+        _exteriorNumberController.text.trim().isNotEmpty &&
+        _neighborhoodController.text.trim().isNotEmpty &&
+        _cityController.text.trim().isNotEmpty;
   }
 
   Future<void> _savePatient() async {
@@ -731,44 +740,50 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
     });
 
     try {
-      final patient = widget.patient?.copyWith(
-        firstName: _firstNameController.text.trim(),
-        paternalLastName: _paternalLastNameController.text.trim(),
-        maternalLastName: _maternalLastNameController.text.trim(),
-        age: int.parse(_ageController.text.trim()),
-        sex: _selectedSex,
-        phone: _phoneController.text.trim(),
-        street: _streetController.text.trim(),
-        exteriorNumber: _exteriorNumberController.text.trim(),
-        interiorNumber: _interiorNumberController.text.trim().isEmpty 
-            ? null 
-            : _interiorNumberController.text.trim(),
-        neighborhood: _neighborhoodController.text.trim(),
-        city: _cityController.text.trim(),
-        insurance: _selectedInsurance,
-        responsiblePerson: _responsiblePersonController.text.trim().isEmpty 
-            ? null 
-            : _responsiblePersonController.text.trim(),
-        updatedAt: DateTime.now(),
-      ) ?? PatientFirestore.create(
-        firstName: _firstNameController.text.trim(),
-        paternalLastName: _paternalLastNameController.text.trim(),
-        maternalLastName: _maternalLastNameController.text.trim(),
-        age: int.parse(_ageController.text.trim()),
-        sex: _selectedSex,
-        phone: _phoneController.text.trim(),
-        street: _streetController.text.trim(),
-        exteriorNumber: _exteriorNumberController.text.trim(),
-        interiorNumber: _interiorNumberController.text.trim().isEmpty 
-            ? null 
-            : _interiorNumberController.text.trim(),
-        neighborhood: _neighborhoodController.text.trim(),
-        city: _cityController.text.trim(),
-        insurance: _selectedInsurance,
-        responsiblePerson: _responsiblePersonController.text.trim().isEmpty 
-            ? null 
-            : _responsiblePersonController.text.trim(),
-      );
+      final patient =
+          widget.patient?.copyWith(
+            firstName: _firstNameController.text.trim(),
+            paternalLastName: _paternalLastNameController.text.trim(),
+            maternalLastName: _maternalLastNameController.text.trim(),
+            age: int.parse(_ageController.text.trim()),
+            sex: _selectedSex,
+            phone: _phoneController.text.trim(),
+            street: _streetController.text.trim(),
+            exteriorNumber: _exteriorNumberController.text.trim(),
+            interiorNumber:
+                _interiorNumberController.text.trim().isEmpty
+                    ? null
+                    : _interiorNumberController.text.trim(),
+            neighborhood: _neighborhoodController.text.trim(),
+            city: _cityController.text.trim(),
+            insurance: _selectedInsurance,
+            responsiblePerson:
+                _responsiblePersonController.text.trim().isEmpty
+                    ? null
+                    : _responsiblePersonController.text.trim(),
+            updatedAt: DateTime.now(),
+          ) ??
+          PatientFirestore.create(
+            firstName: _firstNameController.text.trim(),
+            paternalLastName: _paternalLastNameController.text.trim(),
+            maternalLastName: _maternalLastNameController.text.trim(),
+            age: int.parse(_ageController.text.trim()),
+            sex: _selectedSex,
+            phone: _phoneController.text.trim(),
+            street: _streetController.text.trim(),
+            exteriorNumber: _exteriorNumberController.text.trim(),
+            interiorNumber:
+                _interiorNumberController.text.trim().isEmpty
+                    ? null
+                    : _interiorNumberController.text.trim(),
+            neighborhood: _neighborhoodController.text.trim(),
+            city: _cityController.text.trim(),
+            insurance: _selectedInsurance,
+            responsiblePerson:
+                _responsiblePersonController.text.trim().isEmpty
+                    ? null
+                    : _responsiblePersonController.text.trim(),
+          );
 
       widget.onSave(patient);
     } catch (e) {
@@ -788,4 +803,4 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
       }
     }
   }
-} 
+}
