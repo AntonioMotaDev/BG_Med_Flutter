@@ -254,17 +254,9 @@ class _FrapRecordDetailsScreenState
         fieldMappings: {
           'fum': 'Última menstruación',
           'semanasGestacion': 'Semanas de gestación',
-          'gesta': 'Gesta',
-          'abortos': 'Abortos',
-          'partos': 'Partos',
-          'cesareas': 'Cesáreas',
-          'metodosAnticonceptivos': 'Métodos anticonceptivos',
-          'ruidosCardiacosFetales': 'Ruidos cardíacos fetales',
-          'expulsionPlacenta': 'Expulsión de placenta',
-          'hora': 'Hora',
-          'observaciones': 'Observaciones',
           'frecuenciaCardiacaFetal': 'Frecuencia cardíaca fetal',
           'contracciones': 'Contracciones',
+          'observaciones': 'Observaciones',
         },
         booleanFields: {
           'isParto': 'Es parto',
@@ -2207,7 +2199,11 @@ class _FrapRecordDetailsScreenState
                 ),
               ),
               Text(
-                '${silverman.values.where((value) => value != null).fold(0, (sum, value) => sum + (value as int))}',
+                '${silverman.values.where((value) => value != null).fold(0, (sum, value) {
+                  if (value is int) return sum + value;
+                  if (value is bool) return sum + (value ? 1 : 0);
+                  return sum;
+                })}',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -2274,7 +2270,11 @@ class _FrapRecordDetailsScreenState
                 ),
               ),
               Text(
-                '${apgar.values.where((value) => value != null).fold(0, (sum, value) => sum + (value as int))}',
+                '${apgar.values.where((value) => value != null).fold(0, (sum, value) {
+                  if (value is int) return sum + value;
+                  if (value is bool) return sum + (value ? 1 : 0);
+                  return sum;
+                })}',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
