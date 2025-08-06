@@ -9,6 +9,33 @@ import 'package:bg_med/features/frap/presentation/widgets/injury_location_displa
 import 'dart:typed_data'; // Added for Uint8List
 import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
 
+// Clase de configuración para secciones
+class SectionConfig {
+  final String key;
+  final String title;
+  final IconData icon;
+  final Color color;
+  final Map<String, String> fieldMappings;
+  final Map<String, dynamic> fallbacks;
+  final Map<String, Map<String, dynamic>> specialFields;
+  final Map<String, String> booleanFields;
+  final Map<String, Map<String, dynamic>> conditionalFields;
+  final List<String> vitalSigns;
+
+  const SectionConfig({
+    required this.key,
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.fieldMappings,
+    this.fallbacks = const {},
+    this.specialFields = const {},
+    this.booleanFields = const {},
+    this.conditionalFields = const {},
+    this.vitalSigns = const [],
+  });
+}
+
 class FrapRecordDetailsScreen extends ConsumerStatefulWidget {
   final UnifiedFrapRecord record;
 
@@ -24,10 +51,510 @@ class _FrapRecordDetailsScreenState
   late Map<String, dynamic> _detailedInfo;
   bool _isLoading = true;
 
+  // Configuración centralizada de secciones
+  late final List<SectionConfig> _sectionConfigs;
+
   @override
   void initState() {
     super.initState();
+    _initializeSectionConfigs();
     _loadDetailedInfo();
+  }
+
+  void _initializeSectionConfigs() {
+    _sectionConfigs = [
+      SectionConfig(
+        key: 'serviceInfo',
+        title: 'Información del Servicio',
+        icon: Icons.local_hospital,
+        color: Colors.blue,
+        fieldMappings: {
+          'horaLlamada': 'Hora de llamada',
+          'horaArribo': 'Hora de arribo',
+          'tiempoEsperaArribo': 'Tiempo de espera arribo',
+          'horaLlegada': 'Hora de llegada',
+          'horaTermino': 'Hora de terminación',
+          'tiempoEsperaLlegada': 'Tiempo de espera llegada',
+          'ubicacion': 'Ubicación',
+          'tipoServicio': 'Tipo de servicio',
+          'tipoServicioEspecifique': 'Especifique',
+          'lugarOcurrencia': 'Lugar de ocurrencia',
+          'lugarOcurrenciaEspecifique': 'Especifique lugar',
+          'tipoUrgencia': 'Tipo de urgencia',
+          'urgenciaEspecifique': 'Especifique urgencia',
+        },
+        specialFields: {
+          'consentimientoSignature': {
+            'label': 'Firma de consentimiento',
+            'isSignature': true,
+            'signatureTitle': 'Firma de Consentimiento',
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'registryInfo',
+        title: 'Información del Registro',
+        icon: Icons.assignment,
+        color: Colors.indigo,
+        fieldMappings: {
+          'convenio': 'Convenio',
+          'folio': 'Folio',
+          'episodio': 'Episodio',
+          'fecha': 'Fecha de registro',
+          'solicitadoPor': 'Solicitado por',
+        },
+      ),
+      SectionConfig(
+        key: 'patientInfo',
+        title: 'Información del Paciente',
+        icon: Icons.person,
+        color: Colors.green,
+        fieldMappings: {
+          'name': 'Nombre completo',
+          'age': 'Edad',
+          'sex': 'Sexo',
+          'genero': 'Género',
+          'phone': 'Teléfono',
+          'emergencyContact': 'Contacto de emergencia',
+          'responsiblePerson': 'Persona responsable',
+          'entreCalles': 'Entre calles',
+          'currentCondition': 'Padecimiento actual',
+          'insurance': 'Seguro médico',
+          'tipoEntrega': 'Tipo de entrega',
+          'tipoEntregaOtro': 'Especifique tipo de entrega',
+        },
+        fallbacks: {
+          'name': widget.record.patientName,
+          'age': '${widget.record.patientAge} años',
+          'sex': widget.record.patientGender,
+        },
+        specialFields: {
+          'address': {
+            'label': 'Dirección',
+            'isFullWidth': true,
+            'customBuilder': (data) => _buildFullAddress(data),
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'management',
+        title: 'Manejo',
+        icon: Icons.healing,
+        color: Colors.purple,
+        fieldMappings: {'observaciones': 'Observaciones'},
+        booleanFields: {
+          'viaAerea': 'Vía aérea',
+          'canalizacion': 'Canalización',
+          'empaquetamiento': 'Empaquetamiento',
+          'inmovilizacion': 'Inmovilización',
+          'monitor': 'Monitor',
+          'rcpBasica': 'RCP básica',
+          'mastPna': 'MAST/PNA',
+          'collarinCervical': 'Collarín cervical',
+          'desfibrilacion': 'Desfibrilación',
+          'apoyoVent': 'Apoyo ventilatorio',
+        },
+        conditionalFields: {
+          'oxigeno': {
+            'label': 'Oxígeno',
+            'condition': (data) => data['oxigeno'] == true,
+            'dependentField': 'ltMin',
+            'dependentLabel': 'Lt/min',
+          },
+          'viaAerea': {
+            'label': 'Especifique vía aérea',
+            'condition': (data) => data['viaAerea'] == true,
+            'dependentField': 'viaAereaEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'canalizacion': {
+            'label': 'Especifique canalización',
+            'condition': (data) => data['canalizacion'] == true,
+            'dependentField': 'canalizacionEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'empaquetamiento': {
+            'label': 'Especifique empaquetamiento',
+            'condition': (data) => data['empaquetamiento'] == true,
+            'dependentField': 'empaquetamientoEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'inmovilizacion': {
+            'label': 'Especifique inmovilización',
+            'condition': (data) => data['inmovilizacion'] == true,
+            'dependentField': 'inmovilizacionEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'monitor': {
+            'label': 'Especifique monitor',
+            'condition': (data) => data['monitor'] == true,
+            'dependentField': 'monitorEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'rcpBasica': {
+            'label': 'Especifique RCP básica',
+            'condition': (data) => data['rcpBasica'] == true,
+            'dependentField': 'rcpBasicaEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'mastPna': {
+            'label': 'Especifique MAST/PNA',
+            'condition': (data) => data['mastPna'] == true,
+            'dependentField': 'mastPnaEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'collarinCervical': {
+            'label': 'Especifique collarín cervical',
+            'condition': (data) => data['collarinCervical'] == true,
+            'dependentField': 'collarinCervicalEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'desfibrilacion': {
+            'label': 'Especifique desfibrilación',
+            'condition': (data) => data['desfibrilacion'] == true,
+            'dependentField': 'desfibrilacionEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'apoyoVent': {
+            'label': 'Especifique apoyo ventilatorio',
+            'condition': (data) => data['apoyoVent'] == true,
+            'dependentField': 'apoyoVentEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'oxigenoEspecifique': {
+            'label': 'Especifique oxígeno',
+            'condition': (data) => data['oxigeno'] == true,
+            'dependentField': 'oxigenoEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'medications',
+        title: 'Medicamentos',
+        icon: Icons.medication,
+        color: Colors.orange,
+        fieldMappings: {
+          'medications': 'Medicamentos',
+          'observaciones': 'Observaciones',
+        },
+        specialFields: {
+          'medicationsList': {
+            'label': 'Lista de medicamentos',
+            'isFullWidth': true,
+            'customBuilder': (data) => _buildMedicationsList(data),
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'gynecoObstetric',
+        title: 'Urgencias Gineco-Obstétricas',
+        icon: Icons.pregnant_woman,
+        color: Colors.pink,
+        fieldMappings: {
+          'fum': 'Última menstruación',
+          'semanasGestacion': 'Semanas de gestación',
+          'gesta': 'Gesta',
+          'abortos': 'Abortos',
+          'partos': 'Partos',
+          'cesareas': 'Cesáreas',
+          'metodosAnticonceptivos': 'Métodos anticonceptivos',
+          'ruidosCardiacosFetales': 'Ruidos cardíacos fetales',
+          'expulsionPlacenta': 'Expulsión de placenta',
+          'hora': 'Hora',
+          'observaciones': 'Observaciones',
+          'frecuenciaCardiacaFetal': 'Frecuencia cardíaca fetal',
+          'contracciones': 'Contracciones',
+        },
+        booleanFields: {
+          'isParto': 'Es parto',
+          'isAborto': 'Es aborto',
+          'isHxVaginal': 'Hx vaginal',
+          'ruidosFetalesPerceptibles': 'Ruidos fetales perceptibles',
+        },
+        specialFields: {
+          'silvermanAnderson': {
+            'label': 'Escala Silverman-Anderson',
+            'isFullWidth': true,
+            'customBuilder':
+                (data) => _buildSilvermanAndersonDisplay(
+                  data['silvermanAnderson'] ?? {},
+                ),
+          },
+          'apgar': {
+            'label': 'Escala APGAR',
+            'isFullWidth': true,
+            'customBuilder': (data) => _buildApgarDisplay(data['apgar'] ?? {}),
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'attentionNegative',
+        title: 'Negativa de atención',
+        icon: Icons.cancel,
+        color: Colors.red,
+        fieldMappings: {
+          'motivoNegativa': 'Motivo de negativa',
+          'observaciones': 'Observaciones',
+          'declarationText': 'Declaración del paciente',
+        },
+        specialFields: {
+          'patientSignature': {
+            'label': 'Firma paciente',
+            'isSignature': true,
+            'signatureTitle': 'Firma del Paciente',
+          },
+          'witnessSignature': {
+            'label': 'Firma Testigo',
+            'isSignature': true,
+            'signatureTitle': 'Firma del Testigo',
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'pathologicalHistory',
+        title: 'Antecedentes Patológicos',
+        icon: Icons.history,
+        color: Colors.brown,
+        fieldMappings: {'observaciones': 'Observaciones'},
+        booleanFields: {
+          'diabetes': 'Diabetes',
+          'hipertension': 'Hipertensión',
+          'cardiopatias': 'Cardiopatías',
+          'enfermedadesRenales': 'Enfermedades renales',
+          'enfermedadesHepaticas': 'Enfermedades hepáticas',
+          'enfermedadesRespiratorias': 'Enfermedades respiratorias',
+          'enfermedadesNeurologicas': 'Enfermedades neurológicas',
+          'cancer': 'Cáncer',
+          'vih': 'VIH',
+          'otras': 'Otras',
+        },
+        conditionalFields: {
+          'diabetes': {
+            'label': 'Especifique diabetes',
+            'condition': (data) => data['diabetes'] == true,
+            'dependentField': 'diabetesEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'hipertension': {
+            'label': 'Especifique hipertensión',
+            'condition': (data) => data['hipertension'] == true,
+            'dependentField': 'hipertensionEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'cardiopatias': {
+            'label': 'Especifique cardiopatías',
+            'condition': (data) => data['cardiopatias'] == true,
+            'dependentField': 'cardiopatiasEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'enfermedadesRenales': {
+            'label': 'Especifique enfermedades renales',
+            'condition': (data) => data['enfermedadesRenales'] == true,
+            'dependentField': 'enfermedadesRenalesEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'enfermedadesHepaticas': {
+            'label': 'Especifique enfermedades hepáticas',
+            'condition': (data) => data['enfermedadesHepaticas'] == true,
+            'dependentField': 'enfermedadesHepaticasEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'enfermedadesRespiratorias': {
+            'label': 'Especifique enfermedades respiratorias',
+            'condition': (data) => data['enfermedadesRespiratorias'] == true,
+            'dependentField': 'enfermedadesRespiratoriasEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'enfermedadesNeurologicas': {
+            'label': 'Especifique enfermedades neurológicas',
+            'condition': (data) => data['enfermedadesNeurologicas'] == true,
+            'dependentField': 'enfermedadesNeurologicasEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'cancer': {
+            'label': 'Especifique cáncer',
+            'condition': (data) => data['cancer'] == true,
+            'dependentField': 'cancerEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'vih': {
+            'label': 'Especifique VIH',
+            'condition': (data) => data['vih'] == true,
+            'dependentField': 'vihEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'otras': {
+            'label': 'Especifique otras',
+            'condition': (data) => data['otras'] == true,
+            'dependentField': 'otrasEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'clinicalHistory',
+        title: 'Antecedentes Clínicos',
+        icon: Icons.medical_services,
+        color: Colors.teal,
+        fieldMappings: {
+          'agenteCausal': 'Agente causal',
+          'cinematica': 'Cinemática',
+          'medidaSeguridad': 'Medida de Seguridad',
+          'observaciones': 'Observaciones',
+        },
+        booleanFields: {
+          'traumaCraneo': 'Trauma cráneo',
+          'traumaTorax': 'Trauma tórax',
+          'traumaAbdomen': 'Trauma abdomen',
+          'traumaColumna': 'Trauma columna',
+          'traumaExtremidades': 'Trauma extremidades',
+          'traumaPelvis': 'Trauma pelvis',
+          'traumaOtros': 'Trauma otros',
+        },
+        conditionalFields: {
+          'traumaCraneo': {
+            'label': 'Especifique trauma cráneo',
+            'condition': (data) => data['traumaCraneo'] == true,
+            'dependentField': 'traumaCraneoEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'traumaTorax': {
+            'label': 'Especifique trauma tórax',
+            'condition': (data) => data['traumaTorax'] == true,
+            'dependentField': 'traumaToraxEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'traumaAbdomen': {
+            'label': 'Especifique trauma abdomen',
+            'condition': (data) => data['traumaAbdomen'] == true,
+            'dependentField': 'traumaAbdomenEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'traumaColumna': {
+            'label': 'Especifique trauma columna',
+            'condition': (data) => data['traumaColumna'] == true,
+            'dependentField': 'traumaColumnaEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'traumaExtremidades': {
+            'label': 'Especifique trauma extremidades',
+            'condition': (data) => data['traumaExtremidades'] == true,
+            'dependentField': 'traumaExtremidadesEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'traumaPelvis': {
+            'label': 'Especifique trauma pelvis',
+            'condition': (data) => data['traumaPelvis'] == true,
+            'dependentField': 'traumaPelvisEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+          'traumaOtros': {
+            'label': 'Especifique trauma otros',
+            'condition': (data) => data['traumaOtros'] == true,
+            'dependentField': 'traumaOtrosEspecifique',
+            'dependentLabel': 'Especifique',
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'physicalExam',
+        title: 'Exploración Física',
+        icon: Icons.health_and_safety,
+        color: Colors.cyan,
+        fieldMappings: {
+          'head': 'Cabeza',
+          'neck': 'Cuello',
+          'thorax': 'Tórax',
+          'abdomen': 'Abdomen',
+          'extremities': 'Extremidades',
+          'neurological': 'Neurológico',
+          'observaciones': 'Observaciones',
+          'eva': 'EVA',
+          'llc': 'LLC',
+          'glucosa': 'Glucosa',
+          'ta': 'T/A',
+          'sampleAlergias': 'Alergias',
+          'sampleMedicamentos': 'Medicamentos',
+          'sampleEnfermedades': 'Enfermedades',
+          'sampleHoraAlimento': 'Hora último alimento',
+          'sampleEventosPrevios': 'Eventos previos',
+        },
+        vitalSigns: [
+          'T/A',
+          'FC',
+          'FR',
+          'Temp.',
+          'Sat. O2',
+          'LLC',
+          'Glu',
+          'Glasgow',
+        ],
+      ),
+      SectionConfig(
+        key: 'priorityJustification',
+        title: 'Justificación de Prioridad',
+        icon: Icons.priority_high,
+        color: Colors.deepOrange,
+        fieldMappings: {
+          'priority': 'Prioridad',
+          'pupils': 'Pupilas',
+          'skinColor': 'Color piel',
+          'skin': 'Piel',
+          'temperature': 'Temperatura',
+        },
+        conditionalFields: {
+          'influence': {
+            'label': 'Influenciado por',
+            'condition': (data) => data['influence'] == 'Otro',
+            'dependentField': 'especifique',
+            'dependentLabel': 'Especifique',
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'receivingUnit',
+        title: 'Unidad Medica que Recibe',
+        icon: Icons.local_hospital,
+        color: Colors.indigo,
+        fieldMappings: {
+          'lugarOrigen': 'Lugar de origen',
+          'lugarDestino': 'Lugar de destino',
+          'lugarConsulta': 'Lugar de consulta',
+          'ambulanciaNumero': 'Número de ambulancia',
+          'ambulanciaPlacas': 'Placas de ambulancia',
+          'personal': 'Personal',
+          'doctor': 'Doctor',
+          'otroLugar': 'Otro lugar',
+          'observaciones': 'Observaciones',
+        },
+        specialFields: {
+          'personalMedico': {
+            'label': 'Personal médico',
+            'isFullWidth': true,
+            'customBuilder': (data) => _buildPersonalMedicoList(data),
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'patientReception',
+        title: 'Recepción del Paciente',
+        icon: Icons.how_to_reg,
+        color: Colors.green,
+        fieldMappings: {
+          'receivingDoctor': 'Medico que recibe',
+          'doctorName': 'Nombre del doctor',
+          'doctorCedula': 'Cédula del doctor',
+        },
+        specialFields: {
+          'doctorSignature': {
+            'label': 'Firma del medico',
+            'isSignature': true,
+            'signatureTitle': 'Firma del Médico',
+          },
+        },
+      ),
+    ];
   }
 
   void _loadDetailedInfo() {
@@ -46,8 +573,19 @@ class _FrapRecordDetailsScreenState
   // Método auxiliar para decodificar firmas base64 correctamente
   Uint8List _getImageBytesFromBase64(String base64Data) {
     try {
+      // Validar que el string no esté vacío
+      if (base64Data.trim().isEmpty) {
+        return Uint8List(0);
+      }
+
       // Remover el prefijo 'data:image/png;base64,' si existe
       final base64String = base64Data.split(',').last;
+
+      // Validar que el string base64 sea válido
+      if (base64String.isEmpty) {
+        return Uint8List(0);
+      }
+
       return base64Decode(base64String);
     } catch (e) {
       return Uint8List(0);
@@ -70,16 +608,19 @@ class _FrapRecordDetailsScreenState
                 backgroundColor: Colors.transparent,
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.9,
-                  height: MediaQuery.of(context).size.height * 0.8,
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Header
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: const BorderRadius.only(
@@ -89,17 +630,12 @@ class _FrapRecordDetailsScreenState
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.edit,
-                              color: Colors.white,
-                              size: 24,
-                            ),
+                            Icon(Icons.edit, color: Colors.blue[600], size: 24),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                // title,
-                                '',
-                                style: const TextStyle(
+                                title,
+                                style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -118,7 +654,7 @@ class _FrapRecordDetailsScreenState
                       ),
 
                       // Contenido de la firma
-                      Expanded(
+                      Flexible(
                         child: Container(
                           margin: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
@@ -147,32 +683,31 @@ class _FrapRecordDetailsScreenState
                       ),
 
                       // Footer con información
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(16),
-                            bottomRight: Radius.circular(16),
+                      if (doctorName != null)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                doctorName != null
-                                    ? 'Médico: $doctorName'
-                                    : 'Medico que recibe el paciente',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Médico: $doctorName',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -257,67 +792,70 @@ class _FrapRecordDetailsScreenState
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header con información básica
-                    _buildHeaderCard(),
+              : SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header con información básica
+                      _buildHeaderCard(),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Información del servicio
-                    _buildServiceInfoSection(),
+                      // Información del servicio
+                      _buildSectionFromConfig(_sectionConfigs[0]),
 
-                    // Información del registro
-                    _buildRegistryInfoSection(),
+                      // Información del registro
+                      _buildSectionFromConfig(_sectionConfigs[1]),
 
-                    // Información del paciente
-                    _buildPatientInfoSection(),
+                      // Información del paciente
+                      _buildSectionFromConfig(_sectionConfigs[2]),
 
-                    // Manejo
-                    _buildManagementSection(),
+                      // Manejo
+                      _buildSectionFromConfig(_sectionConfigs[3]),
 
-                    // Medicamentos
-                    _buildMedicationsSection(),
+                      // Medicamentos
+                      _buildSectionFromConfig(_sectionConfigs[4]),
 
-                    // Gineco-obstétrica
-                    _buildGynecoObstetricSection(),
+                      // Gineco-obstétrica
+                      _buildSectionFromConfig(_sectionConfigs[5]),
 
-                    // Atención negativa
-                    _buildAttentionNegativeSection(),
+                      // Atención negativa
+                      _buildSectionFromConfig(_sectionConfigs[6]),
 
-                    // Historia patológica
-                    _buildPathologicalHistorySection(),
+                      // Historia patológica
+                      _buildSectionFromConfig(_sectionConfigs[7]),
 
-                    // Historia clínica
-                    _buildClinicalHistorySection(),
+                      // Historia clínica
+                      _buildSectionFromConfig(_sectionConfigs[8]),
 
-                    // Examen físico
-                    _buildPhysicalExamSection(),
+                      // Examen físico
+                      _buildSectionFromConfig(_sectionConfigs[9]),
 
-                    // Justificación de prioridad
-                    _buildPriorityJustificationSection(),
+                      // Justificación de prioridad
+                      _buildSectionFromConfig(_sectionConfigs[10]),
 
-                    // Localización de lesiones
-                    _buildInjuryLocationSection(),
+                      // Localización de lesiones
+                      _buildInjuryLocationSection(),
 
-                    // Unidad receptora
-                    _buildReceivingUnitSection(),
+                      // Unidad receptora
+                      _buildSectionFromConfig(_sectionConfigs[11]),
 
-                    // Recepción del paciente
-                    _buildPatientReceptionSection(),
+                      // Recepción del paciente
+                      _buildSectionFromConfig(_sectionConfigs[12]),
 
-                    // Nuevas secciones agregadas
-                    _buildInsumosSection(),
+                      // Nuevas secciones agregadas
+                      _buildInsumosSection(),
 
-                    _buildPersonalMedicoSection(),
+                      _buildPersonalMedicoSection(),
 
-                    _buildEscalasObstetricasSection(),
+                      _buildEscalasObstetricasSection(),
 
-                    const SizedBox(height: 32),
-                  ],
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
     );
@@ -485,47 +1023,220 @@ class _FrapRecordDetailsScreenState
     );
   }
 
-  Widget _buildServiceInfoSection() {
-    final serviceInfo = _detailedInfo['serviceInfo'];
-    Map<String, dynamic> serviceInfoMap = {};
-    if (serviceInfo is Map) {
-      serviceInfoMap = Map<String, dynamic>.from(serviceInfo);
-    }
-    if (serviceInfoMap.isEmpty) return const SizedBox.shrink();
+  // Información del servicio
+  Widget _buildSectionFromConfig(SectionConfig config) {
+    final details = _buildDetailsFromConfig(config);
 
-    final details = [
-      {'label': 'Hora de llamada', 'value': serviceInfoMap['horaLlamada']},
-      {'label': 'Hora de arribo', 'value': serviceInfoMap['horaArribo']},
-      {
-        'label': 'Tiempo de espera arribo',
-        'value': serviceInfoMap['tiempoEsperaArribo'],
-      },
-      {'label': 'Hora de llegada', 'value': serviceInfoMap['horaLlegada']},
-      {
-        'label': 'Tiempo de espera llegada',
-        'value': serviceInfoMap['tiempoEsperaLlegada'],
-      },
-      {'label': 'Hora de terminación', 'value': serviceInfoMap['horaTermino']},
-      {'label': 'Ubicacion', 'value': serviceInfoMap['ubicacion']},
-      {'label': 'Tipo de servicio', 'value': serviceInfoMap['tipoServicio']},
-      {
-        'label': 'Especifique',
-        'value': serviceInfoMap['tipoServicioEspecifique'],
-      },
-      {
-        'label': 'Lugar de ocurrencia',
-        'value': serviceInfoMap['lugarOcurrencia'],
-      },
-    ];
+    if (details.isEmpty) return const SizedBox.shrink();
 
     return _buildSectionCard(
-      title: 'Información del Servicio',
-      icon: Icons.local_hospital,
-      color: Colors.blue,
-      child: _buildTwoColumnDetails(details),
+      title: config.title,
+      icon: config.icon,
+      color: config.color,
+      child: _buildThreeColumnDetails(details),
     );
   }
 
+  // Método auxiliar para construir widgets de firma de manera segura
+  Widget _buildSignatureWidget(dynamic signatureData, String signatureTitle) {
+    try {
+      if (signatureData != null && signatureData.toString().isNotEmpty) {
+        final decodedBytes = _getImageBytesFromBase64(signatureData.toString());
+        if (decodedBytes.isNotEmpty) {
+          return GestureDetector(
+            onTap:
+                () => _showSignatureFullScreen(
+                  signatureTitle,
+                  signatureData.toString(),
+                ),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Image.memory(
+                decodedBytes,
+                height: 60,
+                fit: BoxFit.contain,
+                errorBuilder:
+                    (context, error, stackTrace) =>
+                        const Text('Firma no disponible'),
+              ),
+            ),
+          );
+        }
+      }
+      return const Text('No registrada');
+    } catch (e) {
+      return const Text('Firma corrupta');
+    }
+  }
+
+  Widget _buildThreeColumnDetails(List<Map<String, dynamic>> details) {
+    // Filtrar detalles que tienen valor
+    final detailsWithData =
+        details
+            .where(
+              (detail) =>
+                  detail['value'] != null &&
+                  (detail['value'] is Widget ||
+                      (detail['value'] is String &&
+                          detail['value'].toString().trim().isNotEmpty)),
+            )
+            .toList();
+
+    // Si no hay datos, mostrar mensaje
+    if (detailsWithData.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Icon(Icons.info_outline, size: 48, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No hay información disponible',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Complete la información para ver los datos aquí',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Separar campos especiales (firmas y ancho completo) de campos normales
+    final normalFields =
+        detailsWithData
+            .where((d) => d['isSignature'] != true && d['isFullWidth'] != true)
+            .toList();
+    final specialFields =
+        detailsWithData
+            .where((d) => d['isSignature'] == true || d['isFullWidth'] == true)
+            .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Campos normales en 3 columnas
+        if (normalFields.isNotEmpty) ...[
+          _buildThreeColumnGrid(normalFields),
+          if (specialFields.isNotEmpty) const SizedBox(height: 24),
+        ],
+
+        // Campos especiales (firmas y ancho completo) en ancho completo
+        if (specialFields.isNotEmpty) ...[
+          ...specialFields.map((detail) {
+            if (detail['isFullWidth'] == true) {
+              return _buildFullWidthDetail(detail['label'], detail['value']);
+            }
+            return _buildServiceDetailCard(
+              detail['label'],
+              detail['value'],
+              isSignature: detail['isSignature'] == true,
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildThreeColumnGrid(List<Map<String, dynamic>> details) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 2.5,
+      ),
+      itemCount: details.length,
+      itemBuilder: (context, index) {
+        final detail = details[index];
+        return _buildServiceDetailCard(detail['label'], detail['value']);
+      },
+    );
+  }
+
+  Widget _buildServiceDetailCard(
+    String label,
+    dynamic value, {
+    bool isSignature = false,
+  }) {
+    final hasValue =
+        value != null &&
+        (value is Widget ||
+            (value is String && value.toString().trim().isNotEmpty));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Label
+        Row(
+          children: [
+            Icon(
+              _getIconForField(label),
+              size: 16,
+              color: hasValue ? Colors.blue[600] : Colors.grey[500],
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: hasValue ? Colors.blue[700] : Colors.grey[600],
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Value
+        value is Widget
+            ? value
+            : Text(
+              hasValue ? value.toString() : 'No especificado',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+                color: hasValue ? Colors.black87 : Colors.grey[500],
+              ),
+              maxLines: isSignature ? 1 : 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+      ],
+    );
+  }
+
+  IconData _getIconForField(String label) {
+    if (label.contains('Hora')) return Icons.access_time;
+    if (label.contains('Tiempo')) return Icons.timer;
+    if (label.contains('Ubicacion')) return Icons.location_on;
+    if (label.contains('Tipo')) return Icons.category;
+    if (label.contains('Lugar')) return Icons.place;
+    if (label.contains('Urgencia')) return Icons.emergency;
+    if (label.contains('Firma')) return Icons.edit;
+    if (label.contains('Especifique')) return Icons.edit_note;
+    return Icons.info_outline;
+  }
+
+  ////////////////////////
+  // Información del registro
   Widget _buildRegistryInfoSection() {
     final registryInfo = _detailedInfo['registryInfo'];
     Map<String, dynamic> registryInfoMap = {};
@@ -550,6 +1261,8 @@ class _FrapRecordDetailsScreenState
     );
   }
 
+  ////////////////////////
+  // Información del paciente
   Widget _buildPatientInfoSection() {
     final patientInfo = _detailedInfo['patientInfo'];
     Map<String, dynamic> patientInfoMap = {};
@@ -557,40 +1270,74 @@ class _FrapRecordDetailsScreenState
       patientInfoMap = Map<String, dynamic>.from(patientInfo);
     }
 
+    // Debug: Verificar el valor de entreCalles
+    final entreCallesValue = _getSafeStringValue(patientInfoMap, 'entreCalles');
+    print('DEBUG: entreCalles value: $entreCallesValue');
+    print('DEBUG: patientInfoMap keys: ${patientInfoMap.keys.toList()}');
+
     final details = [
       {
         'label': 'Nombre completo',
-        'value': patientInfoMap['name'] ?? widget.record.patientName,
+        'value':
+            _getSafeStringValue(patientInfoMap, 'name') ??
+            widget.record.patientName,
       },
       {
         'label': 'Edad',
-        'value':
-            patientInfoMap['age'] != null
-                ? '${patientInfoMap['age']} años'
-                : '${widget.record.patientAge} años',
+        'value': _formatAge(
+          _getSafeStringValue(patientInfoMap, 'age'),
+          widget.record.patientAge,
+        ),
       },
       {
         'label': 'Sexo',
-        'value': patientInfoMap['sex'] ?? widget.record.patientGender,
-      }, // Cambiado de gender a sex
-      {
-        'label': 'Dirección',
-        'value': patientInfoMap['address'] ?? widget.record.patientAddress,
+        'value':
+            _getSafeStringValue(patientInfoMap, 'sex') ??
+            widget.record.patientGender,
       },
-      {'label': 'Teléfono', 'value': patientInfoMap['phone']},
-      {'label': 'Seguro médico', 'value': patientInfoMap['insurance']},
       {
-        'label': 'Padecimiento actual',
-        'value': patientInfoMap['currentCondition'],
+        'label': 'Género',
+        'value': _getSafeStringValue(patientInfoMap, 'genero'),
+      },
+      {
+        'label': 'Teléfono',
+        'value': _formatPhone(_getSafeStringValue(patientInfoMap, 'phone')),
       },
       {
         'label': 'Contacto de emergencia',
-        'value': patientInfoMap['emergencyContact'],
+        'value': _getSafeStringValue(patientInfoMap, 'emergencyContact'),
       },
       {
         'label': 'Persona responsable',
-        'value': patientInfoMap['responsiblePerson'],
+        'value': _getSafeStringValue(patientInfoMap, 'responsiblePerson'),
       },
+      {
+        'label': 'Dirección',
+        'value': _buildFullAddress(patientInfoMap),
+        'isFullWidth': true,
+      },
+      {
+        'label': 'Entre calles',
+        'value': _getSafeStringValue(patientInfoMap, 'entreCalles'),
+      },
+      {
+        'label': 'Padecimiento actual',
+        'value': _getSafeStringValue(patientInfoMap, 'currentCondition'),
+        'isFullWidth': true,
+      },
+      {
+        'label': 'Seguro médico',
+        'value': _getSafeStringValue(patientInfoMap, 'insurance'),
+      },
+      {
+        'label': 'Tipo de entrega',
+        'value': _getSafeStringValue(patientInfoMap, 'tipoEntrega'),
+      },
+      if (_getSafeStringValue(patientInfoMap, 'tipoEntregaOtro') != null)
+        {
+          'label': 'Especifique tipo de entrega',
+          'value': _getSafeStringValue(patientInfoMap, 'tipoEntregaOtro'),
+        },
     ];
 
     return _buildSectionCard(
@@ -599,6 +1346,65 @@ class _FrapRecordDetailsScreenState
       color: Colors.green,
       child: _buildTwoColumnDetails(details),
     );
+  }
+
+  // Método para construir dirección completa
+  String _buildFullAddress(Map<String, dynamic> patientInfoMap) {
+    final addressParts = <String>[];
+
+    final street = _getSafeStringValue(patientInfoMap, 'street');
+    final extNumber = _getSafeStringValue(patientInfoMap, 'exteriorNumber');
+    final intNumber = _getSafeStringValue(patientInfoMap, 'interiorNumber');
+    final neighborhood = _getSafeStringValue(patientInfoMap, 'neighborhood');
+    final city = _getSafeStringValue(patientInfoMap, 'city');
+
+    if (street != null) addressParts.add(street);
+    if (extNumber != null) addressParts.add('No. $extNumber');
+    if (intNumber != null) addressParts.add('Int. $intNumber');
+    if (neighborhood != null) addressParts.add('Col. $neighborhood');
+    if (city != null) addressParts.add(city);
+
+    return addressParts.isNotEmpty
+        ? addressParts.join(', ')
+        : _getSafeStringValue(patientInfoMap, 'address') ??
+            widget.record.patientAddress;
+  }
+
+  // Método para formatear edad
+  String _formatAge(String? age, int fallbackAge) {
+    if (age == null || age.trim().isEmpty) {
+      return '$fallbackAge años';
+    }
+
+    try {
+      final ageNum = int.parse(age);
+      if (ageNum < 0 || ageNum > 150) {
+        return '$fallbackAge años';
+      }
+      return '$ageNum años';
+    } catch (e) {
+      return '$fallbackAge años';
+    }
+  }
+
+  // Método para formatear teléfono
+  String? _formatPhone(String? phone) {
+    if (phone == null || phone.trim().isEmpty) {
+      return null;
+    }
+
+    // Remover caracteres no numéricos
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (cleanPhone.length == 10) {
+      // Formato: (XXX) XXX-XXXX
+      return '(${cleanPhone.substring(0, 3)}) ${cleanPhone.substring(3, 6)}-${cleanPhone.substring(6)}';
+    } else if (cleanPhone.length == 7) {
+      // Formato: XXX-XXXX
+      return '${cleanPhone.substring(0, 3)}-${cleanPhone.substring(3)}';
+    }
+
+    return phone; // Devolver original si no coincide con formatos conocidos
   }
 
   Widget _buildManagementSection() {
@@ -618,7 +1424,7 @@ class _FrapRecordDetailsScreenState
         if (managementMap['empaquetamiento'] == true)
           {'label': 'Empaquetamiento', 'value': 'Sí'},
         if (managementMap['inmovilizacion'] == true)
-          {'label': 'Inmovilización', 'value': ''},
+          {'label': 'Inmovilización', 'value': 'Sí'},
         if (managementMap['monitor'] == true)
           {'label': 'Monitor', 'value': 'Sí'},
         if (managementMap['rcpBasica'] == true)
@@ -641,6 +1447,14 @@ class _FrapRecordDetailsScreenState
             managementMap['ltMin'].toString().isNotEmpty)
           {'label': 'Lt/min', 'value': managementMap['ltMin']},
       ],
+      // Campos adicionales que pueden estar en el manejo
+      if (managementMap['observaciones'] != null &&
+          managementMap['observaciones'].toString().isNotEmpty)
+        {
+          'label': 'Observaciones',
+          'value': managementMap['observaciones'],
+          'isFullWidth': true,
+        },
     ];
 
     return _buildSectionCard(
@@ -661,6 +1475,7 @@ class _FrapRecordDetailsScreenState
 
     final details = [
       {'label': 'Medicamentos', 'value': medicationsMap['medications']},
+      {'label': 'Observaciones', 'value': medicationsMap['observaciones']},
     ];
 
     return _buildSectionCard(
@@ -702,6 +1517,12 @@ class _FrapRecordDetailsScreenState
         'value': gynecoObstetricMap['expulsionPlacenta'],
       },
       {'label': 'Hora', 'value': gynecoObstetricMap['hora']},
+      {'label': 'Observaciones', 'value': gynecoObstetricMap['observaciones']},
+      {
+        'label': 'Frecuencia cardíaca fetal',
+        'value': gynecoObstetricMap['frecuenciaCardiacaFetal'],
+      },
+      {'label': 'Contracciones', 'value': gynecoObstetricMap['contracciones']},
     ];
 
     return _buildSectionCard(
@@ -723,89 +1544,27 @@ class _FrapRecordDetailsScreenState
     final details = [
       {
         'label': 'Firma paciente',
-        'value':
-            (() {
-              try {
-                final signatureData = attentionNegativeMap['patientSignature'];
-                if (signatureData != null &&
-                    signatureData.toString().isNotEmpty) {
-                  final decodedBytes = _getImageBytesFromBase64(
-                    signatureData.toString(),
-                  );
-                  if (decodedBytes.isNotEmpty) {
-                    return GestureDetector(
-                      onTap:
-                          () => _showSignatureFullScreen(
-                            'Firma del Paciente',
-                            signatureData.toString(),
-                          ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Image.memory(
-                          decodedBytes,
-                          height: 60,
-                          fit: BoxFit.contain,
-                          errorBuilder:
-                              (context, error, stackTrace) =>
-                                  const Text('Firma no disponible'),
-                        ),
-                      ),
-                    );
-                  }
-                }
-                return const Text('No registrada');
-              } catch (e) {
-                // Si hay error decodificando base64, mostrar mensaje de error
-                return const Text('Firma corrupta');
-              }
-            })(),
+        'value': _buildSignatureWidget(
+          attentionNegativeMap['patientSignature'],
+          'Firma del Paciente',
+        ),
         'isSignature': true,
       },
       {
         'label': 'Firma Testigo',
-        'value':
-            (() {
-              try {
-                final signatureData = attentionNegativeMap['witnessSignature'];
-                if (signatureData != null &&
-                    signatureData.toString().isNotEmpty) {
-                  final decodedBytes = _getImageBytesFromBase64(
-                    signatureData.toString(),
-                  );
-                  if (decodedBytes.isNotEmpty) {
-                    return GestureDetector(
-                      onTap:
-                          () => _showSignatureFullScreen(
-                            'Firma del Testigo',
-                            signatureData.toString(),
-                          ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Image.memory(
-                          decodedBytes,
-                          height: 60,
-                          fit: BoxFit.contain,
-                          errorBuilder:
-                              (context, error, stackTrace) =>
-                                  const Text('Firma no disponible'),
-                        ),
-                      ),
-                    );
-                  }
-                }
-                return const Text('No registrada');
-              } catch (e) {
-                // Si hay error decodificando base64, mostrar mensaje de error
-                return const Text('Firma corrupta');
-              }
-            })(),
+        'value': _buildSignatureWidget(
+          attentionNegativeMap['witnessSignature'],
+          'Firma del Testigo',
+        ),
         'isSignature': true,
+      },
+      {
+        'label': 'Motivo de negativa',
+        'value': attentionNegativeMap['motivoNegativa'],
+      },
+      {
+        'label': 'Observaciones',
+        'value': attentionNegativeMap['observaciones'],
       },
     ];
 
@@ -860,6 +1619,10 @@ class _FrapRecordDetailsScreenState
       {
         'label': 'Metabólica',
         'value': pathologicalHistoryMap['metabolica'] == true ? 'Sí' : 'No',
+      },
+      {
+        'label': 'Observaciones',
+        'value': pathologicalHistoryMap['observaciones'],
       },
     ];
 
@@ -918,6 +1681,7 @@ class _FrapRecordDetailsScreenState
         'label': 'Medida de Seguridad',
         'value': clinicalHistoryMap['medidaSeguridad'] ?? '',
       },
+      {'label': 'Observaciones', 'value': clinicalHistoryMap['observaciones']},
     ];
 
     return _buildSectionCard(
@@ -957,17 +1721,28 @@ class _FrapRecordDetailsScreenState
                   final timeColumns = List<String>.from(
                     physicalExamMap['timeColumns'],
                   );
-                  final values = Map<String, dynamic>.from(
-                    physicalExamMap[vitalSign['key']],
-                  );
-                  return timeColumns
-                      .map((col) => '$col: ${values[col] ?? ''}')
-                      .join('\n');
+                  final valuesData = physicalExamMap[vitalSign['key']];
+
+                  // Validar que valuesData sea un Map antes de convertirlo
+                  if (valuesData is Map) {
+                    final values = Map<String, dynamic>.from(valuesData);
+                    return timeColumns
+                        .map((col) => '$col: ${values[col] ?? ''}')
+                        .join('\n');
+                  }
                 }
                 // Si no, mostrar el valor directo (por compatibilidad)
                 return physicalExamMap[vitalSign['key']];
               })(),
         },
+      // Campos adicionales del examen físico
+      {'label': 'Cabeza', 'value': physicalExamMap['head']},
+      {'label': 'Cuello', 'value': physicalExamMap['neck']},
+      {'label': 'Tórax', 'value': physicalExamMap['thorax']},
+      {'label': 'Abdomen', 'value': physicalExamMap['abdomen']},
+      {'label': 'Extremidades', 'value': physicalExamMap['extremities']},
+      {'label': 'Neurológico', 'value': physicalExamMap['neurological']},
+      {'label': 'Observaciones', 'value': physicalExamMap['observaciones']},
     ];
 
     return _buildSectionCard(
@@ -1017,6 +1792,1074 @@ class _FrapRecordDetailsScreenState
       color: Colors.deepOrange,
       child: _buildTwoColumnDetails(details),
     );
+  }
+
+  Widget _buildReceivingUnitSection() {
+    final receivingUnit = _detailedInfo['receivingUnit'];
+    Map<String, dynamic> receivingUnitMap = {};
+    if (receivingUnit is Map) {
+      receivingUnitMap = Map<String, dynamic>.from(receivingUnit);
+    }
+    if (receivingUnitMap.isEmpty) return const SizedBox.shrink();
+
+    final details = [
+      {'label': 'Lugar de origen', 'value': receivingUnitMap['originPlace']},
+      {'label': 'Lugar de consulta', 'value': receivingUnitMap['consultPlace']},
+      {
+        'label': 'Lugar de destino',
+        'value': receivingUnitMap['destinationPlace'],
+      },
+      {
+        'label': 'Numero de ambulancia',
+        'value': receivingUnitMap['ambulanceNumber'],
+      },
+      {'label': 'Placa', 'value': receivingUnitMap['plate']},
+      {'label': 'Personal', 'value': receivingUnitMap['personal']},
+      {
+        'label': 'Doctor responsable',
+        'value': receivingUnitMap['responsibleDoctor'],
+      },
+      {'label': 'Observaciones', 'value': receivingUnitMap['observaciones']},
+    ];
+
+    return _buildSectionCard(
+      title: 'Unidad Medica que Recibe',
+      icon: Icons.local_hospital,
+      color: Colors.indigo,
+      child: _buildTwoColumnDetails(details),
+    );
+  }
+
+  Widget _buildPatientReceptionSection() {
+    final patientReception = _detailedInfo['patientReception'];
+    Map<String, dynamic> patientReceptionMap = {};
+    if (patientReception is Map) {
+      patientReceptionMap = Map<String, dynamic>.from(patientReception);
+    }
+    if (patientReceptionMap.isEmpty) return const SizedBox.shrink();
+
+    final details = [
+      {
+        'label': 'Medico que recibe',
+        'value': patientReceptionMap['receivingDoctor'],
+      },
+      {
+        'label': 'Firma del medico',
+        'value': _buildSignatureWidget(
+          patientReceptionMap['doctorSignature'],
+          'Firma del Médico',
+        ),
+        'isSignature': true,
+      },
+    ];
+
+    return _buildSectionCard(
+      title: 'Recepción del Paciente',
+      icon: Icons.how_to_reg,
+      color: Colors.green,
+      child: _buildTwoColumnDetails(details),
+    );
+  }
+
+  Widget _buildInsumosSection() {
+    // Obtener insumos desde _detailedInfo
+    final insumosData = _detailedInfo['insumos'];
+    List<dynamic> insumosList = [];
+
+    if (insumosData != null) {
+      if (insumosData is List) {
+        insumosList =
+            insumosData
+                .where((item) => item != null && item is Map<String, dynamic>)
+                .toList();
+      } else if (insumosData is Map) {
+        // Si es un mapa, convertirlo a lista
+        insumosList = [insumosData];
+      }
+    }
+
+    if (insumosList.isEmpty) return const SizedBox.shrink();
+
+    return _buildSectionCard(
+      title: 'Insumos Utilizados',
+      icon: Icons.inventory_2,
+      color: Colors.deepPurple,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (insumosList.isNotEmpty) ...[
+            for (int i = 0; i < insumosList.length; i++)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.deepPurple.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${i + 1}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _getSafeStringValue(insumosList[i], 'articulo') ??
+                                'Sin especificar',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Cantidad: ${_getSafeStringValue(insumosList[i], 'cantidad') ?? '0'}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ] else ...[
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No se registraron insumos',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalMedicoSection() {
+    // Obtener personal médico desde _detailedInfo
+    final personalData = _detailedInfo['personalMedico'];
+    List<dynamic> personalList = [];
+
+    if (personalData != null) {
+      if (personalData is List) {
+        personalList =
+            personalData
+                .where((item) => item != null && item is Map<String, dynamic>)
+                .toList();
+      } else if (personalData is Map) {
+        // Si es un mapa, convertirlo a lista
+        personalList = [personalData];
+      }
+    }
+
+    if (personalList.isEmpty) return const SizedBox.shrink();
+
+    return _buildSectionCard(
+      title: 'Personal Médico',
+      icon: Icons.medical_services,
+      color: Colors.blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (personalList.isNotEmpty) ...[
+            for (int i = 0; i < personalList.length; i++)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _getSafeStringValue(personalList[i], 'nombre') ??
+                                'Sin especificar',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          if (_getSafeStringValue(
+                                personalList[i],
+                                'especialidad',
+                              )?.isNotEmpty ==
+                              true)
+                            Text(
+                              'Especialidad: ${_getSafeStringValue(personalList[i], 'especialidad')}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          if (_getSafeStringValue(
+                                personalList[i],
+                                'cedula',
+                              )?.isNotEmpty ==
+                              true)
+                            Text(
+                              'Cédula: ${_getSafeStringValue(personalList[i], 'cedula')}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ] else ...[
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No se registró personal médico',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Método auxiliar para obtener valores de string de manera segura
+  String? _getSafeStringValue(dynamic data, String key) {
+    if (data is Map<String, dynamic> && data.containsKey(key)) {
+      final value = data[key];
+      if (value != null) {
+        return value.toString().trim();
+      }
+    }
+    return null;
+  }
+
+  Widget _buildEscalasObstetricasSection() {
+    // Obtener escalas obstétricas desde _detailedInfo
+    final escalasData = _detailedInfo['escalasObstetricas'];
+
+    if (escalasData == null || escalasData.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    List<Map<String, dynamic>> details = [];
+
+    // Escala de Silverman-Anderson
+    if (escalasData['silvermanAnderson'] != null) {
+      final silverman = escalasData['silvermanAnderson'];
+      if (silverman is Map<String, dynamic> && silverman.isNotEmpty) {
+        details.add({
+          'label': 'Escala Silverman-Anderson',
+          'value': _buildSilvermanAndersonDisplay(silverman),
+          'isFullWidth': true,
+        });
+      }
+    }
+
+    // Escala APGAR
+    if (escalasData['apgar'] != null) {
+      final apgar = escalasData['apgar'];
+      if (apgar is Map<String, dynamic> && apgar.isNotEmpty) {
+        details.add({
+          'label': 'Escala APGAR',
+          'value': _buildApgarDisplay(apgar),
+          'isFullWidth': true,
+        });
+      }
+    }
+
+    // Frecuencia cardíaca fetal
+    if (escalasData['frecuenciaCardiacaFetal'] != null &&
+        escalasData['frecuenciaCardiacaFetal'].toString().trim().isNotEmpty) {
+      details.add({
+        'label': 'Frecuencia cardíaca fetal',
+        'value': '${escalasData['frecuenciaCardiacaFetal']} lpm',
+      });
+    }
+
+    // Contracciones
+    if (escalasData['contracciones'] != null &&
+        escalasData['contracciones'].toString().trim().isNotEmpty) {
+      details.add({
+        'label': 'Contracciones',
+        'value': escalasData['contracciones'].toString(),
+      });
+    }
+
+    if (details.isEmpty) return const SizedBox.shrink();
+
+    return _buildSectionCard(
+      title: 'Escalas Obstétricas',
+      icon: Icons.pregnant_woman,
+      color: Colors.pink,
+      child: _buildTwoColumnDetails(details),
+    );
+  }
+
+  Widget _buildSilvermanAndersonDisplay(Map<String, dynamic> silverman) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.pink.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.pink.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Puntajes por criterio:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ...silverman.entries.where((entry) => entry.value != null).map((
+            entry,
+          ) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      _getSilvermanCriteriaName(entry.key),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '${entry.value}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const Divider(),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Puntaje total:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Text(
+                '${silverman.values.where((value) => value != null).fold(0, (sum, value) => sum + (value as int))}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.pink,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApgarDisplay(Map<String, dynamic> apgar) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.pink.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.pink.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Puntajes por criterio:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ...apgar.entries.where((entry) => entry.value != null).map((entry) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      _getApgarCriteriaName(entry.key),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '${entry.value}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const Divider(),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Puntaje total:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Text(
+                '${apgar.values.where((value) => value != null).fold(0, (sum, value) => sum + (value as int))}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.pink,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getSilvermanCriteriaName(String key) {
+    switch (key) {
+      case 'respirationMoved':
+        return 'Movimientos respiratorios';
+      case 'retraction':
+        return 'Retracción';
+      case 'nasal':
+        return 'Aleteo nasal';
+      case 'moan':
+        return 'Quejido';
+      case 'circulation':
+        return 'Circulación';
+      default:
+        return key;
+    }
+  }
+
+  String _getApgarCriteriaName(String key) {
+    switch (key) {
+      case 'heartRate':
+        return 'Frecuencia cardíaca';
+      case 'respiratoryEffort':
+        return 'Esfuerzo respiratorio';
+      case 'muscleTone':
+        return 'Tono muscular';
+      case 'reflexes':
+        return 'Reflejos';
+      case 'skinColor':
+        return 'Color de la piel';
+      default:
+        return key;
+    }
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Widget child,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header de la sección
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Contenido de la sección
+          Padding(padding: const EdgeInsets.all(16), child: child),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTwoColumnDetails(List<Map<String, dynamic>> details) {
+    // No filtrar campos vacíos para mostrar todos los campos
+    final detailsWithData = details;
+
+    // Si no hay datos, mostrar mensaje
+    if (detailsWithData.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'No hay información disponible para esta sección',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children:
+          detailsWithData
+              .map(
+                (detail) => _buildDetailRow(detail['label'], detail['value']),
+              )
+              .toList(),
+    );
+  }
+
+  Widget _buildDetailRow(String label, dynamic value) {
+    if (value == null || (value is String && value.trim().isEmpty)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 120,
+              child: Text(
+                '$label:',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'No especificado',
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child:
+                value is Widget
+                    ? value
+                    : Text(
+                      value.toString(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editRecord() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Función de edición para ${widget.record.patientName} próximamente disponible',
+        ),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  void _generatePDF() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfPreviewScreen(record: widget.record),
+      ),
+    );
+  }
+
+  Future<void> _deleteRecord() async {
+    final context = this.context;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar eliminación'),
+            content: Text(
+              '¿Está seguro de eliminar el registro de ${widget.record.patientName}?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Eliminar'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      final notifier = ref.read(unifiedFrapProvider.notifier);
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
+      try {
+        final success = await notifier.deleteRecord(widget.record);
+
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                success
+                    ? 'Registro eliminado exitosamente'
+                    : 'Error al eliminar el registro',
+              ),
+              backgroundColor: success ? Colors.green : Colors.red,
+            ),
+          );
+
+          if (success) {
+            navigator.pop(); // Regresar a la lista
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Error al eliminar el registro: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _shareRecord() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Función de compartir próximamente disponible'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  // Construir leyenda visual de tipos de lesiones
+  List<Widget> _buildInjuryLegend(List<DrawnInjuryDisplay> injuries) {
+    // Obtener tipos únicos
+    Set<int> uniqueTypes = injuries.map((injury) => injury.injuryType).toSet();
+
+    return uniqueTypes.map((typeIndex) {
+      final typeName = _getInjuryTypeName(typeIndex);
+      final color = _getInjuryTypeColor(typeIndex);
+      final number = typeIndex + 1; // Los números van de 1-10
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+              child: Center(
+                child: Text(
+                  '$number',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              typeName,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: color.withOpacity(0.8),
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  // Obtener color del tipo de lesión
+  Color _getInjuryTypeColor(int typeIndex) {
+    const colors = [
+      Colors.red, // Hemorragia
+      Color(0xFF8D6E63), // Herida (brown)
+      Colors.purple, // Contusión
+      Colors.orange, // Fractura
+      Colors.yellow, // Luxación/Esguince
+      Colors.pink, // Objeto extraño
+      Colors.deepOrange, // Quemadura
+      Colors.green, // Picadura/Mordedura
+      Colors.indigo, // Edema/Hematoma
+      Colors.grey, // Otro
+    ];
+
+    if (typeIndex >= 0 && typeIndex < colors.length) {
+      return colors[typeIndex];
+    }
+    return Colors.grey;
+  }
+
+  // Métodos automatizados para procesar configuraciones
+  Map<String, dynamic> _extractSectionData(String sectionKey) {
+    final sectionData = _detailedInfo[sectionKey];
+    if (sectionData is Map) {
+      return Map<String, dynamic>.from(sectionData);
+    }
+    return {};
+  }
+
+  List<Map<String, dynamic>> _buildDetailsFromConfig(SectionConfig config) {
+    final sectionData = _extractSectionData(config.key);
+    final details = <Map<String, dynamic>>[];
+
+    // Procesar campos normales
+    config.fieldMappings.forEach((fieldKey, label) {
+      final value = _getSafeStringValue(sectionData, fieldKey);
+      final fallbackValue = config.fallbacks[fieldKey];
+
+      final finalValue = value ?? (fallbackValue?.toString());
+      if (finalValue != null && finalValue.trim().isNotEmpty) {
+        details.add({'label': label, 'value': finalValue});
+      }
+    });
+
+    // Procesar campos booleanos
+    config.booleanFields.forEach((fieldKey, label) {
+      if (sectionData[fieldKey] == true) {
+        details.add({'label': label, 'value': 'Sí'});
+      }
+    });
+
+    // Procesar campos condicionales
+    config.conditionalFields.forEach((fieldKey, fieldConfig) {
+      final condition =
+          fieldConfig['condition'] as Function(Map<String, dynamic>);
+      if (condition(sectionData)) {
+        final dependentField = fieldConfig['dependentField'] as String;
+        final dependentLabel = fieldConfig['dependentLabel'] as String;
+        final value = _getSafeStringValue(sectionData, dependentField);
+        if (value != null && value.toString().trim().isNotEmpty) {
+          details.add({'label': dependentLabel, 'value': value});
+        }
+      }
+    });
+
+    // Procesar campos especiales
+    config.specialFields.forEach((fieldKey, fieldConfig) {
+      final label = fieldConfig['label'] as String;
+      final isSignature = fieldConfig['isSignature'] as bool? ?? false;
+      final signatureTitle = fieldConfig['signatureTitle'] as String?;
+      final isFullWidth = fieldConfig['isFullWidth'] as bool? ?? false;
+      final customBuilder =
+          fieldConfig['customBuilder'] as Function(Map<String, dynamic>)?;
+
+      if (isSignature) {
+        final signatureData = sectionData[fieldKey];
+        final signatureWidget = _buildSignatureWidget(
+          signatureData,
+          signatureTitle ?? label,
+        );
+        details.add({
+          'label': label,
+          'value': signatureWidget,
+          'isSignature': true,
+          'isFullWidth': isFullWidth,
+        });
+      } else if (customBuilder != null) {
+        final customValue = customBuilder(sectionData);
+        details.add({
+          'label': label,
+          'value': customValue,
+          'isFullWidth': isFullWidth,
+        });
+      } else {
+        final value = _getSafeStringValue(sectionData, fieldKey);
+        if (value != null && value.toString().trim().isNotEmpty) {
+          details.add({
+            'label': label,
+            'value': value,
+            'isFullWidth': isFullWidth,
+          });
+        }
+      }
+    });
+
+    // Procesar signos vitales (para examen físico)
+    if (config.vitalSigns.isNotEmpty) {
+      for (final vitalSign in config.vitalSigns) {
+        final value = _buildVitalSignValue(sectionData, vitalSign);
+        if (value != null) {
+          details.add({'label': vitalSign, 'value': value});
+        }
+      }
+    }
+
+    return details;
+  }
+
+  String? _buildVitalSignValue(
+    Map<String, dynamic> sectionData,
+    String vitalSign,
+  ) {
+    if (sectionData['timeColumns'] != null && sectionData[vitalSign] != null) {
+      final timeColumns = List<String>.from(sectionData['timeColumns']);
+      final valuesData = sectionData[vitalSign];
+
+      if (valuesData is Map) {
+        final values = Map<String, dynamic>.from(valuesData);
+        return timeColumns
+            .map((col) => '$col: ${values[col] ?? ''}')
+            .join('\n');
+      }
+    }
+
+    // Manejar el caso donde no hay timeColumns o el valor no es un Map
+    final value = sectionData[vitalSign];
+    if (value != null) {
+      return value.toString();
+    }
+    return null;
+  }
+
+  Widget _buildMedicationsList(Map<String, dynamic> sectionData) {
+    final medicationsList = sectionData['medicationsList'];
+    if (medicationsList == null || medicationsList.isEmpty) {
+      return const Text('No se registraron medicamentos');
+    }
+
+    if (medicationsList is List) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < medicationsList.length; i++)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${i + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          medicationsList[i]['medicamento'] ??
+                              'Sin especificar',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Dosis: ${medicationsList[i]['dosis'] ?? 'No especificada'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Vía: ${medicationsList[i]['viaAdministracion'] ?? 'No especificada'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (medicationsList[i]['hora']?.isNotEmpty == true) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Hora: ${medicationsList[i]['hora']}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                  if (medicationsList[i]['medicoIndico']?.isNotEmpty ==
+                      true) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Médico: ${medicationsList[i]['medicoIndico'] == 'Otro' ? medicationsList[i]['medicoOtro'] : medicationsList[i]['medicoIndico']}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+
+    return const Text('Formato de medicamentos no válido');
   }
 
   Widget _buildInjuryLocationSection() {
@@ -1398,931 +3241,92 @@ class _FrapRecordDetailsScreenState
     );
   }
 
-  Widget _buildReceivingUnitSection() {
-    final receivingUnit = _detailedInfo['receivingUnit'];
-    Map<String, dynamic> receivingUnitMap = {};
-    if (receivingUnit is Map) {
-      receivingUnitMap = Map<String, dynamic>.from(receivingUnit);
-    }
-    if (receivingUnitMap.isEmpty) return const SizedBox.shrink();
-
-    final details = [
-      {'label': 'Lugar de origen', 'value': receivingUnitMap['originPlace']},
-      {'label': 'Lugar de consulta', 'value': receivingUnitMap['consultPlace']},
-      {
-        'label': 'Lugar de destino',
-        'value': receivingUnitMap['destinationPlace'],
-      },
-      {
-        'label': 'Numero de ambulancia',
-        'value': receivingUnitMap['ambulanceNumber'],
-      },
-      {'label': 'Placa', 'value': receivingUnitMap['plate']},
-      {'label': 'Personal', 'value': receivingUnitMap['personal']},
-      {
-        'label': 'Doctor responsable',
-        'value': receivingUnitMap['responsibleDoctor'],
-      },
-    ];
-
-    return _buildSectionCard(
-      title: 'Unidad Medica que Recibe',
-      icon: Icons.local_hospital,
-      color: Colors.indigo,
-      child: _buildTwoColumnDetails(details),
-    );
-  }
-
-  Widget _buildPatientReceptionSection() {
-    final patientReception = _detailedInfo['patientReception'];
-    Map<String, dynamic> patientReceptionMap = {};
-    if (patientReception is Map) {
-      patientReceptionMap = Map<String, dynamic>.from(patientReception);
-    }
-    if (patientReceptionMap.isEmpty) return const SizedBox.shrink();
-
-    final details = [
-      {
-        'label': 'Medico que recibe',
-        'value': patientReceptionMap['receivingDoctor'],
-      },
-      {
-        'label': 'Firma del medico',
-        'value':
-            (() {
-              try {
-                final signatureData = patientReceptionMap['doctorSignature'];
-                if (signatureData != null &&
-                    signatureData.toString().isNotEmpty) {
-                  final decodedBytes = _getImageBytesFromBase64(
-                    signatureData.toString(),
-                  );
-                  if (decodedBytes.isNotEmpty) {
-                    final doctorName =
-                        patientReceptionMap['receivingDoctor'] ?? '';
-                    return GestureDetector(
-                      onTap:
-                          () => _showSignatureFullScreen(
-                            'Firma del Médico',
-                            signatureData.toString(),
-                            doctorName: doctorName,
-                          ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Image.memory(
-                          decodedBytes,
-                          height: 60,
-                          fit: BoxFit.contain,
-                          errorBuilder:
-                              (context, error, stackTrace) =>
-                                  const Text('Firma no disponible'),
-                        ),
-                      ),
-                    );
-                  }
-                }
-                return const Text('No registrada');
-              } catch (e) {
-                // Si hay error decodificando base64, mostrar mensaje de error
-                return const Text('Firma corrupta');
-              }
-            })(),
-        'isSignature': true,
-      },
-    ];
-
-    return _buildSectionCard(
-      title: 'Recepción del Paciente',
-      icon: Icons.how_to_reg,
-      color: Colors.green,
-      child: _buildTwoColumnDetails(details),
-    );
-  }
-
-  Widget _buildInsumosSection() {
-    // Obtener insumos del registro local o de la nube
-    List<dynamic> insumosList = [];
-
-    if (widget.record.localRecord != null) {
-      // Si hay registro local, obtener insumos del modelo local
-      insumosList =
-          widget.record.localRecord!.insumos
-              .map(
-                (insumo) => {
-                  'cantidad': insumo.cantidad,
-                  'articulo': insumo.articulo,
-                },
-              )
-              .toList();
-    } else if (widget.record.cloudRecord != null) {
-      // Si es solo de la nube, buscar en las secciones de management o serviceInfo
-      final cloudData = widget.record.cloudRecord!;
-      insumosList =
-          cloudData.management['insumos'] ??
-          cloudData.serviceInfo['insumos'] ??
-          [];
+  Widget _buildPersonalMedicoList(Map<String, dynamic> sectionData) {
+    final personalMedicoList = sectionData['personalMedico'];
+    if (personalMedicoList == null || personalMedicoList.isEmpty) {
+      return const Text('No se registró personal médico');
     }
 
-    if (insumosList.isEmpty) return const SizedBox.shrink();
-
-    return _buildSectionCard(
-      title: 'Insumos Utilizados',
-      icon: Icons.inventory_2,
-      color: Colors.deepPurple,
-      child: Column(
+    if (personalMedicoList is List) {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (insumosList.isNotEmpty) ...[
-            for (int i = 0; i < insumosList.length; i++)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.deepPurple.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${i + 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            insumosList[i]['articulo']?.toString() ??
-                                'Sin especificar',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Cantidad: ${insumosList[i]['cantidad']?.toString() ?? '0'}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ] else ...[
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'No se registraron insumos',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPersonalMedicoSection() {
-    // Obtener personal médico del registro local o de la nube
-    List<dynamic> personalList = [];
-
-    if (widget.record.localRecord != null) {
-      // Si hay registro local, obtener personal médico del modelo local
-      personalList =
-          widget.record.localRecord!.personalMedico
-              .map(
-                (personal) => {
-                  'nombre': personal.nombre,
-                  'especialidad': personal.especialidad,
-                  'cedula': personal.cedula,
-                },
-              )
-              .toList();
-    } else if (widget.record.cloudRecord != null) {
-      // Si es solo de la nube, buscar en las secciones de management o serviceInfo
-      final cloudData = widget.record.cloudRecord!;
-      personalList =
-          cloudData.management['personalMedico'] ??
-          cloudData.serviceInfo['personalMedico'] ??
-          [];
-    }
-
-    if (personalList.isEmpty) return const SizedBox.shrink();
-
-    return _buildSectionCard(
-      title: 'Personal Médico',
-      icon: Icons.medical_services,
-      color: Colors.blue,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (personalList.isNotEmpty) ...[
-            for (int i = 0; i < personalList.length; i++)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            personalList[i]['nombre']?.toString() ??
-                                'Sin especificar',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          if (personalList[i]['especialidad']
-                                  ?.toString()
-                                  .isNotEmpty ==
-                              true)
-                            Text(
-                              'Especialidad: ${personalList[i]['especialidad']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          if (personalList[i]['cedula']
-                                  ?.toString()
-                                  .isNotEmpty ==
-                              true)
-                            Text(
-                              'Cédula: ${personalList[i]['cedula']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ] else ...[
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'No se registró personal médico',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEscalasObstetricasSection() {
-    // Obtener escalas obstétricas del registro local o de la nube
-    Map<String, dynamic>? escalasData;
-
-    if (widget.record.localRecord != null &&
-        widget.record.localRecord!.escalasObstetricas != null) {
-      // Si hay registro local con escalas obstétricas
-      final escalas = widget.record.localRecord!.escalasObstetricas!;
-      escalasData = {
-        'silvermanAnderson': escalas.silvermanAnderson,
-        'apgar': escalas.apgar,
-        'frecuenciaCardiacaFetal': escalas.frecuenciaCardiacaFetal,
-        'contracciones': escalas.contracciones,
-      };
-    } else if (widget.record.cloudRecord != null) {
-      // Si es solo de la nube, buscar en la sección gynecoObstetric
-      final cloudData = widget.record.cloudRecord!;
-      escalasData =
-          cloudData.gynecoObstetric['escalasObstetricas'] ??
-          cloudData.gynecoObstetric['escalas'];
-    }
-
-    if (escalasData == null || escalasData.isEmpty)
-      return const SizedBox.shrink();
-
-    List<Map<String, dynamic>> details = [];
-
-    // Escala de Silverman-Anderson
-    if (escalasData['silvermanAnderson'] != null) {
-      final silverman =
-          escalasData['silvermanAnderson'] as Map<String, dynamic>;
-      if (silverman.isNotEmpty) {
-        details.add({
-          'label': 'Escala Silverman-Anderson',
-          'value': _buildSilvermanAndersonDisplay(silverman),
-          'isFullWidth': true,
-        });
-      }
-    }
-
-    // Escala APGAR
-    if (escalasData['apgar'] != null) {
-      final apgar = escalasData['apgar'] as Map<String, dynamic>;
-      if (apgar.isNotEmpty) {
-        details.add({
-          'label': 'Escala APGAR',
-          'value': _buildApgarDisplay(apgar),
-          'isFullWidth': true,
-        });
-      }
-    }
-
-    // Frecuencia cardíaca fetal
-    if (escalasData['frecuenciaCardiacaFetal'] != null) {
-      details.add({
-        'label': 'Frecuencia cardíaca fetal',
-        'value': '${escalasData['frecuenciaCardiacaFetal']} lpm',
-      });
-    }
-
-    // Contracciones
-    if (escalasData['contracciones'] != null &&
-        escalasData['contracciones'].toString().isNotEmpty) {
-      details.add({
-        'label': 'Contracciones',
-        'value': escalasData['contracciones'].toString(),
-      });
-    }
-
-    if (details.isEmpty) return const SizedBox.shrink();
-
-    return _buildSectionCard(
-      title: 'Escalas Obstétricas',
-      icon: Icons.pregnant_woman,
-      color: Colors.pink,
-      child: _buildTwoColumnDetails(details),
-    );
-  }
-
-  Widget _buildSilvermanAndersonDisplay(Map<String, dynamic> silverman) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.pink.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.pink.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Puntajes por criterio:',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          ...silverman.entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      _getSilvermanCriteriaName(entry.key),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      '${entry.value}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          const Divider(),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Puntaje total:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Text(
-                '${silverman.values.fold(0, (sum, value) => sum + (value as int))}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.pink,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildApgarDisplay(Map<String, dynamic> apgar) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.pink.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.pink.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Puntajes por criterio:',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          ...apgar.entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      _getApgarCriteriaName(entry.key),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      '${entry.value}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          const Divider(),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Puntaje total:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Text(
-                '${apgar.values.fold(0, (sum, value) => sum + (value as int))}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.pink,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getSilvermanCriteriaName(String key) {
-    switch (key) {
-      case 'respirationMoved':
-        return 'Movimientos respiratorios';
-      case 'retraction':
-        return 'Retracción';
-      case 'nasal':
-        return 'Aleteo nasal';
-      case 'moan':
-        return 'Quejido';
-      case 'circulation':
-        return 'Circulación';
-      default:
-        return key;
-    }
-  }
-
-  String _getApgarCriteriaName(String key) {
-    switch (key) {
-      case 'heartRate':
-        return 'Frecuencia cardíaca';
-      case 'respiratoryEffort':
-        return 'Esfuerzo respiratorio';
-      case 'muscleTone':
-        return 'Tono muscular';
-      case 'reflexes':
-        return 'Reflejos';
-      case 'skinColor':
-        return 'Color de la piel';
-      default:
-        return key;
-    }
-  }
-
-  Widget _buildSectionCard({
-    required String title,
-    required IconData icon,
-    required Color color,
-    required Widget child,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: [
-          // Header de la sección
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 24),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Contenido de la sección
-          Padding(padding: const EdgeInsets.all(16), child: child),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTwoColumnDetails(List<Map<String, dynamic>> details) {
-    // Filtrar detalles que tienen valor
-    final detailsWithData =
-        details
-            .where(
-              (detail) =>
-                  detail['value'] != null &&
-                  (detail['value'] is Widget ||
-                      (detail['value'] is String &&
-                          detail['value'].toString().trim().isNotEmpty)),
-            )
-            .toList();
-
-    // Si no hay datos, mostrar mensaje
-    if (detailsWithData.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'No hay información disponible para esta sección',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontStyle: FontStyle.italic,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    List<Widget> rows = [];
-
-    for (int i = 0; i < details.length; i++) {
-      final detail = details[i];
-      final isFullWidth =
-          detail['isFullWidth'] == true || detail['value'] is Widget;
-
-      if (isFullWidth) {
-        // Para campos que necesitan ancho completo (como firmas)
-        rows.add(_buildDetailRow(detail['label'], detail['value']));
-      } else {
-        // Para campos normales, intentar poner dos en una fila
-        Widget leftColumn = _buildDetailRow(detail['label'], detail['value']);
-        Widget? rightColumn;
-
-        if (i + 1 < details.length &&
-            details[i + 1]['isFullWidth'] != true &&
-            details[i + 1]['value'] is! Widget) {
-          rightColumn = _buildDetailRow(
-            details[i + 1]['label'],
-            details[i + 1]['value'],
-          );
-          i++; // Saltar el siguiente elemento ya que lo usamos aquí
-        }
-
-        rows.add(
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: leftColumn),
-              const SizedBox(width: 16),
-              Expanded(child: rightColumn ?? const SizedBox()),
-            ],
-          ),
-        );
-      }
-    }
-
-    return Column(children: rows);
-  }
-
-  Widget _buildDetailRow(String label, dynamic value) {
-    if (value == null || (value is String && value.trim().isEmpty)) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 2,
-              child: Text(
-                '$label:',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[700],
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                'No especificado',
-                style: TextStyle(
-                  color: Colors.grey[400],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child:
-                value is Widget
-                    ? value
-                    : Text(
-                      value.toString(),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editRecord() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Función de edición para ${widget.record.patientName} próximamente disponible',
-        ),
-        backgroundColor: Colors.orange,
-      ),
-    );
-  }
-
-  void _generatePDF() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PdfPreviewScreen(record: widget.record),
-      ),
-    );
-  }
-
-  Future<void> _deleteRecord() async {
-    final context = this.context;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Confirmar eliminación'),
-            content: Text(
-              '¿Está seguro de eliminar el registro de ${widget.record.patientName}?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Eliminar'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirmed == true) {
-      final notifier = ref.read(unifiedFrapProvider.notifier);
-      final messenger = ScaffoldMessenger.of(context);
-      final navigator = Navigator.of(context);
-
-      try {
-        final success = await notifier.deleteRecord(widget.record);
-
-        if (mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                success
-                    ? 'Registro eliminado exitosamente'
-                    : 'Error al eliminar el registro',
-              ),
-              backgroundColor: success ? Colors.green : Colors.red,
-            ),
-          );
-
-          if (success) {
-            navigator.pop(); // Regresar a la lista
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('Error al eliminar el registro: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  void _shareRecord() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Función de compartir próximamente disponible'),
-        backgroundColor: Colors.blue,
-      ),
-    );
-  }
-
-  // Construir leyenda visual de tipos de lesiones
-  List<Widget> _buildInjuryLegend(List<DrawnInjuryDisplay> injuries) {
-    // Obtener tipos únicos
-    Set<int> uniqueTypes = injuries.map((injury) => injury.injuryType).toSet();
-
-    return uniqueTypes.map((typeIndex) {
-      final typeName = _getInjuryTypeName(typeIndex);
-      final color = _getInjuryTypeColor(typeIndex);
-      final number = typeIndex + 1; // Los números van de 1-10
-
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+          for (int i = 0; i < personalMedicoList.length; i++)
             Container(
-              width: 16,
-              height: 16,
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1),
+                color: Colors.indigo.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.indigo.withOpacity(0.3)),
               ),
-              child: Center(
-                child: Text(
-                  '$number',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: Colors.indigo,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${i + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          personalMedicoList[i]['nombre'] ?? 'Sin especificar',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Especialidad: ${personalMedicoList[i]['especialidad'] ?? 'No especificada'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Cédula: ${personalMedicoList[i]['cedula'] ?? 'No especificada'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 6),
-            Text(
-              typeName,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: color.withOpacity(0.8),
-              ),
-            ),
-          ],
-        ),
+        ],
       );
-    }).toList();
-  }
-
-  // Obtener color del tipo de lesión
-  Color _getInjuryTypeColor(int typeIndex) {
-    const colors = [
-      Colors.red, // Hemorragia
-      Color(0xFF8D6E63), // Herida (brown)
-      Colors.purple, // Contusión
-      Colors.orange, // Fractura
-      Colors.yellow, // Luxación/Esguince
-      Colors.pink, // Objeto extraño
-      Colors.deepOrange, // Quemadura
-      Colors.green, // Picadura/Mordedura
-      Colors.indigo, // Edema/Hematoma
-      Colors.grey, // Otro
-    ];
-
-    if (typeIndex >= 0 && typeIndex < colors.length) {
-      return colors[typeIndex];
     }
-    return Colors.grey;
+
+    return const Text('Formato de personal médico no válido');
   }
 }

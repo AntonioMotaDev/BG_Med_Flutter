@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bg_med/core/services/frap_unified_service.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
 import 'package:bg_med/features/frap/presentation/screens/frap_record_details_screen.dart';
-import 'package:bg_med/features/frap/presentation/screens/pdf_preview_screen.dart';
 import 'package:bg_med/features/frap/presentation/screens/frap_screen.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
@@ -38,8 +37,14 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
     super.initState();
     _searchController.addListener(_onSearchChanged);
     // Cargar registros al inicializar
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(unifiedFrapProvider.notifier).loadAllRecords();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        print('Inicializando provider...');
+        await ref.read(unifiedFrapProvider.notifier).initialize();
+        print('Provider inicializado correctamente');
+      } catch (e) {
+        print('Error inicializando provider: $e');
+      }
     });
   }
 
@@ -170,7 +175,39 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
   }
 
   Future<void> _refreshRecords() async {
-    await ref.read(unifiedFrapProvider.notifier).loadAllRecords();
+    try {
+      print('Iniciando actualización de registros...');
+
+      // Limpiar cualquier error previo
+      ref.read(unifiedFrapProvider.notifier).clearError();
+
+      // Forzar recarga completa
+      await ref.read(unifiedFrapProvider.notifier).loadAllRecords();
+
+      print('Actualización completada');
+
+      // Mostrar mensaje de éxito
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registros actualizados'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error durante la actualización: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error actualizando registros: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   void _showRecordDetails(UnifiedFrapRecord record) {
@@ -694,6 +731,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                   );
 
                   try {
+                    print('Iniciando sincronización...');
                     final result =
                         await ref
                             .read(unifiedFrapProvider.notifier)
@@ -704,13 +742,22 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                       messenger.hideCurrentSnackBar();
 
                       if (result['success'] == true) {
+                        print('Sincronización exitosa: $result');
+
+                        // Recargar registros después de la sincronización
+                        await ref
+                            .read(unifiedFrapProvider.notifier)
+                            .loadAllRecords();
+
                         final cleanupResult =
-                            result['cleanupResult'] as Map<String, dynamic>;
-                        final removedCount = cleanupResult['removedCount'] ?? 0;
+                            result['cleanupResult'] as Map<String, dynamic>?;
+                        final removedCount =
+                            cleanupResult?['removedCount'] ?? 0;
                         final statistics =
-                            cleanupResult['statistics'] as Map<String, dynamic>;
+                            cleanupResult?['statistics']
+                                as Map<String, dynamic>?;
                         final spaceFreed =
-                            statistics['estimatedSpaceFreedMB'] ?? '0.00';
+                            statistics?['estimatedSpaceFreedMB'] ?? '0.00';
 
                         String message = 'Sincronización completada';
                         if (removedCount > 0) {
@@ -730,6 +777,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                           ),
                         );
                       } else {
+                        print('Error en sincronización: $result');
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text(
@@ -743,6 +791,7 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                       }
                     }
                   } catch (e) {
+                    print('Excepción durante sincronización: $e');
                     if (mounted) {
                       // Cerrar el snackbar de progreso
                       messenger.hideCurrentSnackBar();
@@ -762,6 +811,52 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
             ],
           ),
     );
+  }
+
+  Future<void> _debugDatabaseStatus() async {
+    try {
+      print('=== DEBUG: Estado de la base de datos ===');
+
+      // Verificar estado del provider
+      final state = ref.read(unifiedFrapProvider);
+      print('Estado del provider:');
+      print('- Total records: ${state.totalRecords}');
+      print('- Local records: ${state.localRecords}');
+      print('- Cloud records: ${state.cloudRecords}');
+      print('- Synced records: ${state.syncedRecords}');
+      print('- Is loading: ${state.isLoading}');
+      print('- Error: ${state.error}');
+
+      // Verificar registros actuales
+      print('Registros actuales: ${state.records.length}');
+      for (int i = 0; i < state.records.length; i++) {
+        final record = state.records[i];
+        print(
+          'Registro $i: ${record.patientName} - ${record.isLocal ? "LOCAL" : "CLOUD"}',
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Debug completado. Revisa la consola.'),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error en debug: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error en debug: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -813,6 +908,11 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
                 unifiedState.localDuplicatesCount > 0
                     ? 'Sincronizar y limpiar duplicados'
                     : 'Sincronizar registros',
+          ),
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: _debugDatabaseStatus,
+            tooltip: 'Ver estado de la base de datos',
           ),
           PopupMenuButton<String>(
             onSelected: (value) {

@@ -101,107 +101,41 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
       // Firma
       _consentimientoSignatureData = data['consentimientoSignature'];
 
-      // Horarios - con validación mejorada
-      try {
-        if (data['horaLlamada'] != null &&
-            data['horaLlamada'].toString().isNotEmpty) {
-          final timeString = data['horaLlamada'].toString();
-          if (timeString.contains(':')) {
-            final parts = timeString.split(':');
-            if (parts.length >= 2) {
-              final hour = int.tryParse(parts[0]);
-              final minute = int.tryParse(parts[1]);
-              if (hour != null &&
-                  minute != null &&
-                  hour >= 0 &&
-                  hour <= 23 &&
-                  minute >= 0 &&
-                  minute <= 59) {
-                _horaLlamada = TimeOfDay(hour: hour, minute: minute);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        print('Error parsing horaLlamada: $e');
-        _horaLlamada = null;
-      }
-
-      try {
-        if (data['horaArribo'] != null &&
-            data['horaArribo'].toString().isNotEmpty) {
-          final timeString = data['horaArribo'].toString();
-          if (timeString.contains(':')) {
-            final parts = timeString.split(':');
-            if (parts.length >= 2) {
-              final hour = int.tryParse(parts[0]);
-              final minute = int.tryParse(parts[1]);
-              if (hour != null &&
-                  minute != null &&
-                  hour >= 0 &&
-                  hour <= 23 &&
-                  minute >= 0 &&
-                  minute <= 59) {
-                _horaArribo = TimeOfDay(hour: hour, minute: minute);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        print('Error parsing horaArribo: $e');
-        _horaArribo = null;
-      }
-
-      try {
-        if (data['horaLlegada'] != null &&
-            data['horaLlegada'].toString().isNotEmpty) {
-          final timeString = data['horaLlegada'].toString();
-          if (timeString.contains(':')) {
-            final parts = timeString.split(':');
-            if (parts.length >= 2) {
-              final hour = int.tryParse(parts[0]);
-              final minute = int.tryParse(parts[1]);
-              if (hour != null &&
-                  minute != null &&
-                  hour >= 0 &&
-                  hour <= 23 &&
-                  minute >= 0 &&
-                  minute <= 59) {
-                _horaLlegada = TimeOfDay(hour: hour, minute: minute);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        print('Error parsing horaLlegada: $e');
-        _horaLlegada = null;
-      }
-
-      try {
-        if (data['horaTermino'] != null &&
-            data['horaTermino'].toString().isNotEmpty) {
-          final timeString = data['horaTermino'].toString();
-          if (timeString.contains(':')) {
-            final parts = timeString.split(':');
-            if (parts.length >= 2) {
-              final hour = int.tryParse(parts[0]);
-              final minute = int.tryParse(parts[1]);
-              if (hour != null &&
-                  minute != null &&
-                  hour >= 0 &&
-                  hour <= 23 &&
-                  minute >= 0 &&
-                  minute <= 59) {
-                _horaTermino = TimeOfDay(hour: hour, minute: minute);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        print('Error parsing horaTermino: $e');
-        _horaTermino = null;
-      }
+      // Horarios - inicializar desde datos guardados
+      _horaLlamada = _parseTimeFromString(data['horaLlamada']);
+      _horaArribo = _parseTimeFromString(data['horaArribo']);
+      _horaLlegada = _parseTimeFromString(data['horaLlegada']);
+      _horaTermino = _parseTimeFromString(data['horaTermino']);
     }
+  }
+
+  // Método auxiliar para parsear tiempo desde string
+  TimeOfDay? _parseTimeFromString(dynamic timeData) {
+    if (timeData == null || timeData.toString().isEmpty) {
+      return null;
+    }
+
+    try {
+      final timeString = timeData.toString();
+      if (timeString.contains(':')) {
+        final parts = timeString.split(':');
+        if (parts.length >= 2) {
+          final hour = int.tryParse(parts[0]);
+          final minute = int.tryParse(parts[1]);
+          if (hour != null &&
+              minute != null &&
+              hour >= 0 &&
+              hour <= 23 &&
+              minute >= 0 &&
+              minute <= 59) {
+            return TimeOfDay(hour: hour, minute: minute);
+          }
+        }
+      }
+    } catch (e) {
+      // Si hay error, retornar null
+    }
+    return null;
   }
 
   @override
@@ -740,6 +674,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
         );
         if (time != null) {
           onChanged(time);
+          setState(() {}); // Forzar actualización de la UI
         }
       },
       child: Container(
@@ -899,6 +834,18 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
       return;
     }
 
+    // Validar que al menos un campo de tiempo esté completado
+    if (_horaLlamada == null &&
+        _horaArribo == null &&
+        _horaLlegada == null &&
+        _horaTermino == null) {
+      _showErrorDialog(
+        'Campos requeridos',
+        'Por favor, complete al menos un campo de tiempo.',
+      );
+      return;
+    }
+
     // Validar que la firma esté presente
     if (_consentimientoSignatureController.isEmpty &&
         _consentimientoSignatureData == null) {
@@ -928,6 +875,7 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
       }
 
       if (signatureData != null) {
+        // Convertir TimeOfDay a string para guardar
         final formData = {
           'horaLlamada': _horaLlamada?.format(context),
           'horaArribo': _horaArribo?.format(context),
@@ -947,6 +895,15 @@ class _ServiceInfoFormDialogState extends State<ServiceInfoFormDialog> {
           'consentimientoSignature': signatureData,
           'timestamp': DateTime.now().toIso8601String(),
         };
+
+        // Debug logging para ver qué datos se están guardando
+        print('=== DEBUG: ServiceInfoFormDialog _saveForm ===');
+        print('formData: $formData');
+        print('horaLlamada: ${formData['horaLlamada']}');
+        print('horaArribo: ${formData['horaArribo']}');
+        print('horaLlegada: ${formData['horaLlegada']}');
+        print('horaTermino: ${formData['horaTermino']}');
+        print('================================');
 
         widget.onSave(formData);
 

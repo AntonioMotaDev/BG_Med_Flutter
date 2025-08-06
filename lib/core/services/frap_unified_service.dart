@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:bg_med/core/services/frap_local_service.dart';
 import 'package:bg_med/core/services/frap_firestore_service.dart';
+import 'package:bg_med/core/services/folio_generator_service.dart';
 import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/models/frap_firestore.dart';
 import 'package:bg_med/core/models/patient.dart';
@@ -20,6 +21,7 @@ class FrapUnifiedService {
   final FrapFirestoreService _cloudService;
   final Connectivity _connectivity;
   late final FrapMigrationService _migrationService;
+  final FolioGeneratorService _folioGenerator;
 
   FrapUnifiedService({
     required FrapLocalService localService,
@@ -27,12 +29,8 @@ class FrapUnifiedService {
     Connectivity? connectivity,
   }) : _localService = localService,
        _cloudService = cloudService,
-       _connectivity = connectivity ?? Connectivity() {
-    _migrationService = FrapMigrationService(
-      localService: _localService,
-      cloudService: _cloudService,
-    );
-  }
+       _connectivity = connectivity ?? Connectivity(),
+       _folioGenerator = FolioGeneratorService();
 
   /// Obtener el servicio de migración
   FrapMigrationService get migrationService => _migrationService;
@@ -50,26 +48,33 @@ class FrapUnifiedService {
   // Guardar registro unificado (local + nube si hay conexión)
   Future<UnifiedSaveResult> saveFrapRecord(FrapData frapData) async {
     final result = UnifiedSaveResult();
-    
+
     try {
       FrapConversionLogger.logConversionStart('save_unified', 'new_record');
-      
+
+      // Generar folio automáticamente si no está presente
+      final frapDataWithFolio = await _ensureFolioExists(frapData);
+
       // Siempre guardar localmente primero
-      final localRecordId = await _localService.createFrapRecord(frapData: frapData);
-      
+      final localRecordId = await _localService.createFrapRecord(
+        frapData: frapDataWithFolio,
+      );
+
       if (localRecordId != null) {
         result.localRecordId = localRecordId;
         result.savedLocally = true;
-        
+
         // Intentar guardar en la nube si hay conexión
         final hasInternet = await hasInternetConnection();
         if (hasInternet) {
           try {
-            final cloudRecordId = await _cloudService.createFrapRecord(frapData: frapData);
+            final cloudRecordId = await _cloudService.createFrapRecord(
+              frapData: frapDataWithFolio,
+            );
             if (cloudRecordId != null) {
               result.cloudRecordId = cloudRecordId;
               result.savedToCloud = true;
-              
+
               // Marcar como sincronizado en local (si el método existe)
               try {
                 await _localService.markAsSynced(localRecordId);
@@ -83,19 +88,25 @@ class FrapUnifiedService {
             // El registro se mantiene local y se sincronizará después
           }
         } else {
-          result.message = 'Guardado localmente. Se sincronizará cuando haya conexión.';
+          result.message =
+              'Guardado localmente. Se sincronizará cuando haya conexión.';
         }
-        
+
         result.success = true;
-        result.message = result.message.isNotEmpty 
-            ? result.message 
-            : 'Registro guardado exitosamente';
-            
-        FrapConversionLogger.logConversionSuccess('save_unified', localRecordId, {
-          'savedLocally': result.savedLocally,
-          'savedToCloud': result.savedToCloud,
-          'hasInternet': hasInternet,
-        });
+        result.message =
+            result.message.isNotEmpty
+                ? result.message
+                : 'Registro guardado exitosamente';
+
+        FrapConversionLogger.logConversionSuccess(
+          'save_unified',
+          localRecordId,
+          {
+            'savedLocally': result.savedLocally,
+            'savedToCloud': result.savedToCloud,
+            'hasInternet': hasInternet,
+          },
+        );
       } else {
         throw Exception('No se pudo guardar localmente');
       }
@@ -103,44 +114,137 @@ class FrapUnifiedService {
       result.success = false;
       result.message = 'Error al guardar: $e';
       result.errors.add(e.toString());
-      
-      FrapConversionLogger.logConversionError('save_unified', 'new_record', e.toString(), null);
+
+      FrapConversionLogger.logConversionError(
+        'save_unified',
+        'new_record',
+        e.toString(),
+        null,
+      );
     }
 
     return result;
   }
 
+  // Asegurar que el folio existe en los datos
+  Future<FrapData> _ensureFolioExists(FrapData frapData) async {
+    // Verificar si ya existe un folio en registryInfo
+    final currentRegistryInfo = Map<String, dynamic>.from(
+      frapData.registryInfo,
+    );
+    final currentFolio = currentRegistryInfo['folio'];
+
+    // Si no hay folio o está vacío, generar uno nuevo
+    if (currentFolio == null || currentFolio.toString().trim().isEmpty) {
+      try {
+        // Obtener nombre del paciente para generar folio con iniciales
+        final patientName = _getPatientNameFromData(frapData);
+        final newFolio = await _folioGenerator.generateUniquePatientFolio(
+          patientName,
+        );
+        currentRegistryInfo['folio'] = newFolio;
+
+        print('Folio generado automáticamente con iniciales: $newFolio');
+
+        return frapData.copyWith(registryInfo: currentRegistryInfo);
+      } catch (e) {
+        print('Error generando folio automático: $e');
+        // Si falla la generación, usar un folio con timestamp
+        final fallbackFolio =
+            'SN-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch}';
+        currentRegistryInfo['folio'] = fallbackFolio;
+
+        print('Usando folio de respaldo: $fallbackFolio');
+
+        return frapData.copyWith(registryInfo: currentRegistryInfo);
+      }
+    }
+
+    // Si ya existe un folio, devolver los datos sin cambios
+    return frapData;
+  }
+
+  // Obtener nombre del paciente desde los datos
+  String _getPatientNameFromData(FrapData frapData) {
+    try {
+      final patientInfo = frapData.patientInfo;
+
+      // Intentar obtener nombre completo
+      final firstName = patientInfo['firstName']?.toString() ?? '';
+      final paternalLastName =
+          patientInfo['paternalLastName']?.toString() ?? '';
+      final maternalLastName =
+          patientInfo['maternalLastName']?.toString() ?? '';
+
+      // Construir nombre completo
+      final fullName =
+          [
+            firstName,
+            paternalLastName,
+            maternalLastName,
+          ].where((part) => part.isNotEmpty).join(' ').trim();
+
+      if (fullName.isNotEmpty) {
+        return fullName;
+      }
+
+      // Si no hay nombre estructurado, buscar en otros campos
+      final name = patientInfo['name']?.toString() ?? '';
+      if (name.isNotEmpty) {
+        return name;
+      }
+
+      // Si no hay nombre, usar valor por defecto
+      return 'Sin Nombre';
+    } catch (e) {
+      print('Error obteniendo nombre del paciente: $e');
+      return 'Sin Nombre';
+    }
+  }
+
   // Obtener todos los registros (local + nube)
   Future<List<UnifiedFrapRecord>> getAllRecords() async {
     final List<UnifiedFrapRecord> unifiedRecords = [];
-    
+
     try {
+      print('Iniciando getAllRecords...');
       FrapConversionLogger.logConversionStart('get_all_records', 'batch');
-      
+
       // Obtener registros locales
+      print('Obteniendo registros locales...');
       final localRecords = await _localService.getAllFrapRecords();
-      
+      print('Registros locales obtenidos: ${localRecords.length}');
+
       // Obtener registros de la nube si hay conexión
       List<FrapFirestore> cloudRecords = [];
-      if (await hasInternetConnection()) {
+      final hasInternet = await hasInternetConnection();
+      print('Conexión a internet: $hasInternet');
+
+      if (hasInternet) {
         try {
+          print('Obteniendo registros de la nube...');
           cloudRecords = await _cloudService.getAllFrapRecords();
+          print('Registros de la nube obtenidos: ${cloudRecords.length}');
         } catch (e) {
           print('Error obteniendo registros de la nube: $e');
         }
       }
 
       // Procesar registros locales
+      print('Procesando registros locales...');
       for (final localRecord in localRecords) {
         unifiedRecords.add(UnifiedFrapRecord.fromLocal(localRecord));
       }
+      print('Registros locales procesados: ${unifiedRecords.length}');
 
       // Procesar registros de la nube
+      print('Procesando registros de la nube...');
       for (final cloudRecord in cloudRecords) {
         // Verificar si ya existe en local
-        final existingLocal = localRecords.where((r) => 
-          _areRecordsEquivalent(r, cloudRecord)
-        ).firstOrNull;
+        final existingLocal =
+            localRecords
+                .where((r) => _areRecordsEquivalent(r, cloudRecord))
+                .firstOrNull;
 
         if (existingLocal == null) {
           // Es un registro solo de la nube
@@ -149,17 +253,25 @@ class FrapUnifiedService {
           // Actualizar el registro local con datos de la nube si es más reciente
           if (cloudRecord.updatedAt.isAfter(existingLocal.updatedAt)) {
             try {
-              final frapData = _localService.convertFrapToFrapData(existingLocal);
+              final frapData = _localService.convertFrapToFrapData(
+                existingLocal,
+              );
               await _localService.updateFrapRecord(
                 frapId: existingLocal.id,
                 frapData: frapData,
               );
               // Recargar el registro actualizado
-              final updatedLocal = await _localService.getFrapRecord(existingLocal.id);
+              final updatedLocal = await _localService.getFrapRecord(
+                existingLocal.id,
+              );
               if (updatedLocal != null) {
-                final index = unifiedRecords.indexWhere((r) => r.localRecord?.id == existingLocal.id);
+                final index = unifiedRecords.indexWhere(
+                  (r) => r.localRecord?.id == existingLocal.id,
+                );
                 if (index != -1) {
-                  unifiedRecords[index] = UnifiedFrapRecord.fromLocal(updatedLocal);
+                  unifiedRecords[index] = UnifiedFrapRecord.fromLocal(
+                    updatedLocal,
+                  );
                 }
               }
             } catch (e) {
@@ -168,19 +280,30 @@ class FrapUnifiedService {
           }
         }
       }
+      print(
+        'Registros de la nube procesados. Total unificado: ${unifiedRecords.length}',
+      );
 
       // Ordenar por fecha de creación (más recientes primero)
       unifiedRecords.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
+
       FrapConversionLogger.logConversionSuccess('get_all_records', 'batch', {
         'localRecords': localRecords.length,
         'cloudRecords': cloudRecords.length,
         'unifiedRecords': unifiedRecords.length,
       });
-      
+
+      print(
+        'getAllRecords completado. Total de registros: ${unifiedRecords.length}',
+      );
     } catch (e) {
       print('Error obteniendo registros unificados: $e');
-      FrapConversionLogger.logConversionError('get_all_records', 'batch', e.toString(), null);
+      FrapConversionLogger.logConversionError(
+        'get_all_records',
+        'batch',
+        e.toString(),
+        null,
+      );
     }
 
     return unifiedRecords;
@@ -191,39 +314,52 @@ class FrapUnifiedService {
     // Comparar por datos del paciente y fecha de creación
     final localPatientName = local.patient.fullName.toLowerCase();
     final cloudPatientName = cloud.patientName.toLowerCase();
-    
+
     return localPatientName == cloudPatientName &&
-           local.createdAt.difference(cloud.createdAt).abs().inMinutes < 5;
+        local.createdAt.difference(cloud.createdAt).abs().inMinutes < 5;
   }
 
   // Convertir registro de la nube a formato local con validación completa
   Frap _convertCloudToLocal(FrapFirestore cloud) {
     try {
-      FrapConversionLogger.logConversionStart('cloud_to_local', cloud.id ?? 'unknown');
-      
+      FrapConversionLogger.logConversionStart(
+        'cloud_to_local',
+        cloud.id ?? 'unknown',
+      );
+
       // Validar y convertir datos del paciente
-      final patientValidation = FrapDataValidator.validatePatientData(cloud.patientInfo);
+      final patientValidation = FrapDataValidator.validatePatientData(
+        cloud.patientInfo,
+      );
       final patientData = patientValidation.cleanedData ?? {};
-      
+
       FrapConversionLogger.logValidationResult('patient', patientValidation);
-      
+
       // Validar y convertir historia clínica
-      final clinicalValidation = FrapDataValidator.validateClinicalHistoryData(cloud.clinicalHistory);
+      final clinicalValidation = FrapDataValidator.validateClinicalHistoryData(
+        cloud.clinicalHistory,
+      );
       final clinicalData = clinicalValidation.cleanedData ?? {};
-      
-      FrapConversionLogger.logValidationResult('clinical_history', clinicalValidation);
-      
+
+      FrapConversionLogger.logValidationResult(
+        'clinical_history',
+        clinicalValidation,
+      );
+
       // Validar y convertir examen físico
-      final examValidation = FrapDataValidator.validatePhysicalExamData(cloud.physicalExam);
+      final examValidation = FrapDataValidator.validatePhysicalExamData(
+        cloud.physicalExam,
+      );
       final examData = examValidation.cleanedData ?? {};
-      
+
       FrapConversionLogger.logValidationResult('physical_exam', examValidation);
 
       // Crear un registro local basado en los datos de la nube
       final localFrap = Frap(
         id: cloud.id ?? 'cloud_${DateTime.now().millisecondsSinceEpoch}',
         patient: Patient(
-          name: '${patientData['firstName'] ?? ''} ${patientData['paternalLastName'] ?? ''}',
+          name:
+              '${patientData['firstName'] ?? ''} ${patientData['paternalLastName'] ?? ''}',
           age: patientData['age'] ?? 0,
           sex: patientData['sex'] ?? '',
           address: patientData['address'] ?? '',
@@ -275,23 +411,38 @@ class FrapUnifiedService {
         receivingUnit: _convertSectionData(cloud.receivingUnit),
         patientReception: _convertSectionData(cloud.patientReception),
         consentimientoServicio: '', // Campo específico del modelo local
-        insumos: _convertInsumosFromCloud(cloud), // Convertir insumos si existen
-        personalMedico: _convertPersonalMedicoFromCloud(cloud), // Convertir personal médico si existe
-        escalasObstetricas: _convertEscalasObstetricasFromCloud(cloud), // Convertir escalas si existen
+        insumos: _convertInsumosFromCloud(
+          cloud,
+        ), // Convertir insumos si existen
+        personalMedico: _convertPersonalMedicoFromCloud(
+          cloud,
+        ), // Convertir personal médico si existe
+        escalasObstetricas: _convertEscalasObstetricasFromCloud(
+          cloud,
+        ), // Convertir escalas si existen
         isSynced: true,
       );
 
-      FrapConversionLogger.logConversionSuccess('cloud_to_local', localFrap.id, {
-        'patientFields': patientData.length,
-        'clinicalFields': clinicalData.length,
-        'examFields': examData.length,
-        'insumos': localFrap.insumos.length,
-        'personalMedico': localFrap.personalMedico.length,
-      });
+      FrapConversionLogger.logConversionSuccess(
+        'cloud_to_local',
+        localFrap.id,
+        {
+          'patientFields': patientData.length,
+          'clinicalFields': clinicalData.length,
+          'examFields': examData.length,
+          'insumos': localFrap.insumos.length,
+          'personalMedico': localFrap.personalMedico.length,
+        },
+      );
 
       return localFrap;
     } catch (e, stackTrace) {
-      FrapConversionLogger.logConversionError('cloud_to_local', cloud.id ?? 'unknown', e.toString(), stackTrace);
+      FrapConversionLogger.logConversionError(
+        'cloud_to_local',
+        cloud.id ?? 'unknown',
+        e.toString(),
+        stackTrace,
+      );
       rethrow;
     }
   }
@@ -299,7 +450,7 @@ class FrapUnifiedService {
   // Convertir datos de sección con validación
   Map<String, dynamic> _convertSectionData(Map<String, dynamic> cloudSection) {
     if (cloudSection.isEmpty) return {};
-    
+
     final validation = FrapDataValidator.validateSectionData(cloudSection);
     return validation.cleanedData ?? {};
   }
@@ -307,10 +458,9 @@ class FrapUnifiedService {
   // Convertir insumos desde datos de la nube
   List<Insumo> _convertInsumosFromCloud(FrapFirestore cloud) {
     // Buscar insumos en diferentes ubicaciones posibles
-    final insumosData = cloud.serviceInfo['insumos'] ?? 
-                       cloud.management['insumos'] ?? 
-                       [];
-    
+    final insumosData =
+        cloud.serviceInfo['insumos'] ?? cloud.management['insumos'] ?? [];
+
     if (insumosData is List) {
       final validation = FrapDataValidator.validateInsumosData(insumosData);
       if (validation.isValid && validation.cleanedData != null) {
@@ -323,21 +473,25 @@ class FrapUnifiedService {
         }).toList();
       }
     }
-    
+
     return [];
   }
 
   // Convertir personal médico desde datos de la nube
   List<PersonalMedico> _convertPersonalMedicoFromCloud(FrapFirestore cloud) {
     // Buscar personal médico en diferentes ubicaciones posibles
-    final personalData = cloud.serviceInfo['personalMedico'] ?? 
-                        cloud.management['personalMedico'] ?? 
-                        [];
-    
+    final personalData =
+        cloud.serviceInfo['personalMedico'] ??
+        cloud.management['personalMedico'] ??
+        [];
+
     if (personalData is List) {
-      final validation = FrapDataValidator.validatePersonalMedicoData(personalData);
+      final validation = FrapDataValidator.validatePersonalMedicoData(
+        personalData,
+      );
       if (validation.isValid && validation.cleanedData != null) {
-        final cleanedPersonal = validation.cleanedData!['personalMedico'] as List;
+        final cleanedPersonal =
+            validation.cleanedData!['personalMedico'] as List;
         return cleanedPersonal.map((personalData) {
           return PersonalMedico(
             nombre: personalData['nombre'] ?? '',
@@ -347,30 +501,35 @@ class FrapUnifiedService {
         }).toList();
       }
     }
-    
+
     return [];
   }
 
   // Convertir escalas obstétricas desde datos de la nube
   EscalasObstetricas? _convertEscalasObstetricasFromCloud(FrapFirestore cloud) {
     // Buscar escalas obstétricas en diferentes ubicaciones posibles
-    final escalasData = cloud.gynecoObstetric['escalasObstetricas'] ?? 
-                       cloud.gynecoObstetric['escalas'] ?? 
-                       {};
-    
+    final escalasData =
+        cloud.gynecoObstetric['escalasObstetricas'] ??
+        cloud.gynecoObstetric['escalas'] ??
+        {};
+
     if (escalasData is Map<String, dynamic>) {
-      final validation = FrapDataValidator.validateEscalasObstetricasData(escalasData);
+      final validation = FrapDataValidator.validateEscalasObstetricasData(
+        escalasData,
+      );
       if (validation.isValid && validation.cleanedData != null) {
         final cleanedData = validation.cleanedData!;
         return EscalasObstetricas(
-          silvermanAnderson: Map<String, int>.from(cleanedData['silvermanAnderson'] ?? {}),
+          silvermanAnderson: Map<String, int>.from(
+            cleanedData['silvermanAnderson'] ?? {},
+          ),
           apgar: Map<String, int>.from(cleanedData['apgar'] ?? {}),
           frecuenciaCardiacaFetal: cleanedData['frecuenciaCardiacaFetal'] ?? 0,
           contracciones: cleanedData['contracciones'] ?? '',
         );
       }
     }
-    
+
     return null;
   }
 
@@ -378,7 +537,7 @@ class FrapUnifiedService {
   FrapFirestore _convertLocalToCloud(Frap local) {
     try {
       FrapConversionLogger.logConversionStart('local_to_cloud', local.id);
-      
+
       final cloudFrap = FrapFirestore(
         id: local.id,
         userId: '', // Se debe obtener del contexto de autenticación
@@ -408,7 +567,8 @@ class FrapUnifiedService {
         management: {
           ...local.management,
           'insumos': local.insumos.map((i) => i.toJson()).toList(),
-          'personalMedico': local.personalMedico.map((p) => p.toJson()).toList(),
+          'personalMedico':
+              local.personalMedico.map((p) => p.toJson()).toList(),
         },
         medications: local.medications,
         gynecoObstetric: {
@@ -442,17 +602,26 @@ class FrapUnifiedService {
         patientReception: local.patientReception,
       );
 
-      FrapConversionLogger.logConversionSuccess('local_to_cloud', cloudFrap.id ?? '', {
-        'patientFields': cloudFrap.patientInfo.length,
-        'clinicalFields': cloudFrap.clinicalHistory.length,
-        'examFields': cloudFrap.physicalExam.length,
-        'insumos': local.insumos.length,
-        'personalMedico': local.personalMedico.length,
-      });
+      FrapConversionLogger.logConversionSuccess(
+        'local_to_cloud',
+        cloudFrap.id ?? '',
+        {
+          'patientFields': cloudFrap.patientInfo.length,
+          'clinicalFields': cloudFrap.clinicalHistory.length,
+          'examFields': cloudFrap.physicalExam.length,
+          'insumos': local.insumos.length,
+          'personalMedico': local.personalMedico.length,
+        },
+      );
 
       return cloudFrap;
     } catch (e, stackTrace) {
-      FrapConversionLogger.logConversionError('local_to_cloud', local.id, e.toString(), stackTrace);
+      FrapConversionLogger.logConversionError(
+        'local_to_cloud',
+        local.id,
+        e.toString(),
+        stackTrace,
+      );
       rethrow;
     }
   }
@@ -460,7 +629,7 @@ class FrapUnifiedService {
   // Sincronizar registros pendientes
   Future<SyncResult> syncPendingRecords() async {
     final result = SyncResult();
-    
+
     try {
       if (!await hasInternetConnection()) {
         result.message = 'No hay conexión a internet';
@@ -469,13 +638,12 @@ class FrapUnifiedService {
 
       // Usar el servicio de migración para sincronización
       final migrationResult = await _migrationService.migrateBidirectional();
-      
+
       result.success = migrationResult.success;
       result.message = migrationResult.message;
       result.successCount = migrationResult.migratedRecords;
       result.failedCount = migrationResult.failedRecords;
       result.errors = migrationResult.errors;
-      
     } catch (e) {
       result.success = false;
       result.message = 'Error durante la sincronización: $e';
@@ -541,10 +709,10 @@ class UnifiedFrapRecord {
       isSynced: true,
     );
   }
- 
+
   // Propiedades adicionales
   bool get isLocal => localRecord != null;
-  
+
   String get patientAddress {
     if (localRecord != null) {
       return localRecord!.patient.address;
@@ -642,6 +810,18 @@ class UnifiedFrapRecord {
   }
 
   Map<String, dynamic> _getDetailedInfoFromCloud(FrapFirestore cloud) {
+    // Debug logging para ver qué datos llegan desde Firestore
+    print('=== DEBUG: _getDetailedInfoFromCloud ===');
+    print('cloud.serviceInfo: ${cloud.serviceInfo}');
+    print('cloud.serviceInfo type: ${cloud.serviceInfo.runtimeType}');
+    final serviceInfo = cloud.serviceInfo as Map<String, dynamic>;
+    print('serviceInfo keys: ${serviceInfo.keys.toList()}');
+    print('horaLlamada: ${serviceInfo['horaLlamada']}');
+    print('horaArribo: ${serviceInfo['horaArribo']}');
+    print('horaLlegada: ${serviceInfo['horaLlegada']}');
+    print('horaTermino: ${serviceInfo['horaTermino']}');
+    print('================================');
+
     return {
       'serviceInfo': cloud.serviceInfo,
       'registryInfo': cloud.registryInfo,
@@ -657,9 +837,15 @@ class UnifiedFrapRecord {
       'injuryLocation': cloud.injuryLocation,
       'receivingUnit': cloud.receivingUnit,
       'patientReception': cloud.patientReception,
-      'insumos': cloud.management['insumos'] ?? cloud.serviceInfo['insumos'] ?? [],
-      'personalMedico': cloud.management['personalMedico'] ?? cloud.serviceInfo['personalMedico'] ?? [],
-      'escalasObstetricas': cloud.gynecoObstetric['escalasObstetricas'] ?? cloud.gynecoObstetric['escalas'],
+      'insumos':
+          cloud.management['insumos'] ?? cloud.serviceInfo['insumos'] ?? [],
+      'personalMedico':
+          cloud.management['personalMedico'] ??
+          cloud.serviceInfo['personalMedico'] ??
+          [],
+      'escalasObstetricas':
+          cloud.gynecoObstetric['escalasObstetricas'] ??
+          cloud.gynecoObstetric['escalas'],
     };
   }
 }
@@ -683,4 +869,4 @@ class SyncResult {
   List<String> errors = [];
   int successCount = 0;
   int failedCount = 0;
-} 
+}

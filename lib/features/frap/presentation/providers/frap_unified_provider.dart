@@ -4,14 +4,10 @@ import 'package:bg_med/core/services/frap_firestore_service.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_local_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
+import 'package:bg_med/core/services/folio_generator_service.dart';
 
 // Estados de sincronización
-enum SyncStatus {
-  idle,
-  syncing,
-  success,
-  error,
-}
+enum SyncStatus { idle, syncing, success, error }
 
 // Estado unificado
 class UnifiedFrapState {
@@ -76,16 +72,15 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
   final FrapLocalNotifier _localNotifier;
   bool _isUpdating = false;
 
-  UnifiedFrapNotifier(
-    this._unifiedService,
-    this._localNotifier,
-  ) : super(const UnifiedFrapState()) {
-    _initialize();
+  UnifiedFrapNotifier(this._unifiedService, this._localNotifier)
+    : super(const UnifiedFrapState()) {
+    // Remover la inicialización automática para evitar problemas de timing
+    // _initialize();
   }
 
-  void _initialize() {
-    // Cargar registros iniciales
-    loadAllRecords();
+  // Método para inicialización manual
+  Future<void> initialize() async {
+    await loadAllRecords();
   }
 
   // Cargar todos los registros
@@ -96,10 +91,13 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
+      print('Cargando registros unificados...');
       final records = await _unifiedService.getAllRecords();
-      
+      print('Registros obtenidos: ${records.length}');
+
       final stats = _calculateStats(records);
-      
+      print('Estadísticas calculadas: $stats');
+
       state = state.copyWith(
         records: records,
         isLoading: false,
@@ -107,8 +105,10 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
         localRecords: stats['local'],
         cloudRecords: stats['cloud'],
         syncedRecords: stats['synced'],
+        error: null,
       );
     } catch (e) {
+      print('Error cargando registros: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Error cargando registros: $e',
@@ -146,13 +146,13 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
   Future<UnifiedSaveResult> saveRecord(FrapData frapData) async {
     try {
       final result = await _unifiedService.saveFrapRecord(frapData);
-      
+
       if (result.success) {
         await loadAllRecords(); // Recargar lista
       } else {
         state = state.copyWith(error: result.message);
       }
-      
+
       return result;
     } catch (e) {
       state = state.copyWith(error: 'Error guardando registro: $e');
@@ -166,11 +166,11 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
   Future<bool> deleteRecord(UnifiedFrapRecord record) async {
     try {
       bool success = false;
-      
+
       if (record.localRecord != null) {
         success = await _localNotifier.deleteLocalFrapRecord(record.id);
       }
-      
+
       if (success) {
         await loadAllRecords();
         return true;
@@ -190,7 +190,7 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
 
     try {
       final result = await _unifiedService.syncPendingRecords();
-      
+
       if (result.success) {
         state = state.copyWith(
           syncStatus: SyncStatus.success,
@@ -217,7 +217,7 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
 
     try {
       final result = await _unifiedService.syncPendingRecords();
-      
+
       if (result.success) {
         state = state.copyWith(
           syncStatus: SyncStatus.success,
@@ -230,14 +230,14 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
           error: result.message,
         );
       }
-      
+
       return result;
     } catch (e) {
       state = state.copyWith(
         syncStatus: SyncStatus.error,
         error: 'Error durante sincronización: $e',
       );
-      
+
       final errorResult = SyncResult();
       errorResult.success = false;
       errorResult.message = 'Error durante sincronización: $e';
@@ -256,9 +256,14 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
 
     try {
       final allRecords = await _unifiedService.getAllRecords();
-      final filteredRecords = allRecords.where((record) =>
-        record.patientName.toLowerCase().contains(query.toLowerCase())
-      ).toList();
+      final filteredRecords =
+          allRecords
+              .where(
+                (record) => record.patientName.toLowerCase().contains(
+                  query.toLowerCase(),
+                ),
+              )
+              .toList();
 
       final stats = _calculateStats(filteredRecords);
 
@@ -284,10 +289,18 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
 
     try {
       final allRecords = await _unifiedService.getAllRecords();
-      final filteredRecords = allRecords.where((record) =>
-        record.createdAt.isAfter(startDate.subtract(const Duration(days: 1))) &&
-        record.createdAt.isBefore(endDate.add(const Duration(days: 1)))
-      ).toList();
+      final filteredRecords =
+          allRecords
+              .where(
+                (record) =>
+                    record.createdAt.isAfter(
+                      startDate.subtract(const Duration(days: 1)),
+                    ) &&
+                    record.createdAt.isBefore(
+                      endDate.add(const Duration(days: 1)),
+                    ),
+              )
+              .toList();
 
       final stats = _calculateStats(filteredRecords);
 
@@ -316,11 +329,11 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
   Future<String?> duplicateRecord(UnifiedFrapRecord record) async {
     try {
       String? newRecordId;
-      
+
       if (record.localRecord != null) {
         newRecordId = await _localNotifier.duplicateLocalFrapRecord(record.id);
       }
-      
+
       if (newRecordId != null) {
         await loadAllRecords();
         return newRecordId;
@@ -337,31 +350,41 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
   // Sincronizar y limpiar duplicados
   Future<Map<String, dynamic>> syncAndCleanup() async {
     try {
+      print('Iniciando syncAndCleanup...');
       state = state.copyWith(syncStatus: SyncStatus.syncing);
-      
+
       // 1. Sincronizar registros
+      print('Sincronizando registros pendientes...');
       final syncResult = await _unifiedService.syncPendingRecords();
-      
+
+      print('Resultado de sincronización: $syncResult');
+
       if (syncResult.success) {
         // 2. Recargar registros después de la sincronización
+        print('Recargando registros después de sincronización...');
         await loadAllRecords();
-        
+
         state = state.copyWith(
           syncStatus: SyncStatus.success,
           lastSync: DateTime.now(),
         );
-        
+
         return {
           'success': true,
           'message': 'Sincronización completada exitosamente',
           'syncedRecords': syncResult.successCount,
+          'cleanupResult': {
+            'removedCount': 0, // Por ahora no implementamos limpieza automática
+            'statistics': {'estimatedSpaceFreedMB': '0.00'},
+          },
         };
       } else {
+        print('Error en sincronización: ${syncResult.message}');
         state = state.copyWith(
           syncStatus: SyncStatus.error,
           error: syncResult.message,
         );
-        
+
         return {
           'success': false,
           'message': syncResult.message,
@@ -369,11 +392,12 @@ class UnifiedFrapNotifier extends StateNotifier<UnifiedFrapState> {
         };
       }
     } catch (e) {
+      print('Excepción en syncAndCleanup: $e');
       state = state.copyWith(
         syncStatus: SyncStatus.error,
         error: 'Error durante sincronización: $e',
       );
-      
+
       return {
         'success': false,
         'message': 'Error durante sincronización: $e',
@@ -394,6 +418,33 @@ final frapLocalServiceProvider = Provider<FrapLocalService>((ref) {
   return FrapLocalService();
 });
 
+// Provider del servicio de generación de folios
+final folioGeneratorServiceProvider = Provider<FolioGeneratorService>((ref) {
+  return FolioGeneratorService();
+});
+
+// Provider para generar folio inicial automático
+final initialFolioProvider = FutureProvider<String>((ref) async {
+  final folioGenerator = ref.watch(folioGeneratorServiceProvider);
+  return await folioGenerator.generateUniqueFolio();
+});
+
+// Provider para generar folio con iniciales del paciente
+final patientFolioProvider = FutureProvider.family<String, String>((
+  ref,
+  patientName,
+) async {
+  final folioGenerator = ref.watch(folioGeneratorServiceProvider);
+  return await folioGenerator.generateUniquePatientFolio(patientName);
+});
+
+// Provider para generar folio automático (solo cuando se solicite)
+final autoFolioProvider = FutureProvider.autoDispose<String>((ref) async {
+  final folioGenerator = ref.watch(folioGeneratorServiceProvider);
+  return await folioGenerator.generateUniqueFolio();
+});
+
+// Provider del servicio de Firestore
 final frapFirestoreServiceProvider = Provider<FrapFirestoreService>((ref) {
   return FrapFirestoreService();
 });
@@ -402,7 +453,7 @@ final frapFirestoreServiceProvider = Provider<FrapFirestoreService>((ref) {
 final frapUnifiedServiceProvider = Provider<FrapUnifiedService>((ref) {
   final localService = ref.watch(frapLocalServiceProvider);
   final cloudService = ref.watch(frapFirestoreServiceProvider);
-  
+
   return FrapUnifiedService(
     localService: localService,
     cloudService: cloudService,
@@ -410,12 +461,13 @@ final frapUnifiedServiceProvider = Provider<FrapUnifiedService>((ref) {
 });
 
 // Provider principal
-final unifiedFrapProvider = StateNotifierProvider<UnifiedFrapNotifier, UnifiedFrapState>((ref) {
-  final unifiedService = ref.watch(frapUnifiedServiceProvider);
-  final localNotifier = ref.watch(frapLocalProvider.notifier);
-  
-  return UnifiedFrapNotifier(unifiedService, localNotifier);
-});
+final unifiedFrapProvider =
+    StateNotifierProvider<UnifiedFrapNotifier, UnifiedFrapState>((ref) {
+      final unifiedService = ref.watch(frapUnifiedServiceProvider);
+      final localNotifier = ref.watch(frapLocalProvider.notifier);
+
+      return UnifiedFrapNotifier(unifiedService, localNotifier);
+    });
 
 // Provider para estadísticas (para compatibilidad)
 final unifiedFrapStatisticsProvider = Provider<Map<String, dynamic>>((ref) {
@@ -431,9 +483,10 @@ final unifiedFrapStatisticsProvider = Provider<Map<String, dynamic>>((ref) {
 });
 
 // Provider para el notificador de registros unificados (para compatibilidad)
-final unifiedRecordsNotifierProvider = StateNotifierProvider<UnifiedFrapNotifier, UnifiedFrapState>((ref) {
-  final unifiedService = ref.watch(frapUnifiedServiceProvider);
-  final localNotifier = ref.watch(frapLocalProvider.notifier);
-  
-  return UnifiedFrapNotifier(unifiedService, localNotifier);
-}); 
+final unifiedRecordsNotifierProvider =
+    StateNotifierProvider<UnifiedFrapNotifier, UnifiedFrapState>((ref) {
+      final unifiedService = ref.watch(frapUnifiedServiceProvider);
+      final localNotifier = ref.watch(frapLocalProvider.notifier);
+
+      return UnifiedFrapNotifier(unifiedService, localNotifier);
+    });

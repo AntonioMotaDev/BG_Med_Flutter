@@ -43,7 +43,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   @override
   Widget build(BuildContext context) {
     final frapData = ref.watch(frapDataProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registro de Atención Prehospitalaria'),
@@ -52,51 +52,57 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
         actions: [
           // Botón de sincronización manual
           IconButton(
-            icon: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                    ),
-                  )
-                : const Icon(Icons.sync),
-            onPressed: _isSaving
-                ? null
-                : () async {
-                    setState(() {
-                      _isSaving = true;
-                    });
-                    
-                    try {
-                      final result = await ref.read(unifiedRecordsNotifierProvider.notifier).syncRecordsWithResult();
-                      
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(result.message),
-                            backgroundColor: result.success ? Colors.green : Colors.orange,
-                          ),
-                        );
+            icon:
+                _isSaving
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                      ),
+                    )
+                    : const Icon(Icons.sync),
+            onPressed:
+                _isSaving
+                    ? null
+                    : () async {
+                      setState(() {
+                        _isSaving = true;
+                      });
+
+                      try {
+                        final result =
+                            await ref
+                                .read(unifiedRecordsNotifierProvider.notifier)
+                                .syncRecordsWithResult();
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(result.message),
+                              backgroundColor:
+                                  result.success ? Colors.green : Colors.orange,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error al sincronizar: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _isSaving = false;
+                          });
+                        }
                       }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error al sincronizar: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    } finally {
-                      if (mounted) {
-                        setState(() {
-                          _isSaving = false;
-                        });
-                      }
-                    }
-                  },
+                    },
             tooltip: 'Sincronizar ahora',
           ),
         ],
@@ -136,7 +142,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                 ],
               ),
             ),
-            
+
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -145,24 +151,6 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
               mainAxisSpacing: 16,
               childAspectRatio: 2.8,
               children: [
-                // Información del Servicio
-                _buildSectionCard(
-                  title: 'INFORMACIÓN DEL SERVICIO',
-                  icon: Icons.local_hospital,
-                  filledFields: frapData.getFilledFieldsCount('service_info'),
-                  totalFields: 8,
-                  onTap: () => _openServiceInfoDialog(),
-                ),
-                
-                // Información del Registro
-                _buildSectionCard(
-                  title: 'INFORMACIÓN DEL REGISTRO',
-                  icon: Icons.assignment,
-                  filledFields: frapData.getFilledFieldsCount('registry_info'),
-                  totalFields: 5,
-                  onTap: () => _openRegistryInfoDialog(),
-                ),
-                
                 // Información del Paciente
                 _buildSectionCard(
                   title: 'INFORMACIÓN DEL PACIENTE',
@@ -171,7 +159,25 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   totalFields: 14,
                   onTap: () => _openPatientInfoDialog(),
                 ),
-                
+
+                // Información del Servicio
+                _buildSectionCard(
+                  title: 'INFORMACIÓN DEL SERVICIO',
+                  icon: Icons.local_hospital,
+                  filledFields: frapData.getFilledFieldsCount('service_info'),
+                  totalFields: 8,
+                  onTap: () => _openServiceInfoDialog(),
+                ),
+
+                // Información del Registro
+                _buildSectionCard(
+                  title: 'INFORMACIÓN DEL REGISTRO',
+                  icon: Icons.assignment,
+                  filledFields: frapData.getFilledFieldsCount('registry_info'),
+                  totalFields: 5,
+                  onTap: () => _openRegistryInfoDialog(),
+                ),
+
                 // Manejo
                 _buildSectionCard(
                   title: 'MANEJO',
@@ -180,33 +186,43 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   totalFields: 12,
                   onTap: () => _openManagementDialog(),
                 ),
-                
+
                 // Antecedentes Patológicos (solo para urgencias clínicas)
                 if (_shouldShowSection('pathological_history'))
                   _buildSectionCard(
                     title: 'ANTECEDENTES PATOLÓGICOS',
                     icon: Icons.medical_services,
-                    filledFields: frapData.getFilledFieldsCount('pathological_history'),
+                    filledFields: frapData.getFilledFieldsCount(
+                      'pathological_history',
+                    ),
                     totalFields: 5,
                     onTap: () => _openPathologicalHistoryDialog(),
-                    backgroundColor: _getSectionBackgroundColor('pathological_history'),
+                    backgroundColor: _getSectionBackgroundColor(
+                      'pathological_history',
+                    ),
                     textColor: _getSectionTextColor('pathological_history'),
-                    statusMessage: _getSectionStatusMessage('pathological_history'),
+                    statusMessage: _getSectionStatusMessage(
+                      'pathological_history',
+                    ),
                   ),
-                
+
                 // Antecedentes Clínicos (solo para urgencias de trauma)
                 if (_shouldShowSection('clinical_history'))
                   _buildSectionCard(
                     title: 'ANTECEDENTES CLÍNICOS',
                     icon: Icons.medical_services,
-                    filledFields: frapData.getFilledFieldsCount('clinical_history'),
+                    filledFields: frapData.getFilledFieldsCount(
+                      'clinical_history',
+                    ),
                     totalFields: 5,
                     onTap: () => _openClinicalHistoryDialog(),
-                    backgroundColor: _getSectionBackgroundColor('clinical_history'),
+                    backgroundColor: _getSectionBackgroundColor(
+                      'clinical_history',
+                    ),
                     textColor: _getSectionTextColor('clinical_history'),
                     statusMessage: _getSectionStatusMessage('clinical_history'),
                   ),
-                
+
                 // Medicamentos
                 _buildSectionCard(
                   title: 'MEDICAMENTOS',
@@ -215,16 +231,18 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   totalFields: 1,
                   onTap: () => _openMedicationsDialog(),
                 ),
-                
+
                 // Gineco-Obstétrico
                 _buildSectionCard(
                   title: 'GINECO-OBSTÉTRICAS',
                   icon: Icons.pregnant_woman,
-                  filledFields: frapData.getFilledFieldsCount('gyneco_obstetric'),
+                  filledFields: frapData.getFilledFieldsCount(
+                    'gyneco_obstetric',
+                  ),
                   totalFields: 10,
                   onTap: () => _openGynecoObstetricDialog(),
                 ),
-                
+
                 // Examen Físico
                 _buildSectionCard(
                   title: 'EXPLORACIÓN FÍSICA',
@@ -233,25 +251,29 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   totalFields: 12,
                   onTap: () => _openPhysicalExamDialog(),
                 ),
-                
+
                 // Negativa de Atención
                 _buildSectionCard(
                   title: 'NEGATIVA DE ATENCIÓN',
                   icon: Icons.cancel,
-                  filledFields: frapData.getFilledFieldsCount('attention_negative'),
+                  filledFields: frapData.getFilledFieldsCount(
+                    'attention_negative',
+                  ),
                   totalFields: 4,
                   onTap: () => _openAttentionNegativeDialog(),
                 ),
-                
+
                 // Justificación de Prioridad
                 _buildSectionCard(
                   title: 'JUSTIFICACIÓN DE PRIORIDAD',
                   icon: Icons.priority_high,
-                  filledFields: frapData.getFilledFieldsCount('priority_justification'),
+                  filledFields: frapData.getFilledFieldsCount(
+                    'priority_justification',
+                  ),
                   totalFields: 7,
                   onTap: () => _openPriorityJustificationDialog(),
                 ),
-                
+
                 // Unidad Receptora
                 _buildSectionCard(
                   title: 'UNIDAD MEDICA RECEPTORA',
@@ -260,21 +282,25 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   totalFields: 8,
                   onTap: () => _openReceivingUnitDialog(),
                 ),
-                
+
                 // Localización de Lesiones
                 _buildSectionCard(
                   title: 'LOCALIZACIÓN DE LESIONES',
                   icon: Icons.my_location,
-                  filledFields: frapData.getFilledFieldsCount('injury_location'),
+                  filledFields: frapData.getFilledFieldsCount(
+                    'injury_location',
+                  ),
                   totalFields: 2,
                   onTap: () => _openInjuryLocationDialog(),
                 ),
-                
+
                 // Recepción del Paciente
                 _buildSectionCard(
                   title: 'RECEPCIÓN DEL PACIENTE',
                   icon: Icons.how_to_reg,
-                  filledFields: frapData.getFilledFieldsCount('patient_reception'),
+                  filledFields: frapData.getFilledFieldsCount(
+                    'patient_reception',
+                  ),
                   totalFields: 6,
                   onTap: () => _openPatientReceptionDialog(),
                 ),
@@ -289,9 +315,9 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Indicador de estado de conexión
             Container(
               width: double.infinity,
@@ -299,17 +325,11 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
               decoration: BoxDecoration(
                 color: Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.blue.withOpacity(0.3),
-                ),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.wifi,
-                    color: Colors.blue,
-                    size: 16,
-                  ),
+                  Icon(Icons.wifi, color: Colors.blue, size: 16),
                   const SizedBox(width: 8),
                   Text(
                     'Conectado - Se guardará en la nube',
@@ -322,27 +342,28 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Botón de guardado único
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isSaving ? null : _saveRecord,
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Icon(Icons.cloud_upload),
-                label: Text(
-                  _isSaving ? 'Guardando...' : 'Guardar Registro',
-                ),
+                icon:
+                    _isSaving
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                        : const Icon(Icons.cloud_upload),
+                label: Text(_isSaving ? 'Guardando...' : 'Guardar Registro'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
@@ -353,9 +374,9 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             SizedBox(
               width: double.infinity,
               child: TextButton.icon(
@@ -371,9 +392,8 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
           ],
         ),
       ),
@@ -392,18 +412,20 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   }) {
     final isComplete = filledFields == totalFields;
     final isEmpty = filledFields == 0;
-    final isDisabled = statusMessage != null && statusMessage.contains('No aplica');
-    
+    final isDisabled =
+        statusMessage != null && statusMessage.contains('No aplica');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: backgroundColor ?? Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDisabled 
-              ? Colors.grey[300]! 
-              : isComplete 
-                  ? Colors.green[300]! 
+          color:
+              isDisabled
+                  ? Colors.grey[300]!
+                  : isComplete
+                  ? Colors.green[300]!
                   : Colors.grey[300]!,
           width: isComplete ? 2 : 1,
         ),
@@ -427,19 +449,21 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDisabled 
-                        ? Colors.grey[200]! 
-                        : isComplete 
-                            ? Colors.green[100]! 
+                    color:
+                        isDisabled
+                            ? Colors.grey[200]!
+                            : isComplete
+                            ? Colors.green[100]!
                             : AppTheme.primaryBlue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     icon,
-                    color: isDisabled 
-                        ? Colors.grey[400]! 
-                        : isComplete 
-                            ? Colors.green[600]! 
+                    color:
+                        isDisabled
+                            ? Colors.grey[400]!
+                            : isComplete
+                            ? Colors.green[600]!
                             : AppTheme.primaryBlue,
                     size: 24,
                   ),
@@ -456,21 +480,23 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: textColor ?? (isDisabled ? Colors.grey[500] : Colors.black87),
+                          color:
+                              textColor ??
+                              (isDisabled ? Colors.grey[500] : Colors.black87),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isDisabled 
-                            ? statusMessage
-                            : '$filledFields de $totalFields campos completados',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDisabled ? Colors.grey[500] : Colors.grey[600],
+                      if (isDisabled && statusMessage != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          statusMessage,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -478,17 +504,18 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                   isDisabled
                       ? Icons.lock
                       : isComplete
-                          ? Icons.check_circle
-                          : isEmpty
-                              ? Icons.radio_button_unchecked
-                              : Icons.edit,
-                  color: isDisabled
-                      ? Colors.grey[400]
-                      : isComplete
+                      ? Icons.check_circle
+                      : isEmpty
+                      ? Icons.radio_button_unchecked
+                      : Icons.edit,
+                  color:
+                      isDisabled
+                          ? Colors.grey[400]
+                          : isComplete
                           ? Colors.green
                           : isEmpty
-                              ? Colors.grey[400]
-                              : AppTheme.primaryBlue,
+                          ? Colors.grey[400]
+                          : AppTheme.primaryBlue,
                 ),
               ],
             ),
@@ -502,12 +529,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ServiceInfoFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('service_info', data);
-        },
-        initialData: ref.read(frapDataProvider).serviceInfo,
-      ),
+      builder:
+          (context) => ServiceInfoFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('service_info', data);
+            },
+            initialData: ref.read(frapDataProvider).serviceInfo,
+          ),
     );
   }
 
@@ -515,12 +545,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => RegistryInfoFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('registry_info', data);
-        },
-        initialData: ref.read(frapDataProvider).registryInfo,
-      ),
+      builder:
+          (context) => RegistryInfoFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('registry_info', data);
+            },
+            initialData: ref.read(frapDataProvider).registryInfo,
+          ),
     );
   }
 
@@ -528,12 +561,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => PatientInfoFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('patient_info', data);
-        },
-        initialData: ref.read(frapDataProvider).patientInfo,
-      ),
+      builder:
+          (context) => PatientInfoFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('patient_info', data);
+            },
+            initialData: ref.read(frapDataProvider).patientInfo,
+          ),
     );
   }
 
@@ -541,12 +577,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ManagementFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('management', data);
-        },
-        initialData: ref.read(frapDataProvider).management,
-      ),
+      builder:
+          (context) => ManagementFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('management', data);
+            },
+            initialData: ref.read(frapDataProvider).management,
+          ),
     );
   }
 
@@ -554,19 +593,22 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => MedicationsFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('medications', data);
-        },
-        initialData: ref.read(frapDataProvider).medications,
-      ),
+      builder:
+          (context) => MedicationsFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('medications', data);
+            },
+            initialData: ref.read(frapDataProvider).medications,
+          ),
     );
   }
 
   void _openGynecoObstetricDialog() {
     final frapData = ref.read(frapDataProvider);
     final patientSex = frapData.patientInfo['sex'] as String?;
-    
+
     // Verificar si el paciente es de sexo femenino
     if (patientSex == null || patientSex.isEmpty) {
       _showInfoDialog(
@@ -575,7 +617,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
       );
       return;
     }
-    
+
     if (patientSex != 'Femenino') {
       _showInfoDialog(
         'Sección no disponible',
@@ -583,33 +625,37 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
       );
       return;
     }
-    
+
     // Si es femenino, mostrar el formulario
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => GynecoObstetricFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('gyneco_obstetric', data);
-        },
-        initialData: ref.read(frapDataProvider).gynecoObstetric,
-      ),
+      builder:
+          (context) => GynecoObstetricFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('gyneco_obstetric', data);
+            },
+            initialData: ref.read(frapDataProvider).gynecoObstetric,
+          ),
     );
   }
 
   void _showInfoDialog(String title, String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendido'),
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Entendido'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -617,12 +663,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AttentionNegativeFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('attention_negative', data);
-        },
-        initialData: ref.read(frapDataProvider).attentionNegative,
-      ),
+      builder:
+          (context) => AttentionNegativeFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('attention_negative', data);
+            },
+            initialData: ref.read(frapDataProvider).attentionNegative,
+          ),
     );
   }
 
@@ -630,12 +679,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => PathologicalHistoryFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('pathological_history', data);
-        },
-        initialData: ref.read(frapDataProvider).pathologicalHistory,
-      ),
+      builder:
+          (context) => PathologicalHistoryFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('pathological_history', data);
+            },
+            initialData: ref.read(frapDataProvider).pathologicalHistory,
+          ),
     );
   }
 
@@ -643,12 +695,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ClinicalHistoryFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('clinical_history', data);
-        },
-        initialData: ref.read(frapDataProvider).clinicalHistory,
-      ),
+      builder:
+          (context) => ClinicalHistoryFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('clinical_history', data);
+            },
+            initialData: ref.read(frapDataProvider).clinicalHistory,
+          ),
     );
   }
 
@@ -656,12 +711,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => PhysicalExamFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('physical_exam', data);
-        },
-        initialData: ref.read(frapDataProvider).physicalExam,
-      ),
+      builder:
+          (context) => PhysicalExamFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('physical_exam', data);
+            },
+            initialData: ref.read(frapDataProvider).physicalExam,
+          ),
     );
   }
 
@@ -669,12 +727,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => PriorityJustificationFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('priority_justification', data);
-        },
-        initialData: ref.read(frapDataProvider).priorityJustification,
-      ),
+      builder:
+          (context) => PriorityJustificationFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('priority_justification', data);
+            },
+            initialData: ref.read(frapDataProvider).priorityJustification,
+          ),
     );
   }
 
@@ -682,12 +743,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => InjuryLocationFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('injury_location', data);
-        },
-        initialData: ref.read(frapDataProvider).injuryLocation,
-      ),
+      builder:
+          (context) => InjuryLocationFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('injury_location', data);
+            },
+            initialData: ref.read(frapDataProvider).injuryLocation,
+          ),
     );
   }
 
@@ -695,12 +759,15 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ReceivingUnitFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('receiving_unit', data);
-        },
-        initialData: ref.read(frapDataProvider).receivingUnit,
-      ),
+      builder:
+          (context) => ReceivingUnitFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('receiving_unit', data);
+            },
+            initialData: ref.read(frapDataProvider).receivingUnit,
+          ),
     );
   }
 
@@ -708,26 +775,33 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => PatientReceptionFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('patient_reception', data);
-        },
-        initialData: ref.read(frapDataProvider).patientReception,
-      ),
+      builder:
+          (context) => PatientReceptionFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('patient_reception', data);
+            },
+            initialData: ref.read(frapDataProvider).patientReception,
+          ),
     );
   }
 
   void _openInsumosDialog() {
     showDialog(
       context: context,
-      builder: (context) => InsumosFormDialog(
-        onSave: (data) {
-          ref.read(frapDataProvider.notifier).updateSectionData('insumos', data);
-        },
-        initialData: ref.read(frapDataProvider).insumos.isNotEmpty
-            ? ref.read(frapDataProvider).insumos 
-            : null,
-      ),
+      builder:
+          (context) => InsumosFormDialog(
+            onSave: (data) {
+              ref
+                  .read(frapDataProvider.notifier)
+                  .updateSectionData('insumos', data);
+            },
+            initialData:
+                ref.read(frapDataProvider).insumos.isNotEmpty
+                    ? ref.read(frapDataProvider).insumos
+                    : null,
+          ),
     );
   }
 
@@ -735,10 +809,10 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   bool _shouldShowSection(String sectionName) {
     final serviceInfo = ref.read(frapDataProvider).serviceInfo;
     final tipoUrgencia = serviceInfo['tipoUrgencia'] ?? '';
-    
+
     // Si no hay tipo de urgencia seleccionado, mostrar todas las secciones
     if (tipoUrgencia.isEmpty) return true;
-    
+
     switch (sectionName) {
       case 'pathological_history':
         // Antecedentes patológicos solo para urgencias clínicas
@@ -756,12 +830,14 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   Color _getSectionBackgroundColor(String sectionName) {
     final serviceInfo = ref.read(frapDataProvider).serviceInfo;
     final tipoUrgencia = serviceInfo['tipoUrgencia'] ?? '';
-    
+
     if (tipoUrgencia.isEmpty) return Colors.white;
-    
+
     switch (sectionName) {
       case 'pathological_history':
-        return tipoUrgencia == 'Clínico' ? Colors.green[50]! : Colors.grey[100]!;
+        return tipoUrgencia == 'Clínico'
+            ? Colors.green[50]!
+            : Colors.grey[100]!;
       case 'clinical_history':
         return tipoUrgencia == 'Trauma' ? Colors.red[50]! : Colors.grey[100]!;
       default:
@@ -773,12 +849,14 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   Color _getSectionTextColor(String sectionName) {
     final serviceInfo = ref.read(frapDataProvider).serviceInfo;
     final tipoUrgencia = serviceInfo['tipoUrgencia'] ?? '';
-    
+
     if (tipoUrgencia.isEmpty) return Colors.black87;
-    
+
     switch (sectionName) {
       case 'pathological_history':
-        return tipoUrgencia == 'Clínico' ? Colors.green[700]! : Colors.grey[500]!;
+        return tipoUrgencia == 'Clínico'
+            ? Colors.green[700]!
+            : Colors.grey[500]!;
       case 'clinical_history':
         return tipoUrgencia == 'Trauma' ? Colors.red[700]! : Colors.grey[500]!;
       default:
@@ -790,17 +868,17 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   String _getSectionStatusMessage(String sectionName) {
     final serviceInfo = ref.read(frapDataProvider).serviceInfo;
     final tipoUrgencia = serviceInfo['tipoUrgencia'] ?? '';
-    
+
     if (tipoUrgencia.isEmpty) return '';
-    
+
     switch (sectionName) {
       case 'pathological_history':
-        return tipoUrgencia == 'Clínico' 
-            ? 'Requerido para urgencias clínicas' 
+        return tipoUrgencia == 'Clínico'
+            ? 'Requerido para urgencias clínicas'
             : 'No aplica para urgencias de trauma';
       case 'clinical_history':
-        return tipoUrgencia == 'Trauma' 
-            ? 'Requerido para urgencias de trauma' 
+        return tipoUrgencia == 'Trauma'
+            ? 'Requerido para urgencias de trauma'
             : 'No aplica para urgencias clínicas';
       default:
         return '';
@@ -809,16 +887,16 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
 
   bool _validateForm() {
     final frapData = ref.read(frapDataProvider);
-    
+
     // Validar que se hayan completado los campos mínimos requeridos
     if (frapData.patientInfo.isEmpty) {
       _showErrorDialog(
-        'Error de validación', 
-        'Debe completar al menos la información del paciente para guardar el registro.'
+        'Error de validación',
+        'Debe completar al menos la información del paciente para guardar el registro.',
       );
       return false;
     }
-    
+
     return true;
   }
 
@@ -833,31 +911,32 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
 
     try {
       final frapData = ref.read(frapDataProvider);
-      
+
       // Usar el servicio unificado
-      final result = await ref.read(unifiedRecordsNotifierProvider.notifier).saveRecord(frapData);
-      
+      final result = await ref
+          .read(unifiedRecordsNotifierProvider.notifier)
+          .saveRecord(frapData);
+
       if (!mounted) return;
 
       if (result.success) {
         // Mostrar diálogo de éxito
         _showSuccessDialog(result);
-        
+
         // Limpiar datos del formulario
         ref.read(frapDataProvider.notifier).clearAllData();
       } else {
         // Mostrar error
         _showErrorDialog(
           'Error al Guardar',
-          result.message.isNotEmpty ? result.message : 'No se pudo guardar el registro',
+          result.message.isNotEmpty
+              ? result.message
+              : 'No se pudo guardar el registro',
         );
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog(
-          'Error Inesperado',
-          'Ocurrió un error inesperado: $e',
-        );
+        _showErrorDialog('Error Inesperado', 'Ocurrió un error inesperado: $e');
       }
     } finally {
       if (mounted) {
@@ -871,132 +950,148 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
   void _showSuccessDialog(UnifiedSaveResult result) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              Icons.check_circle,
-              color: result.savedToCloud ? AppTheme.primaryBlue : AppTheme.primaryGreen,
-            ),
-            const SizedBox(width: 8),
-            const Text('Registro Guardado'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(result.message),
-            const SizedBox(height: 16),
-            if (result.savedLocally && !result.savedToCloud)
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
+      builder:
+          (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color:
+                      result.savedToCloud
+                          ? AppTheme.primaryBlue
+                          : AppTheme.primaryGreen,
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.orange.shade700, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Guardado localmente. Se sincronizará cuando haya conexión.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange.shade700,
-                        ),
-                      ),
+                const SizedBox(width: 8),
+                const Text('Registro Guardado'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(result.message),
+                const SizedBox(height: 16),
+                if (result.savedLocally && !result.savedToCloud)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade200),
                     ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 16),
-            const Text('¿Qué desea hacer a continuación?'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Limpiar datos del formulario
-              ref.read(frapDataProvider.notifier).clearAllData();
-            },
-            child: const Text('Nuevo Registro'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Navegar a la vista de registros
-              Navigator.pushNamed(context, '/frap-records');
-            },
-            child: const Text('Ver Registros'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(); // Salir del formulario
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: result.savedToCloud ? AppTheme.primaryBlue : AppTheme.primaryGreen,
-              foregroundColor: Colors.white,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.orange.shade700,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Guardado localmente. Se sincronizará cuando haya conexión.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                const Text('¿Qué desea hacer a continuación?'),
+              ],
             ),
-            child: const Text('Salir'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Limpiar datos del formulario
+                  ref.read(frapDataProvider.notifier).clearAllData();
+                },
+                child: const Text('Nuevo Registro'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Navegar a la vista de registros
+                  Navigator.pushNamed(context, '/frap-records');
+                },
+                child: const Text('Ver Registros'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(); // Salir del formulario
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      result.savedToCloud
+                          ? AppTheme.primaryBlue
+                          : AppTheme.primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Salir'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendido'),
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Entendido'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _showClearConfirmationDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar Limpieza'),
-        content: const Text(
-            '¿Estás seguro de que quieres limpiar todos los campos del formulario? Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Cerrar el diálogo de confirmación
-              ref.read(frapDataProvider.notifier).clearAllData();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Formulario limpiado.'),
-                  duration: Duration(seconds: 3),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar Limpieza'),
+            content: const Text(
+              '¿Estás seguro de que quieres limpiar todos los campos del formulario? Esta acción no se puede deshacer.',
             ),
-            child: const Text('Limpiar'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(
+                    context,
+                  ).pop(); // Cerrar el diálogo de confirmación
+                  ref.read(frapDataProvider.notifier).clearAllData();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Formulario limpiado.'),
+                      duration: Duration(seconds: 3),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Limpiar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
-} 
+}

@@ -1,8 +1,11 @@
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
+import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
 
-class RegistryInfoFormDialog extends StatefulWidget {
+class RegistryInfoFormDialog extends ConsumerStatefulWidget {
   final Function(Map<String, dynamic>) onSave;
   final Map<String, dynamic>? initialData;
 
@@ -13,17 +16,21 @@ class RegistryInfoFormDialog extends StatefulWidget {
   });
 
   @override
-  State<RegistryInfoFormDialog> createState() => _RegistryInfoFormDialogState();
+  ConsumerState<RegistryInfoFormDialog> createState() =>
+      _RegistryInfoFormDialogState();
 }
 
-class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
+class _RegistryInfoFormDialogState
+    extends ConsumerState<RegistryInfoFormDialog> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isGeneratingFolio = false;
 
   // Controladores de texto
   final _convenioController = TextEditingController();
   final _episodioController = TextEditingController();
   final _solicitadoPorController = TextEditingController();
+  final _folioController = TextEditingController();
 
   // Variable para la fecha
   DateTime? _fechaSeleccionada;
@@ -37,11 +44,12 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
   void _initializeForm() {
     if (widget.initialData != null) {
       final data = widget.initialData!;
-      
+
       _convenioController.text = data['convenio'] ?? '';
       _episodioController.text = data['episodio'] ?? '';
       _solicitadoPorController.text = data['solicitadoPor'] ?? '';
-      
+      _folioController.text = data['folio'] ?? '';
+
       // Parsear fecha si existe
       if (data['fecha'] != null) {
         try {
@@ -51,6 +59,79 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
         }
       }
     }
+    // El folio se generará automáticamente usando el provider con iniciales del paciente
+  }
+
+  Future<void> _generateAutomaticFolio() async {
+    setState(() {
+      _isGeneratingFolio = true;
+    });
+
+    try {
+      // Obtener nombre del paciente desde el provider de datos FRAP
+      final frapData = ref.read(frapDataProvider);
+      final patientName = _getPatientNameFromData(frapData);
+
+      // Invalidar el provider para generar un nuevo folio
+      ref.invalidate(patientFolioProvider(patientName));
+
+      // Generar folio con iniciales del paciente
+      final folio = await ref.read(patientFolioProvider(patientName).future);
+      setState(() {
+        _folioController.text = folio;
+        _isGeneratingFolio = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isGeneratingFolio = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generando folio: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Obtener nombre del paciente desde los datos FRAP
+  String _getPatientNameFromData(FrapData frapData) {
+    try {
+      final patientInfo = frapData.patientInfo;
+
+      // Intentar obtener nombre completo
+      final firstName = patientInfo['firstName']?.toString() ?? '';
+      final paternalLastName =
+          patientInfo['paternalLastName']?.toString() ?? '';
+      final maternalLastName =
+          patientInfo['maternalLastName']?.toString() ?? '';
+
+      // Construir nombre completo
+      final fullName =
+          [
+            firstName,
+            paternalLastName,
+            maternalLastName,
+          ].where((part) => part.isNotEmpty).join(' ').trim();
+
+      if (fullName.isNotEmpty) {
+        return fullName;
+      }
+
+      // Si no hay nombre estructurado, buscar en otros campos
+      final name = patientInfo['name']?.toString() ?? '';
+      if (name.isNotEmpty) {
+        return name;
+      }
+
+      // Si no hay nombre, usar valor por defecto
+      return 'Sin Nombre';
+    } catch (e) {
+      print('Error obteniendo nombre del paciente: $e');
+      return 'Sin Nombre';
+    }
   }
 
   @override
@@ -58,6 +139,7 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
     _convenioController.dispose();
     _episodioController.dispose();
     _solicitadoPorController.dispose();
+    _folioController.dispose();
     super.dispose();
   }
 
@@ -67,7 +149,7 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
       backgroundColor: Colors.transparent,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.95,
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.8,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -86,11 +168,7 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.assignment,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  const Icon(Icons.assignment, color: Colors.white, size: 24),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -119,7 +197,11 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Primera fila: Convenio
+                      // Primera fila: Folio (automático)
+                      _buildFolioField(),
+                      const SizedBox(height: 20),
+
+                      // Segunda fila: Convenio
                       _buildTextField(
                         controller: _convenioController,
                         label: 'Convenio',
@@ -127,7 +209,7 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Segunda fila: Episodio y Fecha
+                      // Tercera fila: Episodio y Fecha
                       Row(
                         children: [
                           Expanded(
@@ -138,14 +220,12 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildDateField(),
-                          ),
+                          Expanded(child: _buildDateField()),
                         ],
                       ),
                       const SizedBox(height: 20),
 
-                      // Tercera fila: Solicitado por
+                      // Cuarta fila: Solicitado por
                       _buildTextField(
                         controller: _solicitadoPorController,
                         label: 'Solicitado por',
@@ -176,17 +256,22 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _saveForm,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Guardando...' : 'Guardar Sección'),
+                    icon:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.save),
+                    label: Text(
+                      _isLoading ? 'Guardando...' : 'Guardar Sección',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
@@ -198,6 +283,145 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFolioField() {
+    return Consumer(
+      builder: (context, ref, child) {
+        // Obtener nombre del paciente para generar folio
+        final frapData = ref.watch(frapDataProvider);
+        final patientName = _getPatientNameFromData(frapData);
+        final folioAsync = ref.watch(patientFolioProvider(patientName));
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Folio *',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ),
+                if (_isGeneratingFolio)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                IconButton(
+                  onPressed:
+                      _isGeneratingFolio ? null : _generateAutomaticFolio,
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Generar nuevo folio',
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            folioAsync.when(
+              data: (folio) {
+                if (_folioController.text.isEmpty) {
+                  _folioController.text = folio;
+                }
+                return TextFormField(
+                  controller: _folioController,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: 'Folio automático',
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
+                    suffixIcon: const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.blue,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.blue,
+                  ),
+                );
+              },
+              loading:
+                  () => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[50],
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Generando folio...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              error:
+                  (error, stack) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.red[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.red[50],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error, color: Colors.red[600], size: 16),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Error generando folio',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.red[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'El folio se genera automáticamente con las iniciales del paciente. Puede regenerarlo si es necesario.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -268,7 +492,10 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
                         : 'Seleccionar fecha',
                     style: TextStyle(
                       fontSize: 14,
-                      color: _fechaSeleccionada != null ? Colors.black87 : Colors.grey[500],
+                      color:
+                          _fechaSeleccionada != null
+                              ? Colors.black87
+                              : Colors.grey[500],
                     ),
                   ),
                 ),
@@ -310,6 +537,17 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
       return;
     }
 
+    // Validar folio requerido
+    if (_folioController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El folio es requerido'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -320,10 +558,11 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
         'episodio': _episodioController.text.trim(),
         'fecha': _fechaSeleccionada!.toIso8601String(),
         'solicitadoPor': _solicitadoPorController.text.trim(),
+        'folio': _folioController.text.trim(),
       };
 
       widget.onSave(formData);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -350,4 +589,4 @@ class _RegistryInfoFormDialogState extends State<RegistryInfoFormDialog> {
       }
     }
   }
-} 
+}

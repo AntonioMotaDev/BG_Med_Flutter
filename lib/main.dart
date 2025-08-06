@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:bg_med/firebase_options.dart';
-import 'package:bg_med/core/widgets/hive_wrapper.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
 import 'package:bg_med/features/auth/presentation/screens/auth_wrapper.dart';
 import 'package:bg_med/features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -19,9 +18,6 @@ import 'package:bg_med/core/models/escalas_obstetricas.dart';
 import 'package:bg_med/core/services/frap_local_service.dart';
 import 'package:bg_med/core/services/frap_firestore_service.dart';
 import 'package:bg_med/core/services/frap_unified_service.dart';
-import 'package:bg_med/features/frap/presentation/providers/frap_local_provider.dart';
-import 'package:bg_med/features/frap/presentation/providers/frap_unified_provider.dart';
-import 'package:bg_med/features/patients/presentation/providers/patients_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

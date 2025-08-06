@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bg_med/core/services/frap_unified_service.dart';
 import 'package:bg_med/core/services/pdf_generator_service.dart';
 import 'package:bg_med/core/theme/app_theme.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:printing/printing.dart';
 
 /// Screen for previewing and managing PDF generation for FRAP records.

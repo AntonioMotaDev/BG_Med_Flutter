@@ -5,7 +5,6 @@ import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/models/frap_firestore.dart';
 import 'package:bg_med/core/models/frap_transition_model.dart';
 import 'package:bg_med/core/services/frap_conversion_logger.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Resultado de migración
 class MigrationResult {

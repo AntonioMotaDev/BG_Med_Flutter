@@ -8,13 +8,6 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
 import 'package:bg_med/core/services/frap_unified_service.dart';
 import 'package:flutter/services.dart';
-import 'package:bg_med/core/models/frap.dart';
-import 'package:bg_med/core/models/frap_firestore.dart';
-import 'package:bg_med/core/models/patient.dart';
-import 'package:bg_med/core/models/clinical_history.dart';
-import 'package:bg_med/core/models/physical_exam.dart';
-
-import '../../features/frap/presentation/providers/frap_unified_provider.dart';
 
 class PdfGeneratorService {
   // Helper to safely decode base64 image data for PDF

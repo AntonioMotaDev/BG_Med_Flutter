@@ -1258,16 +1258,12 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _insuranceController.text = patient.insurance;
       _responsiblePersonController.text = patient.responsiblePerson ?? '';
 
-      // Nuevos campos - usar acceso seguro ya que pueden no existir en el modelo
-      _entreCallesController.text =
-          ''; // Campo nuevo, no existe en PatientFirestore
-      _tipoEntregaSeleccionado =
-          ''; // Campo nuevo, no existe en PatientFirestore
-      _tipoEntregaOtroController.text =
-          ''; // Campo nuevo, no existe en PatientFirestore
-      _generoSeleccionado = ''; // Campo nuevo, no existe en PatientFirestore
-      _seguroMedicoSeleccionado =
-          ''; // Campo nuevo, no existe en PatientFirestore
+      // Nuevos campos
+      _entreCallesController.text = '';
+      _tipoEntregaSeleccionado = '';
+      _tipoEntregaOtroController.text = '';
+      _generoSeleccionado = '';
+      _seguroMedicoSeleccionado = '';
 
       // No llenamos currentCondition y emergencyContact porque son específicos de cada consulta FRAP
 

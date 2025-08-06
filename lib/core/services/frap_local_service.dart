@@ -8,7 +8,7 @@ import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.d
 
 class FrapLocalService {
   static const String _boxName = 'fraps';
-  
+
   // Obtener la caja de Hive
   Box<Frap> get _frapBox => Hive.box<Frap>(_boxName);
 
@@ -18,16 +18,14 @@ class FrapLocalService {
   }
 
   // CREAR un nuevo registro FRAP local
-  Future<String?> createFrapRecord({
-    required FrapData frapData,
-  }) async {
+  Future<String?> createFrapRecord({required FrapData frapData}) async {
     try {
       // Convertir FrapData a modelo Frap
       final frap = _convertFrapDataToFrap(frapData);
-      
+
       // Guardar en Hive
       await _frapBox.add(frap);
-      
+
       return frap.id;
     } catch (e) {
       throw Exception('Error al crear el registro FRAP local: $e');
@@ -41,10 +39,10 @@ class FrapLocalService {
   }) async {
     try {
       // Buscar el registro existente
-      final existingIndex = _frapBox.values
-          .toList()
-          .indexWhere((frap) => frap.id == frapId);
-      
+      final existingIndex = _frapBox.values.toList().indexWhere(
+        (frap) => frap.id == frapId,
+      );
+
       if (existingIndex == -1) {
         throw Exception('Registro no encontrado');
       }
@@ -80,13 +78,25 @@ class FrapLocalService {
   // OBTENER todos los registros FRAP locales
   Future<List<Frap>> getAllFrapRecords() async {
     try {
+      print('Obteniendo registros locales de Hive...');
+      print('Caja de Hive disponible: ${_frapBox.isOpen}');
+      print('Número de registros en la caja: ${_frapBox.length}');
+
       final records = _frapBox.values.toList();
-      
+      print('Registros obtenidos de la caja: ${records.length}');
+
       // Ordenar por fecha de creación descendente
       records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
+
+      print('Registros ordenados: ${records.length}');
+      for (int i = 0; i < records.length; i++) {
+        final record = records[i];
+        print('Registro $i: ${record.patient.fullName} - ${record.createdAt}');
+      }
+
       return records;
     } catch (e) {
+      print('Error al obtener los registros FRAP locales: $e');
       throw Exception('Error al obtener los registros FRAP locales: $e');
     }
   }
@@ -97,13 +107,14 @@ class FrapLocalService {
   }) async {
     try {
       final allRecords = await getAllFrapRecords();
-      
+
       // Filtrar por nombre del paciente
-      final filteredRecords = allRecords.where((record) {
-        final fullName = record.patient.name.toLowerCase();
-        final searchTerm = patientName.toLowerCase();
-        return fullName.contains(searchTerm);
-      }).toList();
+      final filteredRecords =
+          allRecords.where((record) {
+            final fullName = record.patient.name.toLowerCase();
+            final searchTerm = patientName.toLowerCase();
+            return fullName.contains(searchTerm);
+          }).toList();
 
       return filteredRecords;
     } catch (e) {
@@ -118,12 +129,13 @@ class FrapLocalService {
   }) async {
     try {
       final allRecords = await getAllFrapRecords();
-      
+
       // Filtrar por rango de fechas
-      final filteredRecords = allRecords.where((record) {
-        return record.createdAt.isAfter(startDate) && 
-               record.createdAt.isBefore(endDate.add(const Duration(days: 1)));
-      }).toList();
+      final filteredRecords =
+          allRecords.where((record) {
+            return record.createdAt.isAfter(startDate) &&
+                record.createdAt.isBefore(endDate.add(const Duration(days: 1)));
+          }).toList();
 
       return filteredRecords;
     } catch (e) {
@@ -134,10 +146,10 @@ class FrapLocalService {
   // ELIMINAR un registro FRAP
   Future<void> deleteFrapRecord(String frapId) async {
     try {
-      final existingIndex = _frapBox.values
-          .toList()
-          .indexWhere((frap) => frap.id == frapId);
-      
+      final existingIndex = _frapBox.values.toList().indexWhere(
+        (frap) => frap.id == frapId,
+      );
+
       if (existingIndex == -1) {
         throw Exception('Registro no encontrado');
       }
@@ -184,26 +196,45 @@ class FrapLocalService {
 
       return {
         'total': allRecords.length,
-        'today': allRecords.where((record) {
-          final recordDate = DateTime(
-            record.createdAt.year,
-            record.createdAt.month,
-            record.createdAt.day,
-          );
-          return recordDate.isAtSameMomentAs(today);
-        }).length,
-        'thisWeek': allRecords.where((record) => 
-          record.createdAt.isAfter(thisWeek) && 
-          record.createdAt.isBefore(today.add(const Duration(days: 1)))
-        ).length,
-        'thisMonth': allRecords.where((record) => 
-          record.createdAt.isAfter(thisMonth) && 
-          record.createdAt.isBefore(thisMonth.add(const Duration(days: 32)))
-        ).length,
-        'thisYear': allRecords.where((record) => 
-          record.createdAt.isAfter(thisYear) && 
-          record.createdAt.isBefore(thisYear.add(const Duration(days: 366)))
-        ).length,
+        'today':
+            allRecords.where((record) {
+              final recordDate = DateTime(
+                record.createdAt.year,
+                record.createdAt.month,
+                record.createdAt.day,
+              );
+              return recordDate.isAtSameMomentAs(today);
+            }).length,
+        'thisWeek':
+            allRecords
+                .where(
+                  (record) =>
+                      record.createdAt.isAfter(thisWeek) &&
+                      record.createdAt.isBefore(
+                        today.add(const Duration(days: 1)),
+                      ),
+                )
+                .length,
+        'thisMonth':
+            allRecords
+                .where(
+                  (record) =>
+                      record.createdAt.isAfter(thisMonth) &&
+                      record.createdAt.isBefore(
+                        thisMonth.add(const Duration(days: 32)),
+                      ),
+                )
+                .length,
+        'thisYear':
+            allRecords
+                .where(
+                  (record) =>
+                      record.createdAt.isAfter(thisYear) &&
+                      record.createdAt.isBefore(
+                        thisYear.add(const Duration(days: 366)),
+                      ),
+                )
+                .length,
       };
     } catch (e) {
       throw Exception('Error al obtener las estadísticas FRAP locales: $e');
@@ -251,20 +282,20 @@ class FrapLocalService {
   }) {
     // Extraer información del paciente
     final patientInfo = frapData.patientInfo;
-    
+
     // Construir el nombre completo del paciente
     final firstName = patientInfo['firstName'] ?? '';
     final paternalLastName = patientInfo['paternalLastName'] ?? '';
     final maternalLastName = patientInfo['maternalLastName'] ?? '';
     final fullName = '$firstName $paternalLastName $maternalLastName'.trim();
-    
+
     // Construir la dirección completa
     final street = patientInfo['street'] ?? '';
     final exteriorNumber = patientInfo['exteriorNumber'] ?? '';
     final interiorNumber = patientInfo['interiorNumber'] ?? '';
     final neighborhood = patientInfo['neighborhood'] ?? '';
     final city = patientInfo['city'] ?? '';
-    
+
     String fullAddress = '';
     if (street.isNotEmpty) {
       fullAddress = street;
@@ -281,7 +312,7 @@ class FrapLocalService {
         fullAddress += ', $city';
       }
     }
-    
+
     final patient = Patient(
       name: fullName.isNotEmpty ? fullName : 'Sin nombre',
       age: patientInfo['age'] ?? 0,
@@ -305,7 +336,10 @@ class FrapLocalService {
     final clinicalHistory = ClinicalHistory(
       allergies: clinicalHistoryData['allergies'] ?? '',
       medications: clinicalHistoryData['medications'] ?? '',
-      previousIllnesses: clinicalHistoryData['previous_illnesses'] ?? clinicalHistoryData['previousIllnesses'] ?? '',
+      previousIllnesses:
+          clinicalHistoryData['previous_illnesses'] ??
+          clinicalHistoryData['previousIllnesses'] ??
+          '',
       currentSymptoms: clinicalHistoryData['currentSymptoms'] ?? '',
       pain: clinicalHistoryData['pain'] ?? '',
       painScale: clinicalHistoryData['painScale'] ?? '',
@@ -321,7 +355,10 @@ class FrapLocalService {
     // Extraer examen físico
     final physicalExamData = frapData.physicalExam;
     final physicalExam = PhysicalExam(
-      vitalSigns: physicalExamData['vital_signs'] ?? physicalExamData['vitalSigns'] ?? '',
+      vitalSigns:
+          physicalExamData['vital_signs'] ??
+          physicalExamData['vitalSigns'] ??
+          '',
       head: physicalExamData['head'] ?? '',
       neck: physicalExamData['neck'] ?? '',
       thorax: physicalExamData['thorax'] ?? '',
@@ -439,25 +476,32 @@ class FrapLocalService {
         'responsiblePerson': frap.patient.responsiblePerson,
         'currentCondition': frap.serviceInfo['currentCondition'] ?? '',
         'emergencyContact': frap.serviceInfo['emergencyContact'] ?? '',
-        'address': frap.patient.fullAddress, // Mantener también la dirección completa
+        'address':
+            frap.patient.fullAddress, // Mantener también la dirección completa
       },
       management: frap.management,
-      medications: frap.medications.isNotEmpty ? frap.medications : {
-        'current_medications': frap.clinicalHistory.medications,
-        'dosage': frap.clinicalHistory.dosage,
-        'frequency': frap.clinicalHistory.frequency,
-        'route': frap.clinicalHistory.route,
-        'time': frap.clinicalHistory.time,
-      },
+      medications:
+          frap.medications.isNotEmpty
+              ? frap.medications
+              : {
+                'current_medications': frap.clinicalHistory.medications,
+                'dosage': frap.clinicalHistory.dosage,
+                'frequency': frap.clinicalHistory.frequency,
+                'route': frap.clinicalHistory.route,
+                'time': frap.clinicalHistory.time,
+              },
       gynecoObstetric: frap.gynecoObstetric,
       attentionNegative: frap.attentionNegative,
-      pathologicalHistory: frap.pathologicalHistory.isNotEmpty ? frap.pathologicalHistory : {
-        'allergies': frap.clinicalHistory.allergies,
-        'previous_illnesses': frap.clinicalHistory.previousIllnesses,
-        'previousSurgeries': frap.clinicalHistory.previousSurgeries,
-        'hospitalizations': frap.clinicalHistory.hospitalizations,
-        'transfusions': frap.clinicalHistory.transfusions,
-      },
+      pathologicalHistory:
+          frap.pathologicalHistory.isNotEmpty
+              ? frap.pathologicalHistory
+              : {
+                'allergies': frap.clinicalHistory.allergies,
+                'previous_illnesses': frap.clinicalHistory.previousIllnesses,
+                'previousSurgeries': frap.clinicalHistory.previousSurgeries,
+                'hospitalizations': frap.clinicalHistory.hospitalizations,
+                'transfusions': frap.clinicalHistory.transfusions,
+              },
       clinicalHistory: {
         'allergies': frap.clinicalHistory.allergies,
         'medications': frap.clinicalHistory.medications,
@@ -490,10 +534,10 @@ class FrapLocalService {
   // Marcar registro como sincronizado
   Future<void> markAsSynced(String frapId) async {
     try {
-      final existingIndex = _frapBox.values
-          .toList()
-          .indexWhere((frap) => frap.id == frapId);
-      
+      final existingIndex = _frapBox.values.toList().indexWhere(
+        (frap) => frap.id == frapId,
+      );
+
       if (existingIndex == -1) {
         throw Exception('Registro no encontrado');
       }
@@ -517,4 +561,4 @@ class FrapLocalService {
       throw Exception('Error al obtener registros no sincronizados: $e');
     }
   }
-} 
+}
