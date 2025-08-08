@@ -16,31 +16,31 @@ class Patient extends Equatable {
   final String address;
   @HiveField(4)
   final String addressDetails;
-  @HiveField(4)
-  final String firstName;
   @HiveField(5)
-  final String paternalLastName;
+  final String firstName;
   @HiveField(6)
-  final String maternalLastName;
+  final String paternalLastName;
   @HiveField(7)
-  final String phone;
+  final String maternalLastName;
   @HiveField(8)
-  final String street;
+  final String phone;
   @HiveField(9)
-  final String exteriorNumber;
+  final String street;
   @HiveField(10)
-  final String? interiorNumber;
+  final String exteriorNumber;
   @HiveField(11)
-  final String neighborhood;
+  final String? interiorNumber;
   @HiveField(12)
-  final String city;
+  final String neighborhood;
   @HiveField(13)
-  final String insurance;
+  final String city;
   @HiveField(14)
-  final String? responsiblePerson;
+  final String insurance;
   @HiveField(15)
-  final String gender;
+  final String? responsiblePerson;
   @HiveField(16)
+  final String gender;
+  @HiveField(17)
   final String tipoEntrega;
 
   const Patient({

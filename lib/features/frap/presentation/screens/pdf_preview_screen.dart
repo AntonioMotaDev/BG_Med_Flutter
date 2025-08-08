@@ -179,12 +179,12 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                 borderRadius: BorderRadius.circular(12),
                 child: PdfPreview(
                   build: (format) => _pdfService.generateFrapPdf(widget.record),
-                  allowPrinting: false, // We handle printing ourselves
-                  allowSharing: false, // We handle sharing ourselves
+                  allowPrinting: false,
+                  allowSharing: false,
                   canChangePageFormat: false,
                   canChangeOrientation: false,
                   maxPageWidth: 700,
-                  actions: const [], // Remove default actions
+                  actions: const [],
                 ),
               ),
             ),

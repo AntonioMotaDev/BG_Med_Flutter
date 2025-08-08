@@ -15,6 +15,7 @@ import 'package:bg_med/core/models/medication.dart';
 import 'package:bg_med/core/models/insumo.dart';
 import 'package:bg_med/core/models/personal_medico.dart';
 import 'package:bg_med/core/models/escalas_obstetricas.dart';
+import 'package:bg_med/core/models/appointment.dart';
 import 'package:bg_med/core/services/frap_local_service.dart';
 import 'package:bg_med/core/services/frap_firestore_service.dart';
 import 'package:bg_med/core/services/frap_unified_service.dart';
@@ -46,6 +47,7 @@ void main() async {
     Hive.registerAdapter(InsumoAdapter());
     Hive.registerAdapter(PersonalMedicoAdapter());
     Hive.registerAdapter(EscalasObstetricasAdapter());
+    Hive.registerAdapter(AppointmentAdapter());
 
     // Abrir cajas de Hive con mejor manejo de errores
     await _initializeHiveBoxes();
