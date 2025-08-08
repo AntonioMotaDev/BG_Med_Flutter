@@ -5,6 +5,7 @@ import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/models/frap_firestore.dart';
 import 'package:bg_med/core/models/frap_transition_model.dart';
 import 'package:bg_med/core/services/frap_conversion_logger.dart';
+import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
 
 /// Resultado de migración
 class MigrationResult {
@@ -32,21 +33,117 @@ class MigrationResult {
       totalRecords > 0 ? (migratedRecords / totalRecords) * 100 : 0.0;
 }
 
+/// Configuración para migración
+class MigrationConfig {
+  final bool skipExisting;
+  final bool validateData;
+  final int batchSize;
+  final Duration timeout;
+  final int maxRetries;
+  final bool enableLogging;
+
+  const MigrationConfig({
+    this.skipExisting = true,
+    this.validateData = true,
+    this.batchSize = 50,
+    this.timeout = const Duration(minutes: 5),
+    this.maxRetries = 3,
+    this.enableLogging = true,
+  });
+}
+
+/// Métricas detalladas de migración
+class MigrationMetrics {
+  final int recordsProcessed;
+  final int recordsSkipped;
+  final int recordsUpdated;
+  final int recordsCreated;
+  final Duration averageTimePerRecord;
+  final Map<String, int> errorsByType;
+  final double successRate;
+  final Duration totalDuration;
+
+  const MigrationMetrics({
+    required this.recordsProcessed,
+    required this.recordsSkipped,
+    required this.recordsUpdated,
+    required this.recordsCreated,
+    required this.averageTimePerRecord,
+    required this.errorsByType,
+    required this.successRate,
+    required this.totalDuration,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'recordsProcessed': recordsProcessed,
+      'recordsSkipped': recordsSkipped,
+      'recordsUpdated': recordsUpdated,
+      'recordsCreated': recordsCreated,
+      'averageTimePerRecord': averageTimePerRecord.inMilliseconds,
+      'errorsByType': errorsByType,
+      'successRate': successRate,
+      'totalDuration': totalDuration.inMilliseconds,
+    };
+  }
+}
+
 /// Servicio de migración automática para transición gradual
 class FrapMigrationService {
   final FrapLocalService _localService;
   final FrapFirestoreService _cloudService;
   final StreamController<MigrationProgress> _progressController;
+  final MigrationConfig _config;
+  bool _isCancelled = false;
 
   FrapMigrationService({
     required FrapLocalService localService,
     required FrapFirestoreService cloudService,
+    MigrationConfig config = const MigrationConfig(),
   }) : _localService = localService,
        _cloudService = cloudService,
+       _config = config,
        _progressController = StreamController<MigrationProgress>.broadcast();
 
   /// Stream de progreso de migración
   Stream<MigrationProgress> get progressStream => _progressController.stream;
+
+  /// Cancelar migración en curso
+  void cancelMigration() {
+    _isCancelled = true;
+  }
+
+  /// Verificar si la migración fue cancelada
+  bool get isCancelled => _isCancelled;
+
+  /// Operación con reintentos automáticos
+  Future<T> _retryOperation<T>(
+    Future<T> Function() operation,
+    String operationName,
+  ) async {
+    for (int i = 0; i < _config.maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (e) {
+        if (i == _config.maxRetries - 1) {
+          if (_config.enableLogging) {
+            FrapConversionLogger.logConversionError(
+              'retry_operation_failed',
+              operationName,
+              'Máximo de reintentos alcanzado: $e',
+              StackTrace.current,
+            );
+          }
+          rethrow;
+        }
+
+        await Future.delayed(Duration(seconds: 1 << i));
+      }
+    }
+    throw Exception(
+      'Operación falló después de ${_config.maxRetries} reintentos',
+    );
+  }
 
   /// Migrar registros de nube a local automáticamente
   Future<MigrationResult> migrateCloudToLocal() async {
@@ -77,9 +174,21 @@ class FrapMigrationService {
 
       // Obtener registros locales existentes
       final localRecords = await _localService.getAllFrapRecords();
-      final existingLocalIds = localRecords.map((r) => r.id).toSet();
 
       for (int i = 0; i < cloudRecords.length; i++) {
+        // Verificar si la migración fue cancelada
+        if (_isCancelled) {
+          _progressController.add(
+            MigrationProgress(
+              current: i,
+              total: totalRecords,
+              message: 'Migración cancelada por el usuario',
+              status: MigrationStatus.failed,
+            ),
+          );
+          throw Exception('Migración cancelada por el usuario');
+        }
+
         final cloudRecord = cloudRecords[i];
 
         try {
@@ -108,8 +217,9 @@ class FrapMigrationService {
 
             // Guardar en local
             final frapData = _localService.convertFrapToFrapData(localFrap);
-            final localId = await _localService.createFrapRecord(
-              frapData: frapData,
+            final localId = await _retryOperation(
+              () => _localService.createFrapRecord(frapData: frapData),
+              'create_local_record',
             );
 
             if (localId != null) {
@@ -139,9 +249,12 @@ class FrapMigrationService {
               final frapData = _localService.convertFrapToFrapData(
                 updatedLocal,
               );
-              await _localService.updateFrapRecord(
-                frapId: existingLocal.id,
-                frapData: frapData,
+              await _retryOperation(
+                () => _localService.updateFrapRecord(
+                  frapId: existingLocal.id,
+                  frapData: frapData,
+                ),
+                'update_local_record',
               );
 
               migratedRecords++;
@@ -270,6 +383,19 @@ class FrapMigrationService {
       );
 
       for (int i = 0; i < localRecords.length; i++) {
+        // Verificar si la migración fue cancelada
+        if (_isCancelled) {
+          _progressController.add(
+            MigrationProgress(
+              current: i,
+              total: totalRecords,
+              message: 'Migración cancelada por el usuario',
+              status: MigrationStatus.failed,
+            ),
+          );
+          throw Exception('Migración cancelada por el usuario');
+        }
+
         final localRecord = localRecords[i];
 
         try {
@@ -289,18 +415,45 @@ class FrapMigrationService {
           // Migrar a modelo nube
           final cloudFrap = transitionModel.migrateToCloudStandard();
 
-          // Guardar en nube
-          final frapData = _localService.convertFrapToFrapData(localRecord);
-          final cloudId = await _cloudService.createFrapRecord(
-            frapData: frapData,
+          // Convertir a FrapData para guardar en nube
+          final frapData = FrapData(
+            serviceInfo: cloudFrap.serviceInfo,
+            registryInfo: cloudFrap.registryInfo,
+            patientInfo: cloudFrap.patientInfo,
+            management: cloudFrap.management,
+            medications: cloudFrap.medications,
+            gynecoObstetric: cloudFrap.gynecoObstetric,
+            attentionNegative: cloudFrap.attentionNegative,
+            pathologicalHistory: cloudFrap.pathologicalHistory,
+            clinicalHistory: cloudFrap.clinicalHistory,
+            physicalExam: cloudFrap.physicalExam,
+            priorityJustification: cloudFrap.priorityJustification,
+            injuryLocation: cloudFrap.injuryLocation,
+            receivingUnit: cloudFrap.receivingUnit,
+            patientReception: cloudFrap.patientReception,
+          );
+
+          final cloudId = await _retryOperation(
+            () => _cloudService.createFrapRecord(frapData: frapData),
+            'create_cloud_record',
           );
 
           if (cloudId != null) {
             // Marcar como sincronizado
             try {
-              await _localService.markAsSynced(localRecord.id);
+              await _retryOperation(
+                () => _localService.markAsSynced(localRecord.id),
+                'mark_as_synced',
+              );
             } catch (e) {
-              // Si el método no existe, ignorar
+              if (_config.enableLogging) {
+                FrapConversionLogger.logConversionError(
+                  'mark_as_synced_failed',
+                  localRecord.id,
+                  'No se pudo marcar como sincronizado: $e',
+                  StackTrace.current,
+                );
+              }
             }
 
             migratedRecords++;
@@ -519,8 +672,49 @@ class FrapMigrationService {
     }
   }
 
+  /// Obtener métricas detalladas de migración
+  Future<MigrationMetrics> getDetailedMetrics() async {
+    try {
+      final localRecords = await _localService.getAllFrapRecords();
+      final cloudRecords = await _cloudService.getAllFrapRecords();
+
+      final syncedRecords = localRecords.where((r) => r.isSynced).length;
+      final unsyncedRecords = localRecords.where((r) => !r.isSynced).length;
+
+      final errorsByType = <String, int>{};
+      // Aquí se podrían agregar más análisis de errores si se implementa tracking
+
+      return MigrationMetrics(
+        recordsProcessed: localRecords.length + cloudRecords.length,
+        recordsSkipped: 0, // Se calcularía durante la migración
+        recordsUpdated: syncedRecords,
+        recordsCreated: unsyncedRecords,
+        averageTimePerRecord:
+            Duration.zero, // Se calcularía durante la migración
+        errorsByType: errorsByType,
+        successRate:
+            localRecords.isNotEmpty
+                ? (syncedRecords / localRecords.length) * 100
+                : 0.0,
+        totalDuration: Duration.zero, // Se calcularía durante la migración
+      );
+    } catch (e) {
+      return MigrationMetrics(
+        recordsProcessed: 0,
+        recordsSkipped: 0,
+        recordsUpdated: 0,
+        recordsCreated: 0,
+        averageTimePerRecord: Duration.zero,
+        errorsByType: {'error': 1},
+        successRate: 0.0,
+        totalDuration: Duration.zero,
+      );
+    }
+  }
+
   /// Limpiar recursos
   void dispose() {
+    _isCancelled = true;
     _progressController.close();
   }
 }
@@ -541,3 +735,55 @@ class MigrationProgress {
 
   double get percentage => total > 0 ? (current / total) * 100 : 0.0;
 }
+
+/*
+/// Ejemplo de uso del servicio mejorado:
+
+// 1. Crear servicio con configuración personalizada
+final migrationService = FrapMigrationService(
+  localService: frapLocalService,
+  cloudService: frapFirestoreService,
+  config: MigrationConfig(
+    skipExisting: true,
+    validateData: true,
+    batchSize: 25,
+    timeout: Duration(minutes: 10),
+    maxRetries: 5,
+    enableLogging: true,
+  ),
+);
+
+// 2. Escuchar progreso en tiempo real
+migrationService.progressStream.listen((progress) {
+  print('Progreso: ${progress.percentage.toStringAsFixed(1)}%');
+  print('Estado: ${progress.message}');
+});
+
+// 3. Ejecutar migración con manejo de cancelación
+try {
+  final result = await migrationService.migrateBidirectional();
+  
+  if (result.success) {
+    print('✅ Migración exitosa: ${result.migratedRecords} registros');
+    print('📊 Tasa de éxito: ${result.successRate.toStringAsFixed(1)}%');
+  } else {
+    print('❌ Errores: ${result.errors.join(', ')}');
+  }
+} catch (e) {
+  if (e.toString().contains('cancelada')) {
+    print('🛑 Migración cancelada por el usuario');
+  } else {
+    print('💥 Error inesperado: $e');
+  }
+}
+
+// 4. Obtener métricas detalladas
+final metrics = await migrationService.getDetailedMetrics();
+print('📈 Métricas: ${metrics.toMap()}');
+
+// 5. Cancelar migración si es necesario
+migrationService.cancelMigration();
+
+// 6. Limpiar recursos
+migrationService.dispose();
+*/

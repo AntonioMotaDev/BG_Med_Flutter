@@ -18,17 +18,18 @@ class ValidationResult {
   }
 }
 
-/// Validador de datos para formularios FRAP
 class FrapDataValidator {
-  
   /// Validar datos del paciente
-  static ValidationResult validatePatientData(Map<String, dynamic> patientData) {
+  static ValidationResult validatePatientData(
+    Map<String, dynamic> patientData,
+  ) {
     final errors = <String>[];
     final warnings = <String>[];
     final cleanedData = <String, dynamic>{};
 
     // Validar campos requeridos
-    if (patientData['firstName'] == null || patientData['firstName'].toString().trim().isEmpty) {
+    if (patientData['firstName'] == null ||
+        patientData['firstName'].toString().trim().isEmpty) {
       errors.add('Nombre del paciente es requerido');
     } else {
       cleanedData['firstName'] = patientData['firstName'].toString().trim();
@@ -45,7 +46,8 @@ class FrapDataValidator {
       }
     }
 
-    if (patientData['sex'] == null || patientData['sex'].toString().trim().isEmpty) {
+    if (patientData['sex'] == null ||
+        patientData['sex'].toString().trim().isEmpty) {
       errors.add('Sexo del paciente es requerido');
     } else {
       cleanedData['sex'] = patientData['sex'].toString().trim();
@@ -53,11 +55,13 @@ class FrapDataValidator {
 
     // Validar campos opcionales
     if (patientData['paternalLastName'] != null) {
-      cleanedData['paternalLastName'] = patientData['paternalLastName'].toString().trim();
+      cleanedData['paternalLastName'] =
+          patientData['paternalLastName'].toString().trim();
     }
 
     if (patientData['maternalLastName'] != null) {
-      cleanedData['maternalLastName'] = patientData['maternalLastName'].toString().trim();
+      cleanedData['maternalLastName'] =
+          patientData['maternalLastName'].toString().trim();
     }
 
     if (patientData['phone'] != null) {
@@ -78,15 +82,18 @@ class FrapDataValidator {
     }
 
     if (patientData['exteriorNumber'] != null) {
-      cleanedData['exteriorNumber'] = patientData['exteriorNumber'].toString().trim();
+      cleanedData['exteriorNumber'] =
+          patientData['exteriorNumber'].toString().trim();
     }
 
     if (patientData['interiorNumber'] != null) {
-      cleanedData['interiorNumber'] = patientData['interiorNumber'].toString().trim();
+      cleanedData['interiorNumber'] =
+          patientData['interiorNumber'].toString().trim();
     }
 
     if (patientData['neighborhood'] != null) {
-      cleanedData['neighborhood'] = patientData['neighborhood'].toString().trim();
+      cleanedData['neighborhood'] =
+          patientData['neighborhood'].toString().trim();
     }
 
     if (patientData['city'] != null) {
@@ -98,15 +105,17 @@ class FrapDataValidator {
     }
 
     if (patientData['responsiblePerson'] != null) {
-      cleanedData['responsiblePerson'] = patientData['responsiblePerson'].toString().trim();
+      cleanedData['responsiblePerson'] =
+          patientData['responsiblePerson'].toString().trim();
     }
 
     if (patientData['gender'] != null) {
       cleanedData['gender'] = patientData['gender'].toString().trim();
     }
 
-    if (patientData['entreCalles'] != null) {
-      cleanedData['entreCalles'] = patientData['entreCalles'].toString().trim();
+    if (patientData['addressDetails'] != null) {
+      cleanedData['addressDetails'] =
+          patientData['addressDetails'].toString().trim();
     }
 
     if (patientData['tipoEntrega'] != null) {
@@ -122,7 +131,9 @@ class FrapDataValidator {
   }
 
   /// Validar datos de historia clínica
-  static ValidationResult validateClinicalHistoryData(Map<String, dynamic> clinicalData) {
+  static ValidationResult validateClinicalHistoryData(
+    Map<String, dynamic> clinicalData,
+  ) {
     final errors = <String>[];
     final warnings = <String>[];
     final cleanedData = <String, dynamic>{};
@@ -133,11 +144,13 @@ class FrapDataValidator {
     }
 
     if (clinicalData['medications'] != null) {
-      cleanedData['medications'] = clinicalData['medications'].toString().trim();
+      cleanedData['medications'] =
+          clinicalData['medications'].toString().trim();
     }
 
     if (clinicalData['previousIllnesses'] != null) {
-      cleanedData['previousIllnesses'] = clinicalData['previousIllnesses'].toString().trim();
+      cleanedData['previousIllnesses'] =
+          clinicalData['previousIllnesses'].toString().trim();
     }
 
     return ValidationResult(
@@ -149,7 +162,9 @@ class FrapDataValidator {
   }
 
   /// Validar datos de examen físico
-  static ValidationResult validatePhysicalExamData(Map<String, dynamic> examData) {
+  static ValidationResult validatePhysicalExamData(
+    Map<String, dynamic> examData,
+  ) {
     final errors = <String>[];
     final warnings = <String>[];
     final cleanedData = <String, dynamic>{};
@@ -157,19 +172,6 @@ class FrapDataValidator {
     // Validar signos vitales
     if (examData['vitalSigns'] != null) {
       cleanedData['vitalSigns'] = examData['vitalSigns'].toString().trim();
-    }
-
-    // Validar campos de examen físico
-    final examFields = [
-      'head', 'neck', 'thorax', 'abdomen', 'extremities',
-      'bloodPressure', 'heartRate', 'respiratoryRate', 
-      'temperature', 'oxygenSaturation', 'neurological'
-    ];
-
-    for (final field in examFields) {
-      if (examData[field] != null) {
-        cleanedData[field] = examData[field].toString().trim();
-      }
     }
 
     // Validar valores numéricos si están presentes
@@ -189,7 +191,7 @@ class FrapDataValidator {
 
     if (examData['temperature'] != null) {
       final temp = double.tryParse(examData['temperature'].toString());
-      if (temp != null && (temp < 30 || temp > 45)) {
+      if (temp != null && (temp < 20 || temp > 45)) {
         warnings.add('Temperatura fuera de rango normal');
       }
     }
@@ -227,7 +229,8 @@ class FrapDataValidator {
         }
 
         // Validar artículo
-        if (insumo['articulo'] == null || insumo['articulo'].toString().trim().isEmpty) {
+        if (insumo['articulo'] == null ||
+            insumo['articulo'].toString().trim().isEmpty) {
           insumoErrors.add('Artículo es requerido');
         } else {
           insumoData['articulo'] = insumo['articulo'].toString().trim();
@@ -252,7 +255,9 @@ class FrapDataValidator {
   }
 
   /// Validar datos de personal médico
-  static ValidationResult validatePersonalMedicoData(List<dynamic> personalData) {
+  static ValidationResult validatePersonalMedicoData(
+    List<dynamic> personalData,
+  ) {
     final errors = <String>[];
     final warnings = <String>[];
     final cleanedPersonal = <Map<String, dynamic>>[];
@@ -264,24 +269,20 @@ class FrapDataValidator {
         final personalInfo = <String, dynamic>{};
 
         // Validar nombre
-        if (personal['nombre'] == null || personal['nombre'].toString().trim().isEmpty) {
+        if (personal['nombre'] == null ||
+            personal['nombre'].toString().trim().isEmpty) {
           personalErrors.add('Nombre es requerido');
         } else {
           personalInfo['nombre'] = personal['nombre'].toString().trim();
         }
 
         // Validar especialidad
-        if (personal['especialidad'] == null || personal['especialidad'].toString().trim().isEmpty) {
+        if (personal['especialidad'] == null ||
+            personal['especialidad'].toString().trim().isEmpty) {
           personalErrors.add('Especialidad es requerida');
         } else {
-          personalInfo['especialidad'] = personal['especialidad'].toString().trim();
-        }
-
-        // Validar cédula
-        if (personal['cedula'] == null || personal['cedula'].toString().trim().isEmpty) {
-          personalErrors.add('Cédula es requerida');
-        } else {
-          personalInfo['cedula'] = personal['cedula'].toString().trim();
+          personalInfo['especialidad'] =
+              personal['especialidad'].toString().trim();
         }
 
         if (personalErrors.isEmpty) {
@@ -303,7 +304,9 @@ class FrapDataValidator {
   }
 
   /// Validar datos de escalas obstétricas
-  static ValidationResult validateEscalasObstetricasData(Map<String, dynamic> escalasData) {
+  static ValidationResult validateEscalasObstetricasData(
+    Map<String, dynamic> escalasData,
+  ) {
     final errors = <String>[];
     final warnings = <String>[];
     final cleanedData = <String, dynamic>{};
@@ -328,7 +331,9 @@ class FrapDataValidator {
 
     // Validar frecuencia cardíaca fetal
     if (escalasData['frecuenciaCardiacaFetal'] != null) {
-      final fcf = int.tryParse(escalasData['frecuenciaCardiacaFetal'].toString());
+      final fcf = int.tryParse(
+        escalasData['frecuenciaCardiacaFetal'].toString(),
+      );
       if (fcf == null || fcf < 0 || fcf > 300) {
         errors.add('Frecuencia cardíaca fetal debe ser un número válido');
       } else {
@@ -338,7 +343,8 @@ class FrapDataValidator {
 
     // Validar contracciones
     if (escalasData['contracciones'] != null) {
-      cleanedData['contracciones'] = escalasData['contracciones'].toString().trim();
+      cleanedData['contracciones'] =
+          escalasData['contracciones'].toString().trim();
     }
 
     return ValidationResult(
@@ -350,7 +356,9 @@ class FrapDataValidator {
   }
 
   /// Validar sección genérica
-  static ValidationResult validateSectionData(Map<String, dynamic> sectionData) {
+  static ValidationResult validateSectionData(
+    Map<String, dynamic> sectionData,
+  ) {
     final errors = <String>[];
     final warnings = <String>[];
     final cleanedData = <String, dynamic>{};
@@ -390,20 +398,4 @@ class FrapDataValidator {
     final phoneRegex = RegExp(r'^[\d\s\-\+\(\)]+$');
     return phoneRegex.hasMatch(phone) && phone.length >= 7;
   }
-
-  /// Validar formato de fecha
-  static bool _isValidDate(String date) {
-    try {
-      DateTime.parse(date);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Validar formato de hora
-  static bool _isValidTime(String time) {
-    final timeRegex = RegExp(r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$');
-    return timeRegex.hasMatch(time);
-  }
-} 
+}

@@ -1,19 +1,15 @@
 import 'package:bg_med/core/services/frap_unified_service.dart';
-import 'package:bg_med/core/services/data_cleanup_service.dart';
 import 'package:bg_med/core/services/frap_local_service.dart';
 import 'package:bg_med/core/services/frap_firestore_service.dart';
 
 class FrapCleanupService {
-  final DataCleanupService _dataCleanupService;
   final FrapLocalService _localService;
   final FrapFirestoreService _cloudService;
 
   FrapCleanupService({
-    required DataCleanupService dataCleanupService,
     required FrapLocalService localService,
     required FrapFirestoreService cloudService,
-  }) : _dataCleanupService = dataCleanupService,
-       _localService = localService,
+  }) : _localService = localService,
        _cloudService = cloudService;
 
   // Limpiar registros duplicados con confirmación
@@ -25,14 +21,9 @@ class FrapCleanupService {
       final localRecords = records.where((r) => r.isLocal).toList();
       final cloudRecords = records.where((r) => !r.isLocal).toList();
 
-      print('=== CLEANUP ANALYSIS ===');
-      print('Total records: ${records.length}');
-      print('Local records: ${localRecords.length}');
-      print('Cloud records: ${cloudRecords.length}');
-
       // Detectar duplicados
       final duplicates = _detectDuplicates(localRecords, cloudRecords);
-      
+
       if (duplicates.isEmpty) {
         return {
           'success': true,
@@ -47,22 +38,20 @@ class FrapCleanupService {
         };
       }
 
-      print('Duplicados encontrados: ${duplicates.length}');
-      
       // Procesar duplicados
       int removedCount = 0;
       final errors = <String>[];
-      
+
       for (final duplicate in duplicates) {
         try {
           final localRecord = duplicate['local'] as UnifiedFrapRecord?;
-          final cloudRecord = duplicate['cloud'] as UnifiedFrapRecord?;
-          
+
           if (localRecord != null && localRecord.isLocal) {
             // Eliminar registro local duplicado
-            await _localService.deleteFrapRecord(localRecord.localRecord?.id ?? '');
+            await _localService.deleteFrapRecord(
+              localRecord.localRecord?.id ?? '',
+            );
             removedCount++;
-            print('Eliminado registro local duplicado: ${localRecord.patientName}');
           }
         } catch (e) {
           errors.add('Error eliminando duplicado: $e');
@@ -71,9 +60,10 @@ class FrapCleanupService {
 
       return {
         'success': errors.isEmpty,
-        'message': errors.isEmpty 
-            ? 'Limpieza completada. $removedCount registros eliminados'
-            : 'Limpieza completada con errores: ${errors.join(', ')}',
+        'message':
+            errors.isEmpty
+                ? 'Limpieza completada. $removedCount registros eliminados'
+                : 'Limpieza completada con errores: ${errors.join(', ')}',
         'removedCount': removedCount,
         'errors': errors,
         'statistics': {
@@ -101,7 +91,7 @@ class FrapCleanupService {
     List<UnifiedFrapRecord> cloudRecords,
   ) {
     final duplicates = <Map<String, dynamic>>[];
-    
+
     for (final localRecord in localRecords) {
       for (final cloudRecord in cloudRecords) {
         // Comparar por nombre del paciente y fecha de creación
@@ -114,7 +104,7 @@ class FrapCleanupService {
         }
       }
     }
-    
+
     return duplicates;
   }
 
@@ -123,26 +113,30 @@ class FrapCleanupService {
     // Comparar por nombre del paciente y fecha de creación
     final localPatientName = local.patientName;
     final cloudPatientName = cloud.patientName;
-    
+
     return localPatientName.toLowerCase() == cloudPatientName.toLowerCase() &&
-           local.createdAt.difference(cloud.createdAt).abs().inMinutes < 5;
+        local.createdAt.difference(cloud.createdAt).abs().inMinutes < 5;
   }
 
   // Obtener estadísticas de limpieza
-  Future<Map<String, dynamic>> getCleanupStatistics(List<UnifiedFrapRecord> records) async {
+  Future<Map<String, dynamic>> getCleanupStatistics(
+    List<UnifiedFrapRecord> records,
+  ) async {
     try {
       final localRecords = records.where((r) => r.isLocal).toList();
       final cloudRecords = records.where((r) => !r.isLocal).toList();
-      
+
       final duplicates = _detectDuplicates(localRecords, cloudRecords);
-      
+
       return {
         'totalRecords': records.length,
         'localRecords': localRecords.length,
         'cloudRecords': cloudRecords.length,
         'duplicatesFound': duplicates.length,
         'estimatedSpaceFreedKB': duplicates.length * 2, // Estimación aproximada
-        'estimatedSpaceFreedMB': (duplicates.length * 2 / 1024).toStringAsFixed(2),
+        'estimatedSpaceFreedMB': (duplicates.length * 2 / 1024).toStringAsFixed(
+          2,
+        ),
       };
     } catch (e) {
       return {
@@ -162,9 +156,9 @@ class FrapCleanupService {
     try {
       final localRecords = await _localService.getAllFrapRecords();
       final cloudRecords = await _cloudService.getAllFrapRecords();
-      
+
       final backup = <Map<String, dynamic>>[];
-      
+
       // Backup de registros locales
       for (final record in localRecords) {
         backup.add({
@@ -175,7 +169,7 @@ class FrapCleanupService {
           'data': record.toJson(),
         });
       }
-      
+
       // Backup de registros de la nube
       for (final record in cloudRecords) {
         backup.add({
@@ -201,10 +195,10 @@ class FrapCleanupService {
           },
         });
       }
-      
+
       return backup;
     } catch (e) {
       throw Exception('Error al crear backup: $e');
     }
   }
-} 
+}

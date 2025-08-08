@@ -56,13 +56,14 @@ class FrapTransitionModel {
     required DateTime lastSync,
   }) {
     final needsMigration = !_areModelsEquivalent(local, cloud);
-    
+
     return FrapTransitionModel(
       localModel: local,
       cloudModel: cloud,
       lastSync: lastSync,
       needsMigration: needsMigration,
-      migrationStatus: needsMigration ? MigrationStatus.pending : MigrationStatus.completed,
+      migrationStatus:
+          needsMigration ? MigrationStatus.pending : MigrationStatus.completed,
     );
   }
 
@@ -71,17 +72,17 @@ class FrapTransitionModel {
     // Comparar datos críticos del paciente
     final localName = local.patient.fullName.toLowerCase();
     final cloudName = cloud.patientName.toLowerCase();
-    
+
     if (localName != cloudName) return false;
-    
+
     if (local.patient.age != cloud.patientAge) return false;
-    
+
     if (local.patient.sex != cloud.patientGender) return false;
-    
+
     // Comparar fechas de creación (con tolerancia de 5 minutos)
     final timeDifference = local.createdAt.difference(cloud.createdAt).abs();
     if (timeDifference.inMinutes > 5) return false;
-    
+
     return true;
   }
 
@@ -174,26 +175,38 @@ class FrapTransitionModel {
     if (localModel != null) {
       return localModel!;
     }
-    
+
     if (cloudModel != null) {
       try {
-        FrapConversionLogger.logConversionStart('cloud_to_local', cloudModel!.id ?? 'unknown');
-        
+        FrapConversionLogger.logConversionStart(
+          'cloud_to_local',
+          cloudModel!.id ?? 'unknown',
+        );
+
         // Validar y convertir datos del paciente
-        final patientValidation = FrapDataValidator.validatePatientData(cloudModel!.patientInfo);
+        final patientValidation = FrapDataValidator.validatePatientData(
+          cloudModel!.patientInfo,
+        );
         final patientData = patientValidation.cleanedData ?? {};
-        
+
         // Validar y convertir historia clínica
-        final clinicalValidation = FrapDataValidator.validateClinicalHistoryData(cloudModel!.clinicalHistory);
+        final clinicalValidation =
+            FrapDataValidator.validateClinicalHistoryData(
+              cloudModel!.clinicalHistory,
+            );
         final clinicalData = clinicalValidation.cleanedData ?? {};
-        
+
         // Validar y convertir examen físico
-        final examValidation = FrapDataValidator.validatePhysicalExamData(cloudModel!.physicalExam);
+        final examValidation = FrapDataValidator.validatePhysicalExamData(
+          cloudModel!.physicalExam,
+        );
         final examData = examValidation.cleanedData ?? {};
 
         // Crear modelo local
         final localFrap = Frap(
-          id: cloudModel!.id ?? 'migrated_${DateTime.now().millisecondsSinceEpoch}',
+          id:
+              cloudModel!.id ??
+              'migrated_${DateTime.now().millisecondsSinceEpoch}',
           patient: _createPatientFromCloud(patientData),
           clinicalHistory: _createClinicalHistoryFromCloud(clinicalData),
           physicalExam: _createPhysicalExamFromCloud(examData),
@@ -205,8 +218,12 @@ class FrapTransitionModel {
           medications: _convertSectionData(cloudModel!.medications),
           gynecoObstetric: _convertSectionData(cloudModel!.gynecoObstetric),
           attentionNegative: _convertSectionData(cloudModel!.attentionNegative),
-          pathologicalHistory: _convertSectionData(cloudModel!.pathologicalHistory),
-          priorityJustification: _convertSectionData(cloudModel!.priorityJustification),
+          pathologicalHistory: _convertSectionData(
+            cloudModel!.pathologicalHistory,
+          ),
+          priorityJustification: _convertSectionData(
+            cloudModel!.priorityJustification,
+          ),
           injuryLocation: _convertSectionData(cloudModel!.injuryLocation),
           receivingUnit: _convertSectionData(cloudModel!.receivingUnit),
           patientReception: _convertSectionData(cloudModel!.patientReception),
@@ -217,19 +234,28 @@ class FrapTransitionModel {
           isSynced: true,
         );
 
-        FrapConversionLogger.logConversionSuccess('cloud_to_local', localFrap.id, {
-          'patientFields': patientData.length,
-          'clinicalFields': clinicalData.length,
-          'examFields': examData.length,
-        });
+        FrapConversionLogger.logConversionSuccess(
+          'cloud_to_local',
+          localFrap.id,
+          {
+            'patientFields': patientData.length,
+            'clinicalFields': clinicalData.length,
+            'examFields': examData.length,
+          },
+        );
 
         return localFrap;
       } catch (e, stackTrace) {
-        FrapConversionLogger.logConversionError('cloud_to_local', cloudModel!.id ?? 'unknown', e.toString(), stackTrace);
+        FrapConversionLogger.logConversionError(
+          'cloud_to_local',
+          cloudModel!.id ?? 'unknown',
+          e.toString(),
+          stackTrace,
+        );
         rethrow;
       }
     }
-    
+
     throw Exception('No hay modelo disponible para migración');
   }
 
@@ -238,11 +264,14 @@ class FrapTransitionModel {
     if (cloudModel != null) {
       return cloudModel!;
     }
-    
+
     if (localModel != null) {
       try {
-        FrapConversionLogger.logConversionStart('local_to_cloud', localModel!.id);
-        
+        FrapConversionLogger.logConversionStart(
+          'local_to_cloud',
+          localModel!.id,
+        );
+
         final cloudFrap = FrapFirestore(
           id: localModel!.id,
           userId: '', // Se debe obtener del contexto de autenticación
@@ -264,26 +293,36 @@ class FrapTransitionModel {
           patientReception: localModel!.patientReception,
         );
 
-        FrapConversionLogger.logConversionSuccess('local_to_cloud', cloudFrap.id ?? '', {
-          'patientFields': cloudFrap.patientInfo.length,
-          'clinicalFields': cloudFrap.clinicalHistory.length,
-          'examFields': cloudFrap.physicalExam.length,
-        });
+        FrapConversionLogger.logConversionSuccess(
+          'local_to_cloud',
+          cloudFrap.id ?? '',
+          {
+            'patientFields': cloudFrap.patientInfo.length,
+            'clinicalFields': cloudFrap.clinicalHistory.length,
+            'examFields': cloudFrap.physicalExam.length,
+          },
+        );
 
         return cloudFrap;
       } catch (e, stackTrace) {
-        FrapConversionLogger.logConversionError('local_to_cloud', localModel!.id, e.toString(), stackTrace);
+        FrapConversionLogger.logConversionError(
+          'local_to_cloud',
+          localModel!.id,
+          e.toString(),
+          stackTrace,
+        );
         rethrow;
       }
     }
-    
+
     throw Exception('No hay modelo disponible para migración');
   }
 
   // Métodos auxiliares para conversión
   Patient _createPatientFromCloud(Map<String, dynamic> patientData) {
     return Patient(
-      name: '${patientData['firstName'] ?? ''} ${patientData['paternalLastName'] ?? ''}',
+      name:
+          '${patientData['firstName'] ?? ''} ${patientData['paternalLastName'] ?? ''}',
       age: patientData['age'] ?? 0,
       sex: patientData['sex'] ?? '',
       address: patientData['address'] ?? '',
@@ -299,12 +338,14 @@ class FrapTransitionModel {
       insurance: patientData['insurance'] ?? '',
       responsiblePerson: patientData['responsiblePerson'],
       gender: patientData['gender'] ?? '',
-      entreCalles: patientData['entreCalles'] ?? '',
+      addressDetails: patientData['addressDetails'] ?? '',
       tipoEntrega: patientData['tipoEntrega'] ?? '',
     );
   }
 
-  ClinicalHistory _createClinicalHistoryFromCloud(Map<String, dynamic> clinicalData) {
+  ClinicalHistory _createClinicalHistoryFromCloud(
+    Map<String, dynamic> clinicalData,
+  ) {
     return ClinicalHistory(
       allergies: clinicalData['allergies'] ?? '',
       medications: clinicalData['medications'] ?? '',
@@ -313,34 +354,20 @@ class FrapTransitionModel {
   }
 
   PhysicalExam _createPhysicalExamFromCloud(Map<String, dynamic> examData) {
-    return PhysicalExam(
-      vitalSigns: examData['vitalSigns'] ?? '',
-      head: examData['head'] ?? '',
-      neck: examData['neck'] ?? '',
-      thorax: examData['thorax'] ?? '',
-      abdomen: examData['abdomen'] ?? '',
-      extremities: examData['extremities'] ?? '',
-      bloodPressure: examData['bloodPressure'] ?? '',
-      heartRate: examData['heartRate'] ?? '',
-      respiratoryRate: examData['respiratoryRate'] ?? '',
-      temperature: examData['temperature'] ?? '',
-      oxygenSaturation: examData['oxygenSaturation'] ?? '',
-      neurological: examData['neurological'] ?? '',
-    );
+    return PhysicalExam.fromFormData(examData);
   }
 
   Map<String, dynamic> _convertSectionData(Map<String, dynamic> cloudSection) {
     if (cloudSection.isEmpty) return {};
-    
+
     final validation = FrapDataValidator.validateSectionData(cloudSection);
     return validation.cleanedData ?? {};
   }
 
   List<Insumo> _convertInsumosFromCloud(FrapFirestore cloud) {
-    final insumosData = cloud.serviceInfo['insumos'] ?? 
-                       cloud.management['insumos'] ?? 
-                       [];
-    
+    final insumosData =
+        cloud.serviceInfo['insumos'] ?? cloud.management['insumos'] ?? [];
+
     if (insumosData is List) {
       final validation = FrapDataValidator.validateInsumosData(insumosData);
       if (validation.isValid && validation.cleanedData != null) {
@@ -353,19 +380,23 @@ class FrapTransitionModel {
         }).toList();
       }
     }
-    
+
     return [];
   }
 
   List<PersonalMedico> _convertPersonalMedicoFromCloud(FrapFirestore cloud) {
-    final personalData = cloud.serviceInfo['personalMedico'] ?? 
-                        cloud.management['personalMedico'] ?? 
-                        [];
-    
+    final personalData =
+        cloud.serviceInfo['personalMedico'] ??
+        cloud.management['personalMedico'] ??
+        [];
+
     if (personalData is List) {
-      final validation = FrapDataValidator.validatePersonalMedicoData(personalData);
+      final validation = FrapDataValidator.validatePersonalMedicoData(
+        personalData,
+      );
       if (validation.isValid && validation.cleanedData != null) {
-        final cleanedPersonal = validation.cleanedData!['personalMedico'] as List;
+        final cleanedPersonal =
+            validation.cleanedData!['personalMedico'] as List;
         return cleanedPersonal.map((personalData) {
           return PersonalMedico(
             nombre: personalData['nombre'] ?? '',
@@ -375,28 +406,33 @@ class FrapTransitionModel {
         }).toList();
       }
     }
-    
+
     return [];
   }
 
   EscalasObstetricas? _convertEscalasObstetricasFromCloud(FrapFirestore cloud) {
-    final escalasData = cloud.gynecoObstetric['escalasObstetricas'] ?? 
-                       cloud.gynecoObstetric['escalas'] ?? 
-                       {};
-    
+    final escalasData =
+        cloud.gynecoObstetric['escalasObstetricas'] ??
+        cloud.gynecoObstetric['escalas'] ??
+        {};
+
     if (escalasData is Map<String, dynamic>) {
-      final validation = FrapDataValidator.validateEscalasObstetricasData(escalasData);
+      final validation = FrapDataValidator.validateEscalasObstetricasData(
+        escalasData,
+      );
       if (validation.isValid && validation.cleanedData != null) {
         final cleanedData = validation.cleanedData!;
         return EscalasObstetricas(
-          silvermanAnderson: Map<String, int>.from(cleanedData['silvermanAnderson'] ?? {}),
+          silvermanAnderson: Map<String, int>.from(
+            cleanedData['silvermanAnderson'] ?? {},
+          ),
           apgar: Map<String, int>.from(cleanedData['apgar'] ?? {}),
           frecuenciaCardiacaFetal: cleanedData['frecuenciaCardiacaFetal'] ?? 0,
           contracciones: cleanedData['contracciones'] ?? '',
         );
       }
     }
-    
+
     return null;
   }
 
@@ -417,7 +453,7 @@ class FrapTransitionModel {
       'insurance': local.patient.insurance,
       'responsiblePerson': local.patient.responsiblePerson,
       'gender': local.patient.gender,
-      'entreCalles': local.patient.entreCalles,
+      'addressDetails': local.patient.addressDetails,
       'tipoEntrega': local.patient.tipoEntrega,
     };
   }
@@ -446,20 +482,7 @@ class FrapTransitionModel {
   }
 
   Map<String, dynamic> _createPhysicalExamFromLocal(Frap local) {
-    return {
-      'vitalSigns': local.physicalExam.vitalSigns,
-      'head': local.physicalExam.head,
-      'neck': local.physicalExam.neck,
-      'thorax': local.physicalExam.thorax,
-      'abdomen': local.physicalExam.abdomen,
-      'extremities': local.physicalExam.extremities,
-      'bloodPressure': local.physicalExam.bloodPressure,
-      'heartRate': local.physicalExam.heartRate,
-      'respiratoryRate': local.physicalExam.respiratoryRate,
-      'temperature': local.physicalExam.temperature,
-      'oxygenSaturation': local.physicalExam.oxygenSaturation,
-      'neurological': local.physicalExam.neurological,
-    };
+    return local.physicalExam.toFirebaseFormat();
   }
 
   /// Crear copia con cambios
@@ -485,10 +508,4 @@ class FrapTransitionModel {
 }
 
 /// Estado de migración
-enum MigrationStatus {
-  notStarted,
-  pending,
-  inProgress,
-  completed,
-  failed,
-} 
+enum MigrationStatus { notStarted, pending, inProgress, completed, failed }

@@ -13,7 +13,7 @@ final autoSyncServiceProvider = Provider<AutoSyncService>((ref) {
     localService: localService,
     cloudService: cloudService,
   );
-  
+
   return AutoSyncService(
     localService: localService,
     cloudService: cloudService,
@@ -63,7 +63,7 @@ class AutoSyncNotifier extends StateNotifier<AutoSyncState> {
   // Inicializar el servicio de sincronización automática
   Future<void> initialize() async {
     if (state.isInitialized) return;
-    
+
     try {
       await _autoSyncService.initialize();
       state = state.copyWith(
@@ -80,24 +80,24 @@ class AutoSyncNotifier extends StateNotifier<AutoSyncState> {
   // Guardar registro usando sincronización automática
   Future<SaveResult> saveRecord(FrapData frapData) async {
     state = state.copyWith(isSyncing: true);
-    
+
     try {
       final result = await _autoSyncService.saveRecord(frapData);
-      
+
       state = state.copyWith(
         isSyncing: false,
         isOnline: _autoSyncService.isOnline,
         lastSyncMessage: result.message,
         lastSyncTime: DateTime.now(),
       );
-      
+
       return result;
     } catch (e) {
       state = state.copyWith(
         isSyncing: false,
         lastSyncMessage: 'Error al guardar: $e',
       );
-      
+
       return SaveResult()
         ..success = false
         ..message = 'Error al guardar: $e';
@@ -107,12 +107,12 @@ class AutoSyncNotifier extends StateNotifier<AutoSyncState> {
   // Forzar sincronización manual
   Future<void> forceSyncNow() async {
     if (state.isSyncing) return;
-    
+
     state = state.copyWith(isSyncing: true);
-    
+
     try {
       final result = await _autoSyncService.forceSyncNow();
-      
+
       state = state.copyWith(
         isSyncing: false,
         isOnline: _autoSyncService.isOnline,
@@ -138,17 +138,20 @@ class AutoSyncNotifier extends StateNotifier<AutoSyncState> {
   @override
   void dispose() {
     _autoSyncService.dispose();
+    super.dispose();
   }
 }
 
 // Provider para el notifier de sincronización automática
-final autoSyncProvider = StateNotifierProvider<AutoSyncNotifier, AutoSyncState>((ref) {
-  final service = ref.watch(autoSyncServiceProvider);
-  return AutoSyncNotifier(service);
-});
+final autoSyncProvider = StateNotifierProvider<AutoSyncNotifier, AutoSyncState>(
+  (ref) {
+    final service = ref.watch(autoSyncServiceProvider);
+    return AutoSyncNotifier(service);
+  },
+);
 
 // Provider para obtener estadísticas de sincronización
 final syncStatsProvider = FutureProvider<SyncStats>((ref) async {
   final service = ref.watch(autoSyncServiceProvider);
   return await service.getSyncStats();
-}); 
+});

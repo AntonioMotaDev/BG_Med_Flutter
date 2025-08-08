@@ -36,16 +36,6 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-    // Cargar registros al inicializar
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        print('Inicializando provider...');
-        await ref.read(unifiedFrapProvider.notifier).initialize();
-        print('Provider inicializado correctamente');
-      } catch (e) {
-        print('Error inicializando provider: $e');
-      }
-    });
   }
 
   @override
@@ -176,15 +166,11 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
 
   Future<void> _refreshRecords() async {
     try {
-      print('Iniciando actualización de registros...');
-
       // Limpiar cualquier error previo
       ref.read(unifiedFrapProvider.notifier).clearError();
 
       // Forzar recarga completa
       await ref.read(unifiedFrapProvider.notifier).loadAllRecords();
-
-      print('Actualización completada');
 
       // Mostrar mensaje de éxito
       if (mounted) {
@@ -197,7 +183,6 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
         );
       }
     } catch (e) {
-      print('Error durante la actualización: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -815,27 +800,6 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
 
   Future<void> _debugDatabaseStatus() async {
     try {
-      print('=== DEBUG: Estado de la base de datos ===');
-
-      // Verificar estado del provider
-      final state = ref.read(unifiedFrapProvider);
-      print('Estado del provider:');
-      print('- Total records: ${state.totalRecords}');
-      print('- Local records: ${state.localRecords}');
-      print('- Cloud records: ${state.cloudRecords}');
-      print('- Synced records: ${state.syncedRecords}');
-      print('- Is loading: ${state.isLoading}');
-      print('- Error: ${state.error}');
-
-      // Verificar registros actuales
-      print('Registros actuales: ${state.records.length}');
-      for (int i = 0; i < state.records.length; i++) {
-        final record = state.records[i];
-        print(
-          'Registro $i: ${record.patientName} - ${record.isLocal ? "LOCAL" : "CLOUD"}',
-        );
-      }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -846,7 +810,6 @@ class _FrapRecordsListScreenState extends ConsumerState<FrapRecordsListScreen> {
         );
       }
     } catch (e) {
-      print('Error en debug: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

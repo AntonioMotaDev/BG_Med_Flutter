@@ -5,7 +5,7 @@ import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.d
 
 class FrapFirestoreService {
   static const String _collectionName = 'preHospitalRecords';
-  
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -158,15 +158,15 @@ class FrapFirestoreService {
       }
 
       // Temporalmente removemos orderBy para evitar el error de índice
-      final querySnapshot = await _collection
-          .where('userId', isEqualTo: userId)
-          .get();
+      final querySnapshot =
+          await _collection.where('userId', isEqualTo: userId).get();
 
       // Ordenamos en memoria como workaround temporal
-      final records = querySnapshot.docs
-          .map((doc) => FrapFirestore.fromFirestore(doc))
-          .toList();
-      
+      final records =
+          querySnapshot.docs
+              .map((doc) => FrapFirestore.fromFirestore(doc))
+              .toList();
+
       // Ordenar por fecha de creación descendente
       records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -189,17 +189,16 @@ class FrapFirestoreService {
       }
 
       // Simplificamos la consulta para evitar índice compuesto
-      Query query = _collection
-          .where('userId', isEqualTo: userId)
-          .limit(limit);
+      Query query = _collection.where('userId', isEqualTo: userId).limit(limit);
 
       // Nota: Por ahora removemos startAfterDocument hasta que se configure el índice
       final querySnapshot = await query.get();
 
-      final records = querySnapshot.docs
-          .map((doc) => FrapFirestore.fromFirestore(doc))
-          .toList();
-      
+      final records =
+          querySnapshot.docs
+              .map((doc) => FrapFirestore.fromFirestore(doc))
+              .toList();
+
       // Ordenar en memoria
       records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -221,12 +220,19 @@ class FrapFirestoreService {
         throw Exception('Usuario no autenticado');
       }
 
-      final querySnapshot = await _collection
-          .where('userId', isEqualTo: userId)
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-          .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy('createdAt', descending: true)
-          .get();
+      final querySnapshot =
+          await _collection
+              .where('userId', isEqualTo: userId)
+              .where(
+                'createdAt',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+              )
+              .where(
+                'createdAt',
+                isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+              )
+              .orderBy('createdAt', descending: true)
+              .get();
 
       return querySnapshot.docs
           .map((doc) => FrapFirestore.fromFirestore(doc))
@@ -251,11 +257,12 @@ class FrapFirestoreService {
       final allRecords = await getAllFrapRecords(customUserId: userId);
 
       // Filtrar por nombre del paciente
-      final filteredRecords = allRecords.where((record) {
-        final fullName = record.patientName.toLowerCase();
-        final searchTerm = patientName.toLowerCase();
-        return fullName.contains(searchTerm);
-      }).toList();
+      final filteredRecords =
+          allRecords.where((record) {
+            final fullName = record.patientName.toLowerCase();
+            final searchTerm = patientName.toLowerCase();
+            return fullName.contains(searchTerm);
+          }).toList();
 
       return filteredRecords;
     } catch (e) {
@@ -342,19 +349,19 @@ class FrapFirestoreService {
       }
 
       // Removemos orderBy temporalmente para evitar el error de índice
-      return _collection
-          .where('userId', isEqualTo: userId)
-          .snapshots()
-          .map((querySnapshot) {
-            final records = querySnapshot.docs
+      return _collection.where('userId', isEqualTo: userId).snapshots().map((
+        querySnapshot,
+      ) {
+        final records =
+            querySnapshot.docs
                 .map((doc) => FrapFirestore.fromFirestore(doc))
                 .toList();
-            
-            // Ordenar en memoria por fecha de creación descendente
-            records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            
-            return records;
-          });
+
+        // Ordenar en memoria por fecha de creación descendente
+        records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        return records;
+      });
     } catch (e) {
       throw Exception('Error al obtener el stream de registros FRAP: $e');
     }
@@ -363,15 +370,12 @@ class FrapFirestoreService {
   // STREAM de un registro FRAP específico en tiempo real
   Stream<FrapFirestore?> getFrapRecordStream(String frapId) {
     try {
-      return _collection
-          .doc(frapId)
-          .snapshots()
-          .map((docSnapshot) {
-            if (!docSnapshot.exists) {
-              return null;
-            }
-            return FrapFirestore.fromFirestore(docSnapshot);
-          });
+      return _collection.doc(frapId).snapshots().map((docSnapshot) {
+        if (!docSnapshot.exists) {
+          return null;
+        }
+        return FrapFirestore.fromFirestore(docSnapshot);
+      });
     } catch (e) {
       throw Exception('Error al obtener el stream del registro FRAP: $e');
     }
@@ -394,27 +398,53 @@ class FrapFirestoreService {
 
       return {
         'total': allRecords.length,
-        'today': allRecords.where((record) {
-          final recordDate = DateTime(
-            record.createdAt.year,
-            record.createdAt.month,
-            record.createdAt.day,
-          );
-          return recordDate.isAtSameMomentAs(today);
-        }).length,
-        'thisWeek': allRecords.where((record) => 
-          record.createdAt.isAfter(thisWeek) && record.createdAt.isBefore(today.add(const Duration(days: 1)))
-        ).length,
-        'thisMonth': allRecords.where((record) => 
-          record.createdAt.isAfter(thisMonth) && record.createdAt.isBefore(thisMonth.add(const Duration(days: 32)))
-        ).length,
-        'thisYear': allRecords.where((record) => 
-          record.createdAt.isAfter(thisYear) && record.createdAt.isBefore(thisYear.add(const Duration(days: 366)))
-        ).length,
+        'today':
+            allRecords.where((record) {
+              final recordDate = DateTime(
+                record.createdAt.year,
+                record.createdAt.month,
+                record.createdAt.day,
+              );
+              return recordDate.isAtSameMomentAs(today);
+            }).length,
+        'thisWeek':
+            allRecords
+                .where(
+                  (record) =>
+                      record.createdAt.isAfter(thisWeek) &&
+                      record.createdAt.isBefore(
+                        today.add(const Duration(days: 1)),
+                      ),
+                )
+                .length,
+        'thisMonth':
+            allRecords
+                .where(
+                  (record) =>
+                      record.createdAt.isAfter(thisMonth) &&
+                      record.createdAt.isBefore(
+                        thisMonth.add(const Duration(days: 32)),
+                      ),
+                )
+                .length,
+        'thisYear':
+            allRecords
+                .where(
+                  (record) =>
+                      record.createdAt.isAfter(thisYear) &&
+                      record.createdAt.isBefore(
+                        thisYear.add(const Duration(days: 366)),
+                      ),
+                )
+                .length,
         'completed': allRecords.where((record) => record.isComplete).length,
-        'averageCompletion': allRecords.isEmpty 
-          ? 0.0 
-          : allRecords.map((record) => record.completionPercentage).reduce((a, b) => a + b) / allRecords.length,
+        'averageCompletion':
+            allRecords.isEmpty
+                ? 0.0
+                : allRecords
+                        .map((record) => record.completionPercentage)
+                        .reduce((a, b) => a + b) /
+                    allRecords.length,
       };
     } catch (e) {
       throw Exception('Error al obtener las estadísticas FRAP: $e');
@@ -432,7 +462,7 @@ class FrapFirestoreService {
       // Aquí puedes implementar la lógica para sincronizar los registros locales de Hive
       // con los registros en Firestore
       // Por ejemplo, obtener registros de Hive y subirlos a Firestore si no existen
-      
+
       print('Sincronización de registros locales con la nube completada');
     } catch (e) {
       throw Exception('Error al sincronizar registros: $e');
@@ -440,7 +470,9 @@ class FrapFirestoreService {
   }
 
   // BACKUP de registros FRAP
-  Future<List<Map<String, dynamic>>> backupFrapRecords({String? customUserId}) async {
+  Future<List<Map<String, dynamic>>> backupFrapRecords({
+    String? customUserId,
+  }) async {
     try {
       final records = await getAllFrapRecords(customUserId: customUserId);
       return records.map((record) => record.toMap()).toList();
@@ -461,7 +493,7 @@ class FrapFirestoreService {
       }
 
       final batch = _firestore.batch();
-      
+
       for (final recordData in backupData) {
         final docRef = _collection.doc();
         final frapRecord = FrapFirestore.fromMap(recordData, docRef.id);
@@ -473,4 +505,4 @@ class FrapFirestoreService {
       throw Exception('Error al restaurar registros FRAP: $e');
     }
   }
-} 
+}

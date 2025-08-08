@@ -10,6 +10,30 @@ import 'package:bg_med/core/services/frap_unified_service.dart';
 import 'package:flutter/services.dart';
 
 class PdfGeneratorService {
+  pw.Font? _unicodeFont;
+
+  // Cargar fuente Unicode
+  Future<void> _loadUnicodeFont() async {
+    if (_unicodeFont != null) return;
+
+    try {
+      // Usar una fuente que soporte Unicode mejor que Helvetica
+      _unicodeFont = pw.Font.times();
+      print('Fuente Times cargada correctamente para soporte Unicode');
+    } catch (e) {
+      print('No se pudo cargar fuente Times: $e');
+      try {
+        // Usar Courier como alternativa
+        _unicodeFont = pw.Font.courier();
+        print('Fuente Courier cargada como alternativa');
+      } catch (e2) {
+        print('No se pudo cargar fuente Courier: $e2');
+        // Dejar _unicodeFont como null para usar la fuente por defecto
+        print('Usando fuente por defecto (puede tener problemas con Unicode)');
+      }
+    }
+  }
+
   // Helper to safely decode base64 image data for PDF
   pw.MemoryImage? _getImageFromBase64(String? base64Data) {
     if (base64Data == null || base64Data.isEmpty) {
@@ -26,29 +50,35 @@ class PdfGeneratorService {
   }
 
   /// Generates a PDF document for a given UnifiedFrapRecord.
-  ///
-  /// The PDF structure mimics the provided image layout, with two columns
-  /// and various sections organized as shown in the reference.
   Future<Uint8List> generateFrapPdf(UnifiedFrapRecord record) async {
+    // Cargar fuente Unicode antes de crear el documento
+    await _loadUnicodeFont();
+
     final pdf = pw.Document(
       title: 'Registro de Atención Prehospitalaria',
       author: 'BG Med',
     );
 
-    // Define text styles for consistency
+    // Define text styles for consistency with Unicode support
     final sectionTitleStyle = pw.TextStyle(
       fontSize: 12,
       fontWeight: pw.FontWeight.bold,
       color: PdfColors.blueGrey800,
+      font: _unicodeFont,
     );
 
     final labelStyle = pw.TextStyle(
       fontSize: 8,
       fontWeight: pw.FontWeight.bold,
       color: PdfColors.grey800,
+      font: _unicodeFont,
     );
 
-    final valueStyle = pw.TextStyle(fontSize: 8, color: PdfColors.grey700);
+    final valueStyle = pw.TextStyle(
+      fontSize: 8,
+      color: PdfColors.grey700,
+      font: _unicodeFont,
+    );
 
     // Helper to create a section container
     pw.Widget buildSection(String title, pw.Widget content) {
@@ -154,6 +184,59 @@ class PdfGeneratorService {
                 ],
               ),
               pw.SizedBox(height: 15),
+
+              // Consentimiento de Servicio
+              if (_getConsentimientoServicio(record).isNotEmpty)
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.black, width: 1),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'CONSENTIMIENTO DE SERVICIO',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.black,
+                        ),
+                      ),
+                      pw.SizedBox(height: 5),
+                      pw.Text(
+                        'He recibido atención médica prehospitalaria y autorizo el traslado a la unidad médica correspondiente.',
+                        style: pw.TextStyle(fontSize: 8),
+                      ),
+                      pw.SizedBox(height: 10),
+                      pw.Container(
+                        height: 40,
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.grey400),
+                        ),
+                        child:
+                            _getImageFromBase64(
+                                      _getConsentimientoServicio(record),
+                                    ) !=
+                                    null
+                                ? pw.Image(
+                                  _getImageFromBase64(
+                                    _getConsentimientoServicio(record),
+                                  )!,
+                                )
+                                : pw.Center(
+                                  child: pw.Text(
+                                    'Firma no disponible',
+                                    style: valueStyle,
+                                  ),
+                                ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_getConsentimientoServicio(record).isNotEmpty)
+                pw.SizedBox(height: 8),
 
               // Main content in two columns
               pw.Row(
@@ -443,6 +526,100 @@ class PdfGeneratorService {
                               ),
                               pw.Text(
                                 'Sat. O2: ${_getPhysicalExam(record, 'Sat. O2')}',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                            ],
+                          ),
+                        ),
+                        pw.SizedBox(height: 8),
+
+                        // SAMPLE Assessment
+                        pw.Container(
+                          width: double.infinity,
+                          padding: const pw.EdgeInsets.all(8),
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(
+                              color: PdfColors.black,
+                              width: 1,
+                            ),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text(
+                                'EVALUACIÓN SAMPLE',
+                                style: pw.TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.black,
+                                ),
+                              ),
+                              pw.SizedBox(height: 5),
+                              pw.Text(
+                                'S - Signos y síntomas: ${_getPhysicalExam(record, 'sampleAlergias')}',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                              pw.Text(
+                                'A - Alergias: ${_getPhysicalExam(record, 'sampleAlergias')}',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                              pw.Text(
+                                'M - Medicamentos: ${_getPhysicalExam(record, 'sampleMedicamentos')}',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                              pw.Text(
+                                'P - Historia médica previa: ${_getPhysicalExam(record, 'sampleEnfermedades')}',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                              pw.Text(
+                                'L - Última ingesta oral: ${_getPhysicalExam(record, 'sampleHoraAlimento')}',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                              pw.Text(
+                                'E - Eventos previos: ${_getPhysicalExam(record, 'sampleEventosPrevios')}',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                            ],
+                          ),
+                        ),
+                        pw.SizedBox(height: 8),
+
+                        // EVA Scale
+                        pw.Container(
+                          width: double.infinity,
+                          padding: const pw.EdgeInsets.all(8),
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(
+                              color: PdfColors.black,
+                              width: 1,
+                            ),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text(
+                                'ESCALA EVA (DOLOR)',
+                                style: pw.TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.black,
+                                ),
+                              ),
+                              pw.SizedBox(height: 5),
+                              pw.Text(
+                                'Nivel de dolor: ${_getPhysicalExam(record, 'eva')}/10',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                              pw.Text(
+                                'LLC: ${_getPhysicalExam(record, 'llc')} segundos',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                              pw.Text(
+                                'Glucosa: ${_getPhysicalExam(record, 'glucosa')} mg/dl',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                              pw.Text(
+                                'T/A: ${_getPhysicalExam(record, 'ta')} mm/Hg',
                                 style: pw.TextStyle(fontSize: 8),
                               ),
                             ],
@@ -744,6 +921,128 @@ class PdfGeneratorService {
                             ],
                           ),
                         ),
+                        pw.SizedBox(height: 8),
+
+                        // Insumos Utilizados
+                        if (_getInsumos(record).isNotEmpty)
+                          pw.Container(
+                            width: double.infinity,
+                            padding: const pw.EdgeInsets.all(8),
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(
+                                color: PdfColors.black,
+                                width: 1,
+                              ),
+                            ),
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  'INSUMOS UTILIZADOS',
+                                  style: pw.TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.black,
+                                  ),
+                                ),
+                                pw.SizedBox(height: 5),
+                                ..._getInsumos(record).map(
+                                  (insumo) => pw.Text(
+                                    '• ${insumo['cantidad']} ${insumo['articulo']}',
+                                    style: pw.TextStyle(fontSize: 8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (_getInsumos(record).isNotEmpty)
+                          pw.SizedBox(height: 8),
+
+                        // Personal Médico
+                        if (_getPersonalMedico(record).isNotEmpty)
+                          pw.Container(
+                            width: double.infinity,
+                            padding: const pw.EdgeInsets.all(8),
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(
+                                color: PdfColors.black,
+                                width: 1,
+                              ),
+                            ),
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  'PERSONAL MÉDICO',
+                                  style: pw.TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.black,
+                                  ),
+                                ),
+                                pw.SizedBox(height: 5),
+                                ..._getPersonalMedico(record).map(
+                                  (personal) => pw.Text(
+                                    '• ${personal['nombre']} - ${personal['especialidad']} (${personal['cedula']})',
+                                    style: pw.TextStyle(fontSize: 8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (_getPersonalMedico(record).isNotEmpty)
+                          pw.SizedBox(height: 8),
+
+                        // Escalas Obstétricas
+                        if (_getEscalasObstetricas(record) != null)
+                          pw.Container(
+                            width: double.infinity,
+                            padding: const pw.EdgeInsets.all(8),
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(
+                                color: PdfColors.black,
+                                width: 1,
+                              ),
+                            ),
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  'ESCALAS OBSTÉTRICAS',
+                                  style: pw.TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.black,
+                                  ),
+                                ),
+                                pw.SizedBox(height: 5),
+                                pw.Text(
+                                  'Frecuencia cardíaca fetal: ${_getEscalasObstetricas(record)!['frecuenciaCardiacaFetal']} lpm',
+                                  style: pw.TextStyle(fontSize: 8),
+                                ),
+                                pw.Text(
+                                  'Contracciones: ${_getEscalasObstetricas(record)!['contracciones']}',
+                                  style: pw.TextStyle(fontSize: 8),
+                                ),
+                                if (_getEscalasObstetricas(
+                                  record,
+                                )!['silvermanAnderson'].isNotEmpty)
+                                  pw.Text(
+                                    'Silverman-Anderson: ${_getEscalasObstetricas(record)!['silvermanAnderson']}',
+                                    style: pw.TextStyle(fontSize: 8),
+                                  ),
+                                if (_getEscalasObstetricas(
+                                  record,
+                                )!['apgar'].isNotEmpty)
+                                  pw.Text(
+                                    'Apgar: ${_getEscalasObstetricas(record)!['apgar']}',
+                                    style: pw.TextStyle(fontSize: 8),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        if (_getEscalasObstetricas(record) != null)
+                          pw.SizedBox(height: 8),
                       ],
                     ),
                   ),
@@ -766,9 +1065,53 @@ class PdfGeneratorService {
   }
 
   String _getPatientInfo(UnifiedFrapRecord record, String key) {
-    final patientInfo =
-        record.getDetailedInfo()['patientInfo'] as Map<String, dynamic>?;
-    return patientInfo?[key]?.toString() ?? 'N/A';
+    // Acceder a campos específicos del modelo Patient
+    if (record.localRecord != null) {
+      final patient = record.localRecord!.patient;
+      switch (key) {
+        case 'firstName':
+          return patient.firstName;
+        case 'paternalLastName':
+          return patient.paternalLastName;
+        case 'maternalLastName':
+          return patient.maternalLastName;
+        case 'phone':
+          return patient.phone;
+        case 'street':
+          return patient.street;
+        case 'exteriorNumber':
+          return patient.exteriorNumber;
+        case 'interiorNumber':
+          return patient.interiorNumber ?? '';
+        case 'neighborhood':
+          return patient.neighborhood;
+        case 'city':
+          return patient.city;
+        case 'insurance':
+          return patient.insurance;
+        case 'responsiblePerson':
+          return patient.responsiblePerson ?? '';
+        case 'gender':
+          return patient.gender;
+        case 'addressDetails':
+          return patient.addressDetails;
+        case 'tipoEntrega':
+          return patient.tipoEntrega;
+        case 'currentCondition':
+          // Este campo está en clinicalHistory
+          return record.localRecord!.clinicalHistory.currentSymptoms;
+        default:
+          // Fallback para campos no mapeados
+          final patientInfo =
+              record.getDetailedInfo()['patientInfo'] as Map<String, dynamic>?;
+          return patientInfo?[key]?.toString() ?? 'N/A';
+      }
+    } else {
+      // Para registros de nube, usar el método genérico
+      final patientInfo =
+          record.getDetailedInfo()['patientInfo'] as Map<String, dynamic>?;
+      return patientInfo?[key]?.toString() ?? 'N/A';
+    }
   }
 
   String _getRegistryInfo(UnifiedFrapRecord record, String key) {
@@ -815,18 +1158,123 @@ class PdfGeneratorService {
   }
 
   String _getClinicalHistory(UnifiedFrapRecord record, String key) {
-    final clinicalHistory =
-        record.getDetailedInfo()['clinicalHistory'] as Map<String, dynamic>?;
-    final value = clinicalHistory?[key];
-    if (value == true) return 'Sí';
-    if (value == false) return 'No';
-    return value?.toString() ?? 'N/A';
+    // Acceder a campos específicos del modelo ClinicalHistory
+    if (record.localRecord != null) {
+      final clinicalHistory = record.localRecord!.clinicalHistory;
+      switch (key) {
+        case 'allergies':
+          return clinicalHistory.allergies;
+        case 'medications':
+          return clinicalHistory.medications;
+        case 'previousIllnesses':
+          return clinicalHistory.previousIllnesses;
+        case 'currentSymptoms':
+          return clinicalHistory.currentSymptoms;
+        case 'pain':
+          return clinicalHistory.pain;
+        case 'painScale':
+          return clinicalHistory.painScale;
+        case 'dosage':
+          return clinicalHistory.dosage;
+        case 'frequency':
+          return clinicalHistory.frequency;
+        case 'route':
+          return clinicalHistory.route;
+        case 'time':
+          return clinicalHistory.time;
+        case 'previousSurgeries':
+          return clinicalHistory.previousSurgeries;
+        case 'hospitalizations':
+          return clinicalHistory.hospitalizations;
+        case 'transfusions':
+          return clinicalHistory.transfusions;
+        case 'horaUltimoAlimento':
+          return clinicalHistory.horaUltimoAlimento;
+        case 'eventosPrevios':
+          return clinicalHistory.eventosPrevios;
+        default:
+          // Fallback para campos no mapeados
+          final clinicalHistoryMap =
+              record.getDetailedInfo()['clinicalHistory']
+                  as Map<String, dynamic>?;
+          final value = clinicalHistoryMap?[key];
+          if (value == true) return 'Sí';
+          if (value == false) return 'No';
+          return value?.toString() ?? 'N/A';
+      }
+    } else {
+      // Para registros de nube, usar el método genérico
+      final clinicalHistoryMap =
+          record.getDetailedInfo()['clinicalHistory'] as Map<String, dynamic>?;
+      final value = clinicalHistoryMap?[key];
+      if (value == true) return 'Sí';
+      if (value == false) return 'No';
+      return value?.toString() ?? 'N/A';
+    }
   }
 
   String _getPhysicalExam(UnifiedFrapRecord record, String key) {
-    final physicalExam =
-        record.getDetailedInfo()['physicalExam'] as Map<String, dynamic>?;
-    return physicalExam?[key]?.toString() ?? 'N/A';
+    // Acceder a campos específicos del modelo PhysicalExam
+    if (record.localRecord != null) {
+      final physicalExam = record.localRecord!.physicalExam;
+      switch (key) {
+        case 'eva':
+          return physicalExam.eva;
+        case 'llc':
+          return physicalExam.llc;
+        case 'glucosa':
+          return physicalExam.glucosa;
+        case 'ta':
+          return physicalExam.ta;
+        case 'sampleAlergias':
+          return physicalExam.sampleAlergias;
+        case 'sampleMedicamentos':
+          return physicalExam.sampleMedicamentos;
+        case 'sampleEnfermedades':
+          return physicalExam.sampleEnfermedades;
+        case 'sampleHoraAlimento':
+          return physicalExam.sampleHoraAlimento;
+        case 'sampleEventosPrevios':
+          return physicalExam.sampleEventosPrevios;
+        default:
+          // Para signos vitales dinámicos, buscar en vitalSignsData
+          if (physicalExam.vitalSignsData.containsKey(key)) {
+            final vitalData = physicalExam.vitalSignsData[key];
+            if (vitalData != null && vitalData.isNotEmpty) {
+              // Retornar el primer valor disponible
+              return vitalData.values.first;
+            }
+          }
+          // Fallback para campos obsoletos
+          final physicalExamMap =
+              record.getDetailedInfo()['physicalExam'] as Map<String, dynamic>?;
+          return physicalExamMap?[key]?.toString() ?? 'N/A';
+      }
+    } else {
+      // Para registros de nube, usar el método genérico
+      final physicalExamMap =
+          record.getDetailedInfo()['physicalExam'] as Map<String, dynamic>?;
+      return physicalExamMap?[key]?.toString() ?? 'N/A';
+    }
+  }
+
+  // Método para obtener datos de signos vitales dinámicos
+  Map<String, String> _getVitalSignsData(
+    UnifiedFrapRecord record,
+    String vitalSign,
+  ) {
+    if (record.localRecord != null) {
+      return record.localRecord!.physicalExam.vitalSignsData[vitalSign] ?? {};
+    }
+    return {};
+  }
+
+  // Método para obtener columnas de tiempo
+  List<String> _getTimeColumns(UnifiedFrapRecord record) {
+    if (record.localRecord != null) {
+      return record.localRecord!.physicalExam.timeColumns;
+    }
+    return [];
   }
 
   String _getPriorityJustification(UnifiedFrapRecord record, String key) {
@@ -853,6 +1301,57 @@ class PdfGeneratorService {
     final patientReception =
         record.getDetailedInfo()['patientReception'] as Map<String, dynamic>?;
     return patientReception?[key]?.toString();
+  }
+
+  // Métodos para acceder a campos específicos del modelo Frap
+  String _getConsentimientoServicio(UnifiedFrapRecord record) {
+    if (record.localRecord != null) {
+      return record.localRecord!.consentimientoServicio;
+    }
+    return '';
+  }
+
+  List<Map<String, dynamic>> _getInsumos(UnifiedFrapRecord record) {
+    if (record.localRecord != null) {
+      return record.localRecord!.insumos
+          .map(
+            (insumo) => {
+              'cantidad': insumo.cantidad,
+              'articulo': insumo.articulo,
+            },
+          )
+          .toList();
+    }
+    return [];
+  }
+
+  List<Map<String, dynamic>> _getPersonalMedico(UnifiedFrapRecord record) {
+    if (record.localRecord != null) {
+      return record.localRecord!.personalMedico
+          .map(
+            (personal) => {
+              'nombre': personal.nombre,
+              'especialidad': personal.especialidad,
+              'cedula': personal.cedula,
+            },
+          )
+          .toList();
+    }
+    return [];
+  }
+
+  Map<String, dynamic>? _getEscalasObstetricas(UnifiedFrapRecord record) {
+    if (record.localRecord != null &&
+        record.localRecord!.escalasObstetricas != null) {
+      final escalas = record.localRecord!.escalasObstetricas!;
+      return {
+        'silvermanAnderson': escalas.silvermanAnderson,
+        'apgar': escalas.apgar,
+        'frecuenciaCardiacaFetal': escalas.frecuenciaCardiacaFetal,
+        'contracciones': escalas.contracciones,
+      };
+    }
+    return null;
   }
 
   // Helper to build detail rows with label and value
@@ -3123,5 +3622,124 @@ class PdfGeneratorService {
     } catch (e) {
       throw Exception('Error al imprimir el PDF: $e');
     }
+  }
+
+  // Método para construir tabla de signos vitales dinámicos
+  pw.Widget _buildDynamicVitalSignsTable(UnifiedFrapRecord record) {
+    final timeColumns = _getTimeColumns(record);
+    final vitalSigns = [
+      'T/A',
+      'FC',
+      'FR',
+      'Temp.',
+      'Sat. O2',
+      'LLC',
+      'Glu',
+      'Glasgow',
+    ];
+
+    if (timeColumns.isEmpty) {
+      // Si no hay columnas de tiempo, mostrar valores simples
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children:
+            vitalSigns
+                .map(
+                  (sign) => pw.Text(
+                    '$sign: ${_getPhysicalExam(record, sign)}',
+                    style: pw.TextStyle(fontSize: 8),
+                  ),
+                )
+                .toList(),
+      );
+    }
+
+    // Construir tabla con columnas de tiempo
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        children: [
+          // Header row
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
+            ),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(color: PdfColors.black, width: 1),
+                      ),
+                    ),
+                    child: pw.Text(
+                      'Signo Vital',
+                      style: pw.TextStyle(
+                        fontSize: 8,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                ...timeColumns.map((time) => _buildTimeGridCell(time, true)),
+              ],
+            ),
+          ),
+          // Data rows
+          ...vitalSigns.map(
+            (sign) => _buildVitalSignRowDynamic(sign, record, timeColumns),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Método para construir fila de signo vital dinámico
+  pw.Widget _buildVitalSignRowDynamic(
+    String vitalSign,
+    UnifiedFrapRecord record,
+    List<String> timeColumns,
+  ) {
+    final vitalData = _getVitalSignsData(record, vitalSign);
+
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border(
+          bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
+        ),
+      ),
+      child: pw.Row(
+        children: [
+          pw.Expanded(
+            flex: 2,
+            child: pw.Container(
+              padding: const pw.EdgeInsets.all(3),
+              decoration: pw.BoxDecoration(
+                border: pw.Border(
+                  right: pw.BorderSide(color: PdfColors.black, width: 1),
+                ),
+              ),
+              child: pw.Text(
+                vitalSign,
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          ...timeColumns.map(
+            (time) => _buildTimeGridCell(vitalData[time] ?? '', false),
+          ),
+        ],
+      ),
+    );
   }
 }

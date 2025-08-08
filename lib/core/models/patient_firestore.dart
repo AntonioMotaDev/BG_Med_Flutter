@@ -15,7 +15,10 @@ class PatientFirestore extends Equatable {
   final String paternalLastName;
   final String phone;
   final String? responsiblePerson; // nullable
+  final String? emergencyContact; // nullable
   final String sex;
+  final String? gender;
+  final String? addressDetails;
   final String street;
   final DateTime updatedAt;
 
@@ -33,7 +36,10 @@ class PatientFirestore extends Equatable {
     required this.paternalLastName,
     required this.phone,
     this.responsiblePerson,
+    this.emergencyContact,
     required this.sex,
+    this.gender,
+    this.addressDetails,
     required this.street,
     required this.updatedAt,
   });
@@ -45,8 +51,14 @@ class PatientFirestore extends Equatable {
   // Getter para la dirección completa
   String get fullAddress {
     final interior =
-        interiorNumber?.isNotEmpty == true ? ', Int. $interiorNumber' : '';
-    return '$street $exteriorNumber$interior, $neighborhood, $city';
+        interiorNumber != null && interiorNumber!.isNotEmpty
+            ? ', Int. $interiorNumber'
+            : '';
+    final details =
+        addressDetails != null && addressDetails!.isNotEmpty
+            ? ', $addressDetails'
+            : '';
+    return '$street $exteriorNumber$interior, $neighborhood, $city$details';
   }
 
   // Factory constructor desde Firestore
@@ -81,7 +93,10 @@ class PatientFirestore extends Equatable {
       paternalLastName: data['paternalLastName'] ?? '',
       phone: data['phone'] ?? '',
       responsiblePerson: data['responsiblePerson'],
+      emergencyContact: data['emergencyContact'],
       sex: data['sex'] ?? '',
+      gender: data['gender'] ?? '',
+      addressDetails: data['addressDetails'] ?? '',
       street: data['street'] ?? '',
       updatedAt: parseTimestamp(data['updatedAt']),
     );
@@ -121,8 +136,11 @@ class PatientFirestore extends Equatable {
       paternalLastName: data['paternalLastName'] ?? '',
       phone: data['phone'] ?? '',
       responsiblePerson: data['responsiblePerson'],
+      emergencyContact: data['emergencyContact'],
       sex: data['sex'] ?? '',
+      gender: data['gender'] ?? '',
       street: data['street'] ?? '',
+      addressDetails: data['addressDetails'] ?? '',
       updatedAt: parseTimestamp(data['updatedAt']),
     );
   }
@@ -142,7 +160,10 @@ class PatientFirestore extends Equatable {
       'paternalLastName': paternalLastName,
       'phone': phone,
       'responsiblePerson': responsiblePerson,
+      'emergencyContact': emergencyContact,
       'sex': sex,
+      'gender': gender,
+      'addressDetails': addressDetails,
       'street': street,
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -164,7 +185,10 @@ class PatientFirestore extends Equatable {
       'paternalLastName': paternalLastName,
       'phone': phone,
       'responsiblePerson': responsiblePerson,
+      'emergencyContact': emergencyContact,
       'sex': sex,
+      'gender': gender,
+      'addressDetails': addressDetails,
       'street': street,
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -185,7 +209,10 @@ class PatientFirestore extends Equatable {
     String? paternalLastName,
     String? phone,
     String? responsiblePerson,
+    String? emergencyContact,
     String? sex,
+    String? gender,
+    String? addressDetails,
     String? street,
     DateTime? updatedAt,
   }) {
@@ -203,7 +230,10 @@ class PatientFirestore extends Equatable {
       paternalLastName: paternalLastName ?? this.paternalLastName,
       phone: phone ?? this.phone,
       responsiblePerson: responsiblePerson ?? this.responsiblePerson,
+      emergencyContact: emergencyContact ?? this.emergencyContact,
       sex: sex ?? this.sex,
+      gender: gender ?? this.gender,
+      addressDetails: addressDetails ?? this.addressDetails,
       street: street ?? this.street,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -224,6 +254,9 @@ class PatientFirestore extends Equatable {
     String? responsiblePerson,
     required String sex,
     required String street,
+    String? emergencyContact,
+    String? gender,
+    String? addressDetails,
   }) {
     final now = DateTime.now();
     return PatientFirestore(
@@ -239,7 +272,10 @@ class PatientFirestore extends Equatable {
       paternalLastName: paternalLastName,
       phone: phone,
       responsiblePerson: responsiblePerson,
+      emergencyContact: emergencyContact,
       sex: sex,
+      gender: gender,
+      addressDetails: addressDetails,
       street: street,
       updatedAt: now,
     );
@@ -260,13 +296,16 @@ class PatientFirestore extends Equatable {
     paternalLastName,
     phone,
     responsiblePerson,
+    emergencyContact,
     sex,
+    gender,
+    addressDetails,
     street,
     updatedAt,
   ];
 
   @override
   String toString() {
-    return 'PatientFirestore(id: $id, name: $fullName, age: $age, sex: $sex)';
+    return 'PatientFirestore(id: $id, name: $fullName, age: $age, sex: $sex, gender: $gender, fullAddress: $fullAddress, emergencyContact: $emergencyContact)';
   }
 }

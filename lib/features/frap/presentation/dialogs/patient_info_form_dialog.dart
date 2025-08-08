@@ -37,6 +37,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
   final _neighborhoodController = TextEditingController();
   final _cityController = TextEditingController();
   final _insuranceController = TextEditingController();
+  final _addressDetailsController = TextEditingController();
   final _searchController = TextEditingController();
   final _currentConditionController = TextEditingController();
   final _emergencyContactController = TextEditingController();
@@ -49,11 +50,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
 
   // Variables para checkboxes y selecciones
   String _tipoEntregaSeleccionado = '';
-  String _seguroMedicoSeleccionado = '';
   String _generoSeleccionado = '';
 
   // Controladores de texto adicionales
-  final _entreCallesController = TextEditingController();
   final _tipoEntregaOtroController = TextEditingController();
 
   final List<String> _tiposEntrega = [
@@ -61,15 +60,6 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     'Hospital',
     'Clínica',
     'Centro de Salud',
-    'Otro',
-  ];
-
-  final List<String> _segurosMedicos = [
-    'IMSS',
-    'ISSSTE',
-    'PEMEX',
-    'Particular',
-    'Sin seguro',
     'Otro',
   ];
 
@@ -101,17 +91,16 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _interiorNumberController.text = data['interiorNumber'] ?? '';
       _neighborhoodController.text = data['neighborhood'] ?? '';
       _cityController.text = data['city'] ?? '';
+      _addressDetailsController.text = data['addressDetails'] ?? '';
       _insuranceController.text = data['insurance'] ?? '';
       _currentConditionController.text = data['currentCondition'] ?? '';
       _emergencyContactController.text = data['emergencyContact'] ?? '';
       _responsiblePersonController.text = data['responsiblePerson'] ?? '';
 
       // Campos adicionales que estaban faltando
-      _entreCallesController.text = data['entreCalles'] ?? '';
       _tipoEntregaSeleccionado = data['tipoEntrega'] ?? '';
       _tipoEntregaOtroController.text = data['tipoEntregaOtro'] ?? '';
       _generoSeleccionado = data['genero'] ?? '';
-      _seguroMedicoSeleccionado = data['seguroMedico'] ?? '';
 
       // Si ya hay datos, probablemente es un paciente seleccionado
       if (data['patientId'] != null) {
@@ -142,6 +131,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
     _neighborhoodController.dispose();
     _cityController.dispose();
     _insuranceController.dispose();
+    _addressDetailsController.dispose();
     _searchController.dispose();
     _currentConditionController.dispose();
     _emergencyContactController.dispose();
@@ -873,13 +863,14 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             ),
             const SizedBox(height: 16),
 
-            // Entre calles
+            // Detalles de dirección
             _buildTextField(
-              controller: _entreCallesController,
-              label: 'Entre calles o referencia de llegada',
-              icon: Icons.directions,
+              controller: _addressDetailsController,
+              label: 'Detalles de dirección',
+              icon: Icons.info_outline,
+              hintText: 'Ej: Entre calles, referencias, etc.',
               maxLines: 2,
-              hintText: 'Ej: Entre Av. Principal y Calle Secundaria',
+              textCapitalization: TextCapitalization.sentences,
             ),
           ],
         ),
@@ -940,19 +931,6 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             ),
 
             const SizedBox(height: 16),
-
-            // Seguro médico actualizado
-            _buildSelectionGroup(
-              'SEGURO MÉDICO',
-              Icons.medical_services_outlined,
-              _segurosMedicos,
-              _seguroMedicoSeleccionado,
-              (value) {
-                setState(() {
-                  _seguroMedicoSeleccionado = value;
-                });
-              },
-            ),
           ],
         ),
 
@@ -1255,15 +1233,15 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _interiorNumberController.text = patient.interiorNumber ?? '';
       _neighborhoodController.text = patient.neighborhood;
       _cityController.text = patient.city;
+      _addressDetailsController.text =
+          ''; // Campo no disponible en PatientFirestore
       _insuranceController.text = patient.insurance;
       _responsiblePersonController.text = patient.responsiblePerson ?? '';
 
       // Nuevos campos
-      _entreCallesController.text = '';
       _tipoEntregaSeleccionado = '';
       _tipoEntregaOtroController.text = '';
       _generoSeleccionado = '';
-      _seguroMedicoSeleccionado = '';
 
       // No llenamos currentCondition y emergencyContact porque son específicos de cada consulta FRAP
 
@@ -1288,6 +1266,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _interiorNumberController.clear();
       _neighborhoodController.clear();
       _cityController.clear();
+      _addressDetailsController.clear();
       _insuranceController.clear();
       _searchController.clear();
       _currentConditionController.clear();
@@ -1295,11 +1274,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _responsiblePersonController.clear();
 
       // Limpiar nuevos campos
-      _entreCallesController.clear();
       _tipoEntregaSeleccionado = '';
       _tipoEntregaOtroController.clear();
       _generoSeleccionado = '';
-      _seguroMedicoSeleccionado = '';
     });
   }
 
@@ -1326,15 +1303,14 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         'interiorNumber': _interiorNumberController.text.trim(),
         'neighborhood': _neighborhoodController.text.trim(),
         'city': _cityController.text.trim(),
+        'addressDetails': _addressDetailsController.text.trim(),
         'insurance': _insuranceController.text.trim(),
         'currentCondition': _currentConditionController.text.trim(),
         'emergencyContact': _emergencyContactController.text.trim(),
         'responsiblePerson': _responsiblePersonController.text.trim(),
-        'entreCalles': _entreCallesController.text.trim(),
         'tipoEntrega': _tipoEntregaSeleccionado,
         'tipoEntregaOtro': _tipoEntregaOtroController.text.trim(),
         'genero': _generoSeleccionado,
-        'seguroMedico': _seguroMedicoSeleccionado,
         'isNewPatient': _selectedPatient == null,
         'timestamp': DateTime.now().toIso8601String(),
       };

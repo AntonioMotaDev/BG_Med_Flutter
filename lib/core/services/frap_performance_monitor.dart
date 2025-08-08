@@ -317,7 +317,6 @@ class FrapPerformanceMonitor {
   }
 
   static void _logPerformanceRecord(_PerformanceRecord record) {
-    final level = record.success ? 1000 : 900;
     final status = record.success ? 'EXITOSA' : 'FALLIDA';
     
     FrapConversionLogger.logPerformanceMetrics(

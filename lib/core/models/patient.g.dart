@@ -21,19 +21,19 @@ class PatientAdapter extends TypeAdapter<Patient> {
       age: fields[1] as int,
       sex: fields[2] as String,
       address: fields[3] as String,
-      firstName: fields[4] as String,
-      paternalLastName: fields[5] as String,
-      maternalLastName: fields[6] as String,
-      phone: fields[7] as String,
-      street: fields[8] as String,
-      exteriorNumber: fields[9] as String,
-      interiorNumber: fields[10] as String?,
-      neighborhood: fields[11] as String,
-      city: fields[12] as String,
-      insurance: fields[13] as String,
-      responsiblePerson: fields[14] as String?,
-      gender: fields[15] as String,
-      entreCalles: fields[16] as String,
+      addressDetails: fields[4] as String,
+      firstName: fields[5] as String,
+      paternalLastName: fields[6] as String,
+      maternalLastName: fields[7] as String,
+      phone: fields[8] as String,
+      street: fields[9] as String,
+      exteriorNumber: fields[10] as String,
+      interiorNumber: fields[11] as String?,
+      neighborhood: fields[12] as String,
+      city: fields[13] as String,
+      insurance: fields[14] as String,
+      responsiblePerson: fields[15] as String?,
+      gender: fields[16] as String,
       tipoEntrega: fields[17] as String,
     );
   }
@@ -51,31 +51,31 @@ class PatientAdapter extends TypeAdapter<Patient> {
       ..writeByte(3)
       ..write(obj.address)
       ..writeByte(4)
-      ..write(obj.firstName)
+      ..write(obj.addressDetails)
       ..writeByte(5)
-      ..write(obj.paternalLastName)
+      ..write(obj.firstName)
       ..writeByte(6)
-      ..write(obj.maternalLastName)
+      ..write(obj.paternalLastName)
       ..writeByte(7)
-      ..write(obj.phone)
+      ..write(obj.maternalLastName)
       ..writeByte(8)
-      ..write(obj.street)
+      ..write(obj.phone)
       ..writeByte(9)
-      ..write(obj.exteriorNumber)
+      ..write(obj.street)
       ..writeByte(10)
-      ..write(obj.interiorNumber)
+      ..write(obj.exteriorNumber)
       ..writeByte(11)
-      ..write(obj.neighborhood)
+      ..write(obj.interiorNumber)
       ..writeByte(12)
-      ..write(obj.city)
+      ..write(obj.neighborhood)
       ..writeByte(13)
-      ..write(obj.insurance)
+      ..write(obj.city)
       ..writeByte(14)
-      ..write(obj.responsiblePerson)
+      ..write(obj.insurance)
       ..writeByte(15)
-      ..write(obj.gender)
+      ..write(obj.responsiblePerson)
       ..writeByte(16)
-      ..write(obj.entreCalles)
+      ..write(obj.gender)
       ..writeByte(17)
       ..write(obj.tipoEntrega);
   }

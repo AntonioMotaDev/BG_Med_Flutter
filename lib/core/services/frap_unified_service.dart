@@ -30,7 +30,12 @@ class FrapUnifiedService {
   }) : _localService = localService,
        _cloudService = cloudService,
        _connectivity = connectivity ?? Connectivity(),
-       _folioGenerator = FolioGeneratorService();
+       _folioGenerator = FolioGeneratorService() {
+    _migrationService = FrapMigrationService(
+      localService: localService,
+      cloudService: cloudService,
+    );
+  }
 
   /// Obtener el servicio de migración
   FrapMigrationService get migrationService => _migrationService;
@@ -375,7 +380,7 @@ class FrapUnifiedService {
           insurance: patientData['insurance'] ?? '',
           responsiblePerson: patientData['responsiblePerson'],
           gender: patientData['gender'] ?? '',
-          entreCalles: patientData['entreCalles'] ?? '',
+          addressDetails: patientData['addressDetails'] ?? '',
           tipoEntrega: patientData['tipoEntrega'] ?? '',
         ),
         clinicalHistory: ClinicalHistory(
@@ -383,20 +388,7 @@ class FrapUnifiedService {
           medications: clinicalData['medications'] ?? '',
           previousIllnesses: clinicalData['previousIllnesses'] ?? '',
         ),
-        physicalExam: PhysicalExam(
-          vitalSigns: examData['vitalSigns'] ?? '',
-          head: examData['head'] ?? '',
-          neck: examData['neck'] ?? '',
-          thorax: examData['thorax'] ?? '',
-          abdomen: examData['abdomen'] ?? '',
-          extremities: examData['extremities'] ?? '',
-          bloodPressure: examData['bloodPressure'] ?? '',
-          heartRate: examData['heartRate'] ?? '',
-          respiratoryRate: examData['respiratoryRate'] ?? '',
-          temperature: examData['temperature'] ?? '',
-          oxygenSaturation: examData['oxygenSaturation'] ?? '',
-          neurological: examData['neurological'] ?? '',
-        ),
+        physicalExam: PhysicalExam.fromFormData(examData),
         createdAt: cloud.createdAt,
         updatedAt: cloud.updatedAt,
         serviceInfo: _convertSectionData(cloud.serviceInfo),
@@ -561,7 +553,7 @@ class FrapUnifiedService {
           'insurance': local.patient.insurance,
           'responsiblePerson': local.patient.responsiblePerson,
           'gender': local.patient.gender,
-          'entreCalles': local.patient.entreCalles,
+          'addressDetails': local.patient.addressDetails,
           'tipoEntrega': local.patient.tipoEntrega,
         },
         management: {
@@ -582,20 +574,7 @@ class FrapUnifiedService {
           'medications': local.clinicalHistory.medications,
           'previousIllnesses': local.clinicalHistory.previousIllnesses,
         },
-        physicalExam: {
-          'vitalSigns': local.physicalExam.vitalSigns,
-          'head': local.physicalExam.head,
-          'neck': local.physicalExam.neck,
-          'thorax': local.physicalExam.thorax,
-          'abdomen': local.physicalExam.abdomen,
-          'extremities': local.physicalExam.extremities,
-          'bloodPressure': local.physicalExam.bloodPressure,
-          'heartRate': local.physicalExam.heartRate,
-          'respiratoryRate': local.physicalExam.respiratoryRate,
-          'temperature': local.physicalExam.temperature,
-          'oxygenSaturation': local.physicalExam.oxygenSaturation,
-          'neurological': local.physicalExam.neurological,
-        },
+        physicalExam: local.physicalExam.toFirebaseFormat(),
         priorityJustification: local.priorityJustification,
         injuryLocation: local.injuryLocation,
         receivingUnit: local.receivingUnit,
@@ -763,7 +742,7 @@ class UnifiedFrapRecord {
         'interiorNumber': local.patient.interiorNumber,
         'neighborhood': local.patient.neighborhood,
         'city': local.patient.city,
-        'entreCalles': local.patient.entreCalles,
+        'addressDetails': local.patient.addressDetails,
         'tipoEntrega': local.patient.tipoEntrega,
       },
       'management': local.management,
@@ -777,27 +756,17 @@ class UnifiedFrapRecord {
         'previousIllnesses': local.clinicalHistory.previousIllnesses,
       },
       'physicalExam': {
-        'vitalSigns': local.physicalExam.vitalSigns,
-        'head': local.physicalExam.head,
-        'neck': local.physicalExam.neck,
-        'thorax': local.physicalExam.thorax,
-        'abdomen': local.physicalExam.abdomen,
-        'extremities': local.physicalExam.extremities,
-        'bloodPressure': local.physicalExam.bloodPressure,
-        'heartRate': local.physicalExam.heartRate,
-        'respiratoryRate': local.physicalExam.respiratoryRate,
-        'temperature': local.physicalExam.temperature,
-        'oxygenSaturation': local.physicalExam.oxygenSaturation,
-        'neurological': local.physicalExam.neurological,
-        // Agregar signos vitales por columnas de tiempo si existen
-        'T/A': {'1': local.physicalExam.bloodPressure},
-        'FC': {'1': local.physicalExam.heartRate},
-        'FR': {'1': local.physicalExam.respiratoryRate},
-        'Temp.': {'1': local.physicalExam.temperature},
-        'Sat. O2': {'1': local.physicalExam.oxygenSaturation},
-        'LLC': {'1': ''},
-        'Glu': {'1': ''},
-        'Glasgow': {'1': ''},
+        'eva': local.physicalExam.eva,
+        'llc': local.physicalExam.llc,
+        'glucosa': local.physicalExam.glucosa,
+        'ta': local.physicalExam.ta,
+        'sampleAlergias': local.physicalExam.sampleAlergias,
+        'sampleMedicamentos': local.physicalExam.sampleMedicamentos,
+        'sampleEnfermedades': local.physicalExam.sampleEnfermedades,
+        'sampleHoraAlimento': local.physicalExam.sampleHoraAlimento,
+        'sampleEventosPrevios': local.physicalExam.sampleEventosPrevios,
+        'timeColumns': local.physicalExam.timeColumns,
+        ...local.physicalExam.vitalSignsData,
       },
       'priorityJustification': local.priorityJustification,
       'injuryLocation': local.injuryLocation,
@@ -810,22 +779,29 @@ class UnifiedFrapRecord {
   }
 
   Map<String, dynamic> _getDetailedInfoFromCloud(FrapFirestore cloud) {
-    // Debug logging para ver qué datos llegan desde Firestore
-    print('=== DEBUG: _getDetailedInfoFromCloud ===');
-    print('cloud.serviceInfo: ${cloud.serviceInfo}');
-    print('cloud.serviceInfo type: ${cloud.serviceInfo.runtimeType}');
-    final serviceInfo = cloud.serviceInfo as Map<String, dynamic>;
-    print('serviceInfo keys: ${serviceInfo.keys.toList()}');
-    print('horaLlamada: ${serviceInfo['horaLlamada']}');
-    print('horaArribo: ${serviceInfo['horaArribo']}');
-    print('horaLlegada: ${serviceInfo['horaLlegada']}');
-    print('horaTermino: ${serviceInfo['horaTermino']}');
-    print('================================');
-
     return {
       'serviceInfo': cloud.serviceInfo,
       'registryInfo': cloud.registryInfo,
-      'patientInfo': cloud.patientInfo,
+      'patientInfo': {
+        'name':
+            '${cloud.patientInfo['firstName'] ?? ''} ${cloud.patientInfo['paternalLastName'] ?? ''}',
+        'age': cloud.patientInfo['age'],
+        'sex': cloud.patientInfo['sex'],
+        'address': cloud.patientInfo['address'],
+        'phone': cloud.patientInfo['phone'],
+        'insurance': cloud.patientInfo['insurance'],
+        'responsiblePerson': cloud.patientInfo['responsiblePerson'],
+        'gender': cloud.patientInfo['gender'],
+        'firstName': cloud.patientInfo['firstName'],
+        'paternalLastName': cloud.patientInfo['paternalLastName'],
+        'maternalLastName': cloud.patientInfo['maternalLastName'],
+        'street': cloud.patientInfo['street'],
+        'exteriorNumber': cloud.patientInfo['exteriorNumber'],
+        'interiorNumber': cloud.patientInfo['interiorNumber'],
+        'neighborhood': cloud.patientInfo['neighborhood'],
+        'city': cloud.patientInfo['city'],
+        'tipoEntrega': cloud.patientInfo['tipoEntrega'],
+      },
       'management': cloud.management,
       'medications': cloud.medications,
       'gynecoObstetric': cloud.gynecoObstetric,

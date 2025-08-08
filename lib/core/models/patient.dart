@@ -14,8 +14,8 @@ class Patient extends Equatable {
   final String sex; // Cambiado de gender a sex
   @HiveField(3)
   final String address;
-
-  // Nuevos campos expandidos
+  @HiveField(4)
+  final String addressDetails;
   @HiveField(4)
   final String firstName;
   @HiveField(5)
@@ -39,19 +39,16 @@ class Patient extends Equatable {
   @HiveField(14)
   final String? responsiblePerson;
   @HiveField(15)
-  final String gender; // Nuevo campo: género (abierto, diferente de sex)
+  final String gender;
   @HiveField(16)
-  final String entreCalles; // Nuevo campo: referencia de llegada
-  @HiveField(17)
-  final String tipoEntrega; // Nuevo campo: tipo de entrega
+  final String tipoEntrega;
 
   const Patient({
-    // Campos existentes
     required this.name,
     required this.age,
-    required this.sex, // Cambiado de gender a sex
+    required this.sex,
     required this.address,
-    // Nuevos campos con valores por defecto
+    this.addressDetails = '',
     this.firstName = '',
     this.paternalLastName = '',
     this.maternalLastName = '',
@@ -64,19 +61,18 @@ class Patient extends Equatable {
     this.insurance = '',
     this.responsiblePerson,
     this.gender = '',
-    this.entreCalles = '',
     this.tipoEntrega = '',
   });
 
-  // Getter para el nombre completo (usando nuevos campos si están disponibles)
   String get fullName {
-    if (firstName.isNotEmpty || paternalLastName.isNotEmpty || maternalLastName.isNotEmpty) {
+    if (firstName.isNotEmpty ||
+        paternalLastName.isNotEmpty ||
+        maternalLastName.isNotEmpty) {
       return '$firstName $paternalLastName $maternalLastName'.trim();
     }
-    return name; // Fallback al campo original
+    return name;
   }
 
-  // Getter para la dirección completa (usando nuevos campos si están disponibles)
   String get fullAddress {
     if (street.isNotEmpty) {
       String fullAddr = street;
@@ -92,17 +88,20 @@ class Patient extends Equatable {
       if (city.isNotEmpty) {
         fullAddr += ', $city';
       }
+      if (addressDetails.isNotEmpty) {
+        fullAddr += ', $addressDetails';
+      }
       return fullAddr;
     }
-    return address; // Fallback al campo original
+    return address;
   }
 
-  // Método copyWith para crear copias con cambios
   Patient copyWith({
     String? name,
     int? age,
-    String? sex, // Cambiado de gender a sex
+    String? sex,
     String? address,
+    String? addressDetails,
     String? firstName,
     String? paternalLastName,
     String? maternalLastName,
@@ -115,14 +114,14 @@ class Patient extends Equatable {
     String? insurance,
     String? responsiblePerson,
     String? gender,
-    String? entreCalles,
     String? tipoEntrega,
   }) {
     return Patient(
       name: name ?? this.name,
       age: age ?? this.age,
-      sex: sex ?? this.sex, // Cambiado de gender a sex
+      sex: sex ?? this.sex,
       address: address ?? this.address,
+      addressDetails: addressDetails ?? this.addressDetails,
       firstName: firstName ?? this.firstName,
       paternalLastName: paternalLastName ?? this.paternalLastName,
       maternalLastName: maternalLastName ?? this.maternalLastName,
@@ -135,7 +134,6 @@ class Patient extends Equatable {
       insurance: insurance ?? this.insurance,
       responsiblePerson: responsiblePerson ?? this.responsiblePerson,
       gender: gender ?? this.gender,
-      entreCalles: entreCalles ?? this.entreCalles,
       tipoEntrega: tipoEntrega ?? this.tipoEntrega,
     );
   }
@@ -146,6 +144,7 @@ class Patient extends Equatable {
       'age': age,
       'sex': sex,
       'address': address,
+      'addressDetails': addressDetails,
       'firstName': firstName,
       'paternalLastName': paternalLastName,
       'maternalLastName': maternalLastName,
@@ -158,30 +157,29 @@ class Patient extends Equatable {
       'insurance': insurance,
       'responsiblePerson': responsiblePerson,
       'gender': gender,
-      'entreCalles': entreCalles,
       'tipoEntrega': tipoEntrega,
     };
   }
 
   @override
   List<Object?> get props => [
-        name,
-        age,
-        sex, // Cambiado de gender a sex
-        address,
-        firstName,
-        paternalLastName,
-        maternalLastName,
-        phone,
-        street,
-        exteriorNumber,
-        interiorNumber,
-        neighborhood,
-        city,
-        insurance,
-        responsiblePerson,
-        gender,
-        entreCalles,
-        tipoEntrega,
-      ];
-} 
+    name,
+    age,
+    sex,
+    address,
+    addressDetails,
+    firstName,
+    paternalLastName,
+    maternalLastName,
+    phone,
+    street,
+    exteriorNumber,
+    interiorNumber,
+    neighborhood,
+    city,
+    insurance,
+    responsiblePerson,
+    gender,
+    tipoEntrega,
+  ];
+}

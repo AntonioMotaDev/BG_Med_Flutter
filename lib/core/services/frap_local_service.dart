@@ -8,9 +8,28 @@ import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.d
 
 class FrapLocalService {
   static const String _boxName = 'fraps';
+  Box<Frap>? _frapBox;
 
-  // Obtener la caja de Hive
-  Box<Frap> get _frapBox => Hive.box<Frap>(_boxName);
+  // Obtener la caja de Hive de forma segura
+  Future<Box<Frap>> get _getFrapBox async {
+    if (_frapBox != null && _frapBox!.isOpen) {
+      return _frapBox!;
+    }
+
+    // Verificar si la caja está abierta
+    if (Hive.isBoxOpen(_boxName)) {
+      _frapBox = Hive.box<Frap>(_boxName);
+      return _frapBox!;
+    }
+
+    // Si no está abierta, abrirla
+    try {
+      _frapBox = await Hive.openBox<Frap>(_boxName);
+      return _frapBox!;
+    } catch (e) {
+      throw Exception('Error al abrir la caja de Hive: $e');
+    }
+  }
 
   // Generar ID único para registros FRAP
   String _generateId() {
@@ -24,7 +43,8 @@ class FrapLocalService {
       final frap = _convertFrapDataToFrap(frapData);
 
       // Guardar en Hive
-      await _frapBox.add(frap);
+      final box = await _getFrapBox;
+      await box.add(frap);
 
       return frap.id;
     } catch (e) {
@@ -39,7 +59,8 @@ class FrapLocalService {
   }) async {
     try {
       // Buscar el registro existente
-      final existingIndex = _frapBox.values.toList().indexWhere(
+      final box = await _getFrapBox;
+      final existingIndex = box.values.toList().indexWhere(
         (frap) => frap.id == frapId,
       );
 
@@ -48,7 +69,7 @@ class FrapLocalService {
       }
 
       // Convertir FrapData a modelo Frap manteniendo el ID y fecha original
-      final existingFrap = _frapBox.getAt(existingIndex)!;
+      final existingFrap = box.getAt(existingIndex)!;
       final updatedFrap = _convertFrapDataToFrap(
         frapData,
         existingId: existingFrap.id,
@@ -56,7 +77,7 @@ class FrapLocalService {
       );
 
       // Actualizar en Hive
-      await _frapBox.putAt(existingIndex, updatedFrap);
+      await box.putAt(existingIndex, updatedFrap);
     } catch (e) {
       throw Exception('Error al actualizar el registro FRAP local: $e');
     }
@@ -65,7 +86,8 @@ class FrapLocalService {
   // OBTENER un registro FRAP por ID
   Future<Frap?> getFrapRecord(String frapId) async {
     try {
-      final frap = _frapBox.values.firstWhere(
+      final box = await _getFrapBox;
+      final frap = box.values.firstWhere(
         (frap) => frap.id == frapId,
         orElse: () => throw Exception('Registro no encontrado'),
       );
@@ -79,10 +101,11 @@ class FrapLocalService {
   Future<List<Frap>> getAllFrapRecords() async {
     try {
       print('Obteniendo registros locales de Hive...');
-      print('Caja de Hive disponible: ${_frapBox.isOpen}');
-      print('Número de registros en la caja: ${_frapBox.length}');
+      print('Caja de Hive disponible: ${_frapBox?.isOpen}');
+      print('Número de registros en la caja: ${_frapBox?.length}');
 
-      final records = _frapBox.values.toList();
+      final box = await _getFrapBox;
+      final records = box.values.toList();
       print('Registros obtenidos de la caja: ${records.length}');
 
       // Ordenar por fecha de creación descendente
@@ -143,10 +166,11 @@ class FrapLocalService {
     }
   }
 
-  // ELIMINAR un registro FRAP
+  // ELIMINAR un registro FRAP local
   Future<void> deleteFrapRecord(String frapId) async {
     try {
-      final existingIndex = _frapBox.values.toList().indexWhere(
+      final box = await _getFrapBox;
+      final existingIndex = box.values.toList().indexWhere(
         (frap) => frap.id == frapId,
       );
 
@@ -154,7 +178,7 @@ class FrapLocalService {
         throw Exception('Registro no encontrado');
       }
 
-      await _frapBox.deleteAt(existingIndex);
+      await box.deleteAt(existingIndex);
     } catch (e) {
       throw Exception('Error al eliminar el registro FRAP local: $e');
     }
@@ -168,16 +192,15 @@ class FrapLocalService {
         throw Exception('Registro no encontrado');
       }
 
-      // Crear una copia del registro con nuevo ID y fecha
-      final duplicatedRecord = Frap(
-        id: const Uuid().v4(),
-        patient: originalRecord.patient,
-        clinicalHistory: originalRecord.clinicalHistory,
-        physicalExam: originalRecord.physicalExam,
+      // Crear una copia del registro
+      final duplicatedRecord = originalRecord.copyWith(
+        id: _generateId(),
         createdAt: DateTime.now(),
+        isSynced: false,
       );
 
-      await _frapBox.add(duplicatedRecord);
+      final box = await _getFrapBox;
+      await box.add(duplicatedRecord);
       return duplicatedRecord.id;
     } catch (e) {
       throw Exception('Error al duplicar el registro FRAP local: $e');
@@ -241,10 +264,11 @@ class FrapLocalService {
     }
   }
 
-  // LIMPIAR todos los registros FRAP
+  // LIMPIAR todos los registros FRAP locales
   Future<void> clearAllFrapRecords() async {
     try {
-      await _frapBox.clear();
+      final box = await _getFrapBox;
+      await box.clear();
     } catch (e) {
       throw Exception('Error al limpiar los registros FRAP locales: $e');
     }
@@ -265,9 +289,11 @@ class FrapLocalService {
     required List<Map<String, dynamic>> backupData,
   }) async {
     try {
+      // Restaurar registros desde el backup
       for (final recordData in backupData) {
         final frap = _frapFromMap(recordData);
-        await _frapBox.add(frap);
+        final box = await _getFrapBox;
+        await box.add(frap);
       }
     } catch (e) {
       throw Exception('Error al restaurar registros FRAP locales: $e');
@@ -354,23 +380,9 @@ class FrapLocalService {
 
     // Extraer examen físico
     final physicalExamData = frapData.physicalExam;
-    final physicalExam = PhysicalExam(
-      vitalSigns:
-          physicalExamData['vital_signs'] ??
-          physicalExamData['vitalSigns'] ??
-          '',
-      head: physicalExamData['head'] ?? '',
-      neck: physicalExamData['neck'] ?? '',
-      thorax: physicalExamData['thorax'] ?? '',
-      abdomen: physicalExamData['abdomen'] ?? '',
-      extremities: physicalExamData['extremities'] ?? '',
-      bloodPressure: physicalExamData['bloodPressure'] ?? '',
-      heartRate: physicalExamData['heartRate'] ?? '',
-      respiratoryRate: physicalExamData['respiratoryRate'] ?? '',
-      temperature: physicalExamData['temperature'] ?? '',
-      oxygenSaturation: physicalExamData['oxygenSaturation'] ?? '',
-      neurological: physicalExamData['neurological'] ?? '',
-    );
+
+    // Usar el factory constructor del modelo actualizado
+    final physicalExam = PhysicalExam.fromFormData(physicalExamData);
 
     final now = DateTime.now();
     final id = existingId ?? _generateId();
@@ -510,20 +522,7 @@ class FrapLocalService {
         'pain': frap.clinicalHistory.pain,
         'painScale': frap.clinicalHistory.painScale,
       },
-      physicalExam: {
-        'vital_signs': frap.physicalExam.vitalSigns,
-        'head': frap.physicalExam.head,
-        'neck': frap.physicalExam.neck,
-        'thorax': frap.physicalExam.thorax,
-        'abdomen': frap.physicalExam.abdomen,
-        'extremities': frap.physicalExam.extremities,
-        'bloodPressure': frap.physicalExam.bloodPressure,
-        'heartRate': frap.physicalExam.heartRate,
-        'respiratoryRate': frap.physicalExam.respiratoryRate,
-        'temperature': frap.physicalExam.temperature,
-        'oxygenSaturation': frap.physicalExam.oxygenSaturation,
-        'neurological': frap.physicalExam.neurological,
-      },
+      physicalExam: frap.physicalExam.toFirebaseFormat(),
       priorityJustification: frap.priorityJustification,
       injuryLocation: frap.injuryLocation,
       receivingUnit: frap.receivingUnit,
@@ -531,10 +530,11 @@ class FrapLocalService {
     );
   }
 
-  // Marcar registro como sincronizado
+  // MARCAR un registro como sincronizado
   Future<void> markAsSynced(String frapId) async {
     try {
-      final existingIndex = _frapBox.values.toList().indexWhere(
+      final box = await _getFrapBox;
+      final existingIndex = box.values.toList().indexWhere(
         (frap) => frap.id == frapId,
       );
 
@@ -542,20 +542,21 @@ class FrapLocalService {
         throw Exception('Registro no encontrado');
       }
 
-      final existingFrap = _frapBox.getAt(existingIndex)!;
+      final existingFrap = box.getAt(existingIndex)!;
       final updatedFrap = existingFrap.copyWith(isSynced: true);
 
       // Actualizar en Hive
-      await _frapBox.putAt(existingIndex, updatedFrap);
+      await box.putAt(existingIndex, updatedFrap);
     } catch (e) {
       throw Exception('Error al marcar como sincronizado: $e');
     }
   }
 
-  // Obtener registros no sincronizados
+  // OBTENER registros no sincronizados
   Future<List<Frap>> getUnsyncedRecords() async {
     try {
-      final records = _frapBox.values.toList();
+      final box = await _getFrapBox;
+      final records = box.values.toList();
       return records.where((frap) => !frap.isSynced).toList();
     } catch (e) {
       throw Exception('Error al obtener registros no sincronizados: $e');

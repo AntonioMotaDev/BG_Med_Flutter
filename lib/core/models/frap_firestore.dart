@@ -315,9 +315,24 @@ class FrapFirestore extends Equatable {
     return patientInfo['age'] ?? 0;
   }
 
-  // Obtener género del paciente
+  // Obtener el sexo del paciente
+  String get patientSex {
+    return patientInfo['sex'] ?? '';
+  }
+
+  // Obtener genero del paciente
   String get patientGender {
-    return patientInfo['sex'] ?? ''; // Cambiado de gender a sex
+    return patientInfo['gender'] ?? '';
+  }
+
+  // Obtener detalles de dirección del paciente (entre calles / referencias)
+  String get patientAddressDetails {
+    return patientInfo['addressDetails'] ?? '';
+  }
+
+  // Obtener tipo de entrega del paciente
+  String get patientTipoEntrega {
+    return patientInfo['tipoEntrega'] ?? '';
   }
 
   // Verificar si el registro está completo
@@ -330,18 +345,14 @@ class FrapFirestore extends Equatable {
 
   // Obtener porcentaje de completitud
   double get completionPercentage {
-    int totalSections = 14;
-    int completedSections = 0;
+    int totalSections = 10;
+    int completedSections = 1;
 
     if (serviceInfo.isNotEmpty) completedSections++;
     if (registryInfo.isNotEmpty) completedSections++;
     if (patientInfo.isNotEmpty) completedSections++;
     if (management.isNotEmpty) completedSections++;
     if (medications.isNotEmpty) completedSections++;
-    if (gynecoObstetric.isNotEmpty) completedSections++;
-    if (attentionNegative.isNotEmpty) completedSections++;
-    if (pathologicalHistory.isNotEmpty) completedSections++;
-    if (clinicalHistory.isNotEmpty) completedSections++;
     if (physicalExam.isNotEmpty) completedSections++;
     if (priorityJustification.isNotEmpty) completedSections++;
     if (injuryLocation.isNotEmpty) completedSections++;

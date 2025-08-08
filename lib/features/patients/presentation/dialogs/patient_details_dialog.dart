@@ -52,7 +52,7 @@ class PatientDetailsDialog extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        patient.firstName.isNotEmpty 
+                        patient.firstName.isNotEmpty
                             ? patient.firstName[0].toUpperCase()
                             : '?',
                         style: const TextStyle(
@@ -102,57 +102,61 @@ class PatientDetailsDialog extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSection(
-                      'Información Personal',
-                      Icons.person,
-                      [
-                        _buildDetailRow('Nombre completo', patient.fullName),
-                        _buildDetailRow('Edad', '${patient.age} años'),
-                        _buildDetailRow('Sexo', patient.sex),
-                        _buildDetailRow('Teléfono', patient.phone),
-                        if (patient.responsiblePerson != null)
-                          _buildDetailRow('Persona responsable', patient.responsiblePerson!),
-                      ],
-                    ),
-                    
+                    _buildSection('Información Personal', Icons.person, [
+                      _buildDetailRow('Nombre completo', patient.fullName),
+                      _buildDetailRow('Edad', '${patient.age} años'),
+                      _buildDetailRow('Sexo', patient.sex),
+                      _buildDetailRow('Teléfono', patient.phone),
+                      if (patient.responsiblePerson != null)
+                        _buildDetailRow(
+                          'Persona responsable',
+                          patient.responsiblePerson!,
+                        ),
+                    ]),
+
                     const SizedBox(height: 24),
-                    
-                    _buildSection(
-                      'Dirección',
-                      Icons.location_on,
-                      [
-                        _buildDetailRow('Dirección completa', patient.fullAddress),
-                        _buildDetailRow('Calle', patient.street),
-                        _buildDetailRow('Número exterior', patient.exteriorNumber),
-                        if (patient.interiorNumber != null)
-                          _buildDetailRow('Número interior', patient.interiorNumber!),
-                        _buildDetailRow('Colonia', patient.neighborhood),
-                        _buildDetailRow('Ciudad', patient.city),
-                      ],
-                    ),
-                    
+
+                    _buildSection('Dirección', Icons.location_on, [
+                      _buildDetailRow(
+                        'Dirección completa',
+                        patient.fullAddress,
+                      ),
+                      _buildDetailRow('Calle', patient.street),
+                      _buildDetailRow(
+                        'Número exterior',
+                        patient.exteriorNumber,
+                      ),
+                      if (patient.interiorNumber != null)
+                        _buildDetailRow(
+                          'Número interior',
+                          patient.interiorNumber!,
+                        ),
+                      _buildDetailRow('Colonia', patient.neighborhood),
+                      _buildDetailRow('Ciudad', patient.city),
+                    ]),
+
                     const SizedBox(height: 24),
-                    
+
                     _buildSection(
                       'Información Médica',
                       Icons.medical_services,
-                      [
-                        _buildDetailRow('Seguro médico', patient.insurance),
-                      ],
+                      [_buildDetailRow('Seguro médico', patient.insurance)],
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
-                    _buildSection(
-                      'Información del Registro',
-                      Icons.info,
-                      [
-                        _buildDetailRow('Fecha de registro', _formatDate(patient.createdAt)),
-                        _buildDetailRow('Última actualización', _formatDate(patient.updatedAt)),
-                        if (patient.id != null)
-                          _buildDetailRow('ID del paciente', patient.id!),
-                      ],
-                    ),
+
+                    _buildSection('Información del Registro', Icons.info, [
+                      _buildDetailRow(
+                        'Fecha de registro',
+                        _formatDate(patient.createdAt),
+                      ),
+                      _buildDetailRow(
+                        'Última actualización',
+                        _formatDate(patient.updatedAt),
+                      ),
+                      if (patient.id != null)
+                        _buildDetailRow('ID del paciente', patient.id!),
+                    ]),
                   ],
                 ),
               ),
@@ -215,11 +219,7 @@ class PatientDetailsDialog extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(
-              icon,
-              color: AppTheme.primaryBlue,
-              size: 20,
-            ),
+            Icon(icon, color: AppTheme.primaryBlue, size: 20),
             const SizedBox(width: 8),
             Text(
               title,
@@ -239,9 +239,7 @@ class PatientDetailsDialog extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey[200]!),
           ),
-          child: Column(
-            children: children,
-          ),
+          child: Column(children: children),
         ),
       ],
     );
@@ -280,4 +278,4 @@ class PatientDetailsDialog extends StatelessWidget {
   String _formatDate(DateTime date) {
     return DateFormat('dd/MM/yyyy HH:mm').format(date);
   }
-} 
+}

@@ -22,12 +22,8 @@ class Frap extends Equatable {
   final PhysicalExam physicalExam;
   @HiveField(4)
   final DateTime createdAt;
-
-  // Nuevos campos expandidos
   @HiveField(5)
   final DateTime updatedAt;
-  
-  // Nuevas secciones como Map<String, dynamic>
   @HiveField(6)
   final Map<String, dynamic> serviceInfo;
   @HiveField(7)
@@ -128,11 +124,13 @@ class Frap extends Equatable {
       gynecoObstetric: gynecoObstetric ?? this.gynecoObstetric,
       attentionNegative: attentionNegative ?? this.attentionNegative,
       pathologicalHistory: pathologicalHistory ?? this.pathologicalHistory,
-      priorityJustification: priorityJustification ?? this.priorityJustification,
+      priorityJustification:
+          priorityJustification ?? this.priorityJustification,
       injuryLocation: injuryLocation ?? this.injuryLocation,
       receivingUnit: receivingUnit ?? this.receivingUnit,
       patientReception: patientReception ?? this.patientReception,
-      consentimientoServicio: consentimientoServicio ?? this.consentimientoServicio,
+      consentimientoServicio:
+          consentimientoServicio ?? this.consentimientoServicio,
       insumos: insumos ?? this.insumos,
       personalMedico: personalMedico ?? this.personalMedico,
       escalasObstetricas: escalasObstetricas ?? this.escalasObstetricas,
@@ -203,34 +201,28 @@ class Frap extends Equatable {
   // Método para verificar si una sección tiene datos
   bool hasSectionData(String sectionName) {
     final section = getSection(sectionName);
-    return section.isNotEmpty && section.values.any((value) => 
-      value != null && value.toString().trim().isNotEmpty
-    );
+    return section.isNotEmpty &&
+        section.values.any(
+          (value) => value != null && value.toString().trim().isNotEmpty,
+        );
   }
 
   // Método para calcular completitud del registro
   double get completionPercentage {
-    int totalSections = 14;
-    int completedSections = 0;
-    
+    int totalSections = 10;
+    int completedSections = 1;
+
     // Secciones básicas (siempre presentes)
-    if (patient.name.isNotEmpty) completedSections++;
-    if (clinicalHistory.allergies.isNotEmpty || clinicalHistory.medications.isNotEmpty) completedSections++;
-    if (physicalExam.vitalSigns.isNotEmpty) completedSections++;
-    
-    // Nuevas secciones
     if (hasSectionData('serviceInfo')) completedSections++;
     if (hasSectionData('registryInfo')) completedSections++;
+    if (patient.name.isNotEmpty) completedSections++;
     if (hasSectionData('management')) completedSections++;
     if (hasSectionData('medications')) completedSections++;
-    if (hasSectionData('gynecoObstetric')) completedSections++;
-    if (hasSectionData('attentionNegative')) completedSections++;
-    if (hasSectionData('pathologicalHistory')) completedSections++;
+    if (physicalExam.vitalSigns.isNotEmpty) completedSections++;
     if (hasSectionData('priorityJustification')) completedSections++;
-    if (hasSectionData('injuryLocation')) completedSections++;
     if (hasSectionData('receivingUnit')) completedSections++;
     if (hasSectionData('patientReception')) completedSections++;
-    
+
     return (completedSections / totalSections) * 100;
   }
 
@@ -263,27 +255,27 @@ class Frap extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        patient,
-        clinicalHistory,
-        physicalExam,
-        createdAt,
-        updatedAt,
-        serviceInfo,
-        registryInfo,
-        management,
-        medications,
-        gynecoObstetric,
-        attentionNegative,
-        pathologicalHistory,
-        priorityJustification,
-        injuryLocation,
-        receivingUnit,
-        patientReception,
-        consentimientoServicio,
-        insumos,
-        personalMedico,
-        escalasObstetricas,
-        isSynced,
-      ];
-} 
+    id,
+    patient,
+    clinicalHistory,
+    physicalExam,
+    createdAt,
+    updatedAt,
+    serviceInfo,
+    registryInfo,
+    management,
+    medications,
+    gynecoObstetric,
+    attentionNegative,
+    pathologicalHistory,
+    priorityJustification,
+    injuryLocation,
+    receivingUnit,
+    patientReception,
+    consentimientoServicio,
+    insumos,
+    personalMedico,
+    escalasObstetricas,
+    isSynced,
+  ];
+}

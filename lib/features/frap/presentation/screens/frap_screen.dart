@@ -485,7 +485,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
                               (isDisabled ? Colors.grey[500] : Colors.black87),
                         ),
                       ),
-                      if (isDisabled && statusMessage != null) ...[
+                      if (isDisabled) ...[
                         const SizedBox(height: 4),
                         Text(
                           statusMessage,

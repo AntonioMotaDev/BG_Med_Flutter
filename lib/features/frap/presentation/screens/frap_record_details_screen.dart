@@ -108,32 +108,67 @@ class _FrapRecordDetailsScreenState
         key: 'patientInfo',
         title: 'Información del Paciente',
         icon: Icons.person,
-        color: Colors.green,
-        fieldMappings: {
-          'name': 'Nombre completo',
-          'age': 'Edad',
-          'sex': 'Sexo',
-          'genero': 'Género',
-          'phone': 'Teléfono',
-          'emergencyContact': 'Contacto de emergencia',
-          'responsiblePerson': 'Persona responsable',
-          'entreCalles': 'Entre calles',
-          'currentCondition': 'Padecimiento actual',
-          'insurance': 'Seguro médico',
-          'tipoEntrega': 'Tipo de entrega',
-          'tipoEntregaOtro': 'Especifique tipo de entrega',
-        },
-        fallbacks: {
-          'name': widget.record.patientName,
-          'age': '${widget.record.patientAge} años',
-          'sex': widget.record.patientGender,
-        },
+        color: Colors.blue,
+        fallbacks: {'tipoEntrega': 'No especificado'},
         specialFields: {
-          'address': {
+          'fullName': {
+            'label': 'Nombre completo',
+            'isFullWidth': true,
+            'customBuilder': (data) => widget.record.patientName,
+          },
+          'fullAddress': {
             'label': 'Dirección',
             'isFullWidth': true,
             'customBuilder': (data) => _buildFullAddress(data),
           },
+          'age': {
+            'label': 'Edad',
+            'customBuilder':
+                (data) => _formatAge(
+                  _getSafeStringValue(data, 'age'),
+                  widget.record.patientAge,
+                ),
+          },
+          'sex': {
+            'label': 'Sexo',
+            'customBuilder':
+                (data) =>
+                    _getSafeStringValue(data, 'sex') ??
+                    widget.record.patientGender,
+          },
+          'gender': {
+            'label': 'Género',
+            'customBuilder': (data) => _getSafeStringValue(data, 'gender'),
+          },
+          'phone': {
+            'label': 'Teléfono',
+            'customBuilder':
+                (data) => _formatPhone(_getSafeStringValue(data, 'phone')),
+          },
+          'emergencyContact': {
+            'label': 'Contacto de emergencia',
+            'customBuilder':
+                (data) => _getSafeStringValue(
+                  _detailedInfo['serviceInfo'],
+                  'emergencyContact',
+                ),
+          },
+          'currentCondition': {
+            'label': 'Padecimiento actual',
+            'isFullWidth': true,
+            'customBuilder':
+                (data) => _getSafeStringValue(
+                  _detailedInfo['serviceInfo'],
+                  'currentCondition',
+                ),
+          },
+        },
+        fieldMappings: {
+          'responsiblePerson': 'Persona responsable',
+          'addressDetails': 'Detalles de dirección',
+          'insurance': 'Seguro médico',
+          'tipoEntrega': 'Tipo de entrega',
+          'tipoEntregaOtro': 'Otro tipo de entrega',
         },
       ),
       SectionConfig(
@@ -237,13 +272,6 @@ class _FrapRecordDetailsScreenState
         fieldMappings: {
           'medications': 'Medicamentos',
           'observaciones': 'Observaciones',
-        },
-        specialFields: {
-          'medicationsList': {
-            'label': 'Lista de medicamentos',
-            'isFullWidth': true,
-            'customBuilder': (data) => _buildMedicationsList(data),
-          },
         },
       ),
       SectionConfig(
@@ -455,33 +483,23 @@ class _FrapRecordDetailsScreenState
         icon: Icons.health_and_safety,
         color: Colors.cyan,
         fieldMappings: {
-          'head': 'Cabeza',
-          'neck': 'Cuello',
-          'thorax': 'Tórax',
-          'abdomen': 'Abdomen',
-          'extremities': 'Extremidades',
-          'neurological': 'Neurológico',
-          'observaciones': 'Observaciones',
           'eva': 'EVA',
           'llc': 'LLC',
           'glucosa': 'Glucosa',
           'ta': 'T/A',
-          'sampleAlergias': 'Alergias',
-          'sampleMedicamentos': 'Medicamentos',
-          'sampleEnfermedades': 'Enfermedades',
-          'sampleHoraAlimento': 'Hora último alimento',
-          'sampleEventosPrevios': 'Eventos previos',
         },
-        vitalSigns: [
-          'T/A',
-          'FC',
-          'FR',
-          'Temp.',
-          'Sat. O2',
-          'LLC',
-          'Glu',
-          'Glasgow',
-        ],
+        specialFields: {
+          'vitalSigns': {
+            'label': 'Signos Vitales',
+            'isFullWidth': true,
+            'customBuilder': (data) => _buildVitalSignsDisplay(data),
+          },
+          'sampleSection': {
+            'label': 'Evaluación SAMPLE',
+            'isFullWidth': true,
+            'customBuilder': (data) => _buildSampleSection(data),
+          },
+        },
       ),
       SectionConfig(
         key: 'priorityJustification',
@@ -543,6 +561,48 @@ class _FrapRecordDetailsScreenState
             'label': 'Firma del medico',
             'isSignature': true,
             'signatureTitle': 'Firma del Médico',
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'consentimientoServicio',
+        title: 'Consentimiento de Servicio',
+        icon: Icons.assignment_turned_in,
+        color: Colors.green,
+        fieldMappings: {},
+        specialFields: {
+          'consentimientoSignature': {
+            'label': 'Firma de consentimiento',
+            'isSignature': true,
+            'signatureTitle': 'Firma de Consentimiento',
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'insumos',
+        title: 'Insumos Utilizados',
+        icon: Icons.inventory,
+        color: Colors.amber,
+        fieldMappings: {},
+        specialFields: {
+          'insumosList': {
+            'label': 'Lista de insumos',
+            'isFullWidth': true,
+            'customBuilder': (data) => _buildInsumosList(data),
+          },
+        },
+      ),
+      SectionConfig(
+        key: 'personalMedico',
+        title: 'Personal Médico',
+        icon: Icons.people,
+        color: Colors.purple,
+        fieldMappings: {},
+        specialFields: {
+          'personalMedicoList': {
+            'label': 'Lista de personal médico',
+            'isFullWidth': true,
+            'customBuilder': (data) => _buildPersonalMedicoList(data),
           },
         },
       ),
@@ -811,11 +871,14 @@ class _FrapRecordDetailsScreenState
                       // Medicamentos
                       _buildSectionFromConfig(_sectionConfigs[4]),
 
-                      // Gineco-obstétrica
-                      _buildSectionFromConfig(_sectionConfigs[5]),
+                      // Gineco-obstétrica (solo para pacientes femeninos)
+                      if (widget.record.patientGender.toLowerCase() ==
+                          'femenino')
+                        _buildSectionFromConfig(_sectionConfigs[5]),
 
-                      // Atención negativa
-                      _buildSectionFromConfig(_sectionConfigs[6]),
+                      // Atención negativa (solo si hay datos registrados)
+                      if (_hasAttentionNegativeData())
+                        _buildSectionFromConfig(_sectionConfigs[6]),
 
                       // Historia patológica
                       _buildSectionFromConfig(_sectionConfigs[7]),
@@ -843,7 +906,10 @@ class _FrapRecordDetailsScreenState
 
                       _buildPersonalMedicoSection(),
 
-                      _buildEscalasObstetricasSection(),
+                      // Escalas obstétricas (solo para pacientes femeninos)
+                      if (widget.record.patientGender.toLowerCase() ==
+                          'femenino')
+                        _buildEscalasObstetricasSection(),
 
                       const SizedBox(height: 32),
                     ],
@@ -877,7 +943,7 @@ class _FrapRecordDetailsScreenState
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                   child: Icon(Icons.person, size: 32, color: Colors.white),
                 ),
                 const SizedBox(width: 16),
@@ -898,7 +964,7 @@ class _FrapRecordDetailsScreenState
                         '${widget.record.patientAge} años • ${widget.record.patientGender}',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
@@ -910,7 +976,7 @@ class _FrapRecordDetailsScreenState
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -959,14 +1025,14 @@ class _FrapRecordDetailsScreenState
                 Text(
                   'Progreso de completitud',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: widget.record.completionPercentage / 100,
-                  backgroundColor: Colors.white.withOpacity(0.3),
+                  backgroundColor: Colors.white.withValues(alpha: 0.3),
                   valueColor: AlwaysStoppedAnimation<Color>(
                     widget.record.completionPercentage >= 80
                         ? Colors.green[300]!
@@ -987,7 +1053,7 @@ class _FrapRecordDetailsScreenState
   Widget _buildInfoItem(String label, String value, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.white.withOpacity(0.8)),
+        Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.8)),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -996,7 +1062,7 @@ class _FrapRecordDetailsScreenState
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 12,
                 ),
               ),
@@ -1119,12 +1185,6 @@ class _FrapRecordDetailsScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Campos normales en 3 columnas
-        if (normalFields.isNotEmpty) ...[
-          _buildThreeColumnGrid(normalFields),
-          if (specialFields.isNotEmpty) const SizedBox(height: 24),
-        ],
-
         // Campos especiales (firmas y ancho completo) en ancho completo
         if (specialFields.isNotEmpty) ...[
           ...specialFields.map((detail) {
@@ -1137,6 +1197,11 @@ class _FrapRecordDetailsScreenState
               isSignature: detail['isSignature'] == true,
             );
           }),
+        ],
+        // Campos normales en 3 columnas
+        if (normalFields.isNotEmpty) ...[
+          _buildThreeColumnGrid(normalFields),
+          if (specialFields.isNotEmpty) const SizedBox(height: 24),
         ],
       ],
     );
@@ -1262,11 +1327,6 @@ class _FrapRecordDetailsScreenState
       patientInfoMap = Map<String, dynamic>.from(patientInfo);
     }
 
-    // Debug: Verificar el valor de entreCalles
-    final entreCallesValue = _getSafeStringValue(patientInfoMap, 'entreCalles');
-    print('DEBUG: entreCalles value: $entreCallesValue');
-    print('DEBUG: patientInfoMap keys: ${patientInfoMap.keys.toList()}');
-
     final details = [
       {
         'label': 'Nombre completo',
@@ -1289,7 +1349,7 @@ class _FrapRecordDetailsScreenState
       },
       {
         'label': 'Género',
-        'value': _getSafeStringValue(patientInfoMap, 'genero'),
+        'value': _getSafeStringValue(patientInfoMap, 'gender'),
       },
       {
         'label': 'Teléfono',
@@ -1309,8 +1369,8 @@ class _FrapRecordDetailsScreenState
         'isFullWidth': true,
       },
       {
-        'label': 'Entre calles',
-        'value': _getSafeStringValue(patientInfoMap, 'entreCalles'),
+        'label': 'Detalles de dirección',
+        'value': _getSafeStringValue(patientInfoMap, 'addressDetails'),
       },
       {
         'label': 'Padecimiento actual',
@@ -1341,7 +1401,7 @@ class _FrapRecordDetailsScreenState
   }
 
   // Método para construir dirección completa
-  String _buildFullAddress(Map<String, dynamic> patientInfoMap) {
+  String _buildFullAddress(Map<dynamic, dynamic> patientInfoMap) {
     final addressParts = <String>[];
 
     final street = _getSafeStringValue(patientInfoMap, 'street');
@@ -1349,12 +1409,19 @@ class _FrapRecordDetailsScreenState
     final intNumber = _getSafeStringValue(patientInfoMap, 'interiorNumber');
     final neighborhood = _getSafeStringValue(patientInfoMap, 'neighborhood');
     final city = _getSafeStringValue(patientInfoMap, 'city');
+    final addressDetails = _getSafeStringValue(
+      patientInfoMap,
+      'addressDetails',
+    );
 
     if (street != null) addressParts.add(street);
     if (extNumber != null) addressParts.add('No. $extNumber');
     if (intNumber != null) addressParts.add('Int. $intNumber');
     if (neighborhood != null) addressParts.add('Col. $neighborhood');
     if (city != null) addressParts.add(city);
+    if (addressDetails != null && addressDetails.trim().isNotEmpty) {
+      addressParts.add(addressDetails);
+    }
 
     return addressParts.isNotEmpty
         ? addressParts.join(', ')
@@ -1885,9 +1952,11 @@ class _FrapRecordDetailsScreenState
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.1),
+                  color: Colors.deepPurple.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.deepPurple.withOpacity(0.3)),
+                  border: Border.all(
+                    color: Colors.deepPurple.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -1988,9 +2057,9 @@ class _FrapRecordDetailsScreenState
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -2079,6 +2148,13 @@ class _FrapRecordDetailsScreenState
         return value.toString().trim();
       }
     }
+    // Also check Map<dynamic, dynamic>
+    if (data is Map && data.containsKey(key)) {
+      final value = data[key];
+      if (value != null) {
+        return value.toString().trim();
+      }
+    }
     return null;
   }
 
@@ -2144,13 +2220,13 @@ class _FrapRecordDetailsScreenState
     );
   }
 
-  Widget _buildSilvermanAndersonDisplay(Map<String, dynamic> silverman) {
+  Widget _buildSilvermanAndersonDisplay(Map<dynamic, dynamic> silverman) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.pink.withOpacity(0.1),
+        color: Colors.pink.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.pink.withOpacity(0.3)),
+        border: Border.all(color: Colors.pink.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2189,41 +2265,18 @@ class _FrapRecordDetailsScreenState
               ),
             );
           }),
-          const Divider(),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Puntaje total:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Text(
-                '${silverman.values.where((value) => value != null).fold(0, (sum, value) {
-                  if (value is int) return sum + value;
-                  if (value is bool) return sum + (value ? 1 : 0);
-                  return sum;
-                })}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.pink,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildApgarDisplay(Map<String, dynamic> apgar) {
+  Widget _buildApgarDisplay(Map<dynamic, dynamic> apgar) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.pink.withOpacity(0.1),
+        color: Colors.pink.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.pink.withOpacity(0.3)),
+        border: Border.all(color: Colors.pink.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2260,35 +2313,12 @@ class _FrapRecordDetailsScreenState
               ),
             );
           }),
-          const Divider(),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Puntaje total:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Text(
-                '${apgar.values.where((value) => value != null).fold(0, (sum, value) {
-                  if (value is int) return sum + value;
-                  if (value is bool) return sum + (value ? 1 : 0);
-                  return sum;
-                })}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.pink,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  String _getSilvermanCriteriaName(String key) {
+  String _getSilvermanCriteriaName(dynamic key) {
     switch (key) {
       case 'respirationMoved':
         return 'Movimientos respiratorios';
@@ -2301,11 +2331,11 @@ class _FrapRecordDetailsScreenState
       case 'circulation':
         return 'Circulación';
       default:
-        return key;
+        return key.toString();
     }
   }
 
-  String _getApgarCriteriaName(String key) {
+  String _getApgarCriteriaName(dynamic key) {
     switch (key) {
       case 'heartRate':
         return 'Frecuencia cardíaca';
@@ -2318,7 +2348,7 @@ class _FrapRecordDetailsScreenState
       case 'skinColor':
         return 'Color de la piel';
       default:
-        return key;
+        return key.toString();
     }
   }
 
@@ -2341,7 +2371,7 @@ class _FrapRecordDetailsScreenState
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -2573,9 +2603,9 @@ class _FrapRecordDetailsScreenState
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -2605,7 +2635,7 @@ class _FrapRecordDetailsScreenState
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: color.withOpacity(0.8),
+                color: color.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -2637,9 +2667,13 @@ class _FrapRecordDetailsScreenState
 
   // Métodos automatizados para procesar configuraciones
   Map<String, dynamic> _extractSectionData(String sectionKey) {
-    final sectionData = _detailedInfo[sectionKey];
-    if (sectionData is Map) {
-      return Map<String, dynamic>.from(sectionData);
+    if (_detailedInfo.containsKey(sectionKey)) {
+      final data = _detailedInfo[sectionKey];
+      if (data is Map<String, dynamic>) {
+        return data;
+      } else if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
     }
     return {};
   }
@@ -2648,14 +2682,21 @@ class _FrapRecordDetailsScreenState
     final sectionData = _extractSectionData(config.key);
     final details = <Map<String, dynamic>>[];
 
-    // Procesar campos normales
+    // Procesar campos normales (excluyendo los que están en specialFields)
     config.fieldMappings.forEach((fieldKey, label) {
+      // Saltar campos que están en specialFields para evitar duplicados
+      if (config.specialFields.containsKey(fieldKey)) {
+        return;
+      }
+
       final value = _getSafeStringValue(sectionData, fieldKey);
       final fallbackValue = config.fallbacks[fieldKey];
 
       final finalValue = value ?? (fallbackValue?.toString());
-      if (finalValue != null && finalValue.trim().isNotEmpty) {
-        details.add({'label': label, 'value': finalValue});
+      // Mostrar el campo entreCalles incluso si está vacío para debugging
+      if (fieldKey == 'entreCalles' ||
+          (finalValue != null && finalValue.trim().isNotEmpty)) {
+        details.add({'label': label, 'value': finalValue ?? 'No especificado'});
       }
     });
 
@@ -2720,44 +2761,10 @@ class _FrapRecordDetailsScreenState
       }
     });
 
-    // Procesar signos vitales (para examen físico)
-    if (config.vitalSigns.isNotEmpty) {
-      for (final vitalSign in config.vitalSigns) {
-        final value = _buildVitalSignValue(sectionData, vitalSign);
-        if (value != null) {
-          details.add({'label': vitalSign, 'value': value});
-        }
-      }
-    }
-
     return details;
   }
 
-  String? _buildVitalSignValue(
-    Map<String, dynamic> sectionData,
-    String vitalSign,
-  ) {
-    if (sectionData['timeColumns'] != null && sectionData[vitalSign] != null) {
-      final timeColumns = List<String>.from(sectionData['timeColumns']);
-      final valuesData = sectionData[vitalSign];
-
-      if (valuesData is Map) {
-        final values = Map<String, dynamic>.from(valuesData);
-        return timeColumns
-            .map((col) => '$col: ${values[col] ?? ''}')
-            .join('\n');
-      }
-    }
-
-    // Manejar el caso donde no hay timeColumns o el valor no es un Map
-    final value = sectionData[vitalSign];
-    if (value != null) {
-      return value.toString();
-    }
-    return null;
-  }
-
-  Widget _buildMedicationsList(Map<String, dynamic> sectionData) {
+  Widget _buildMedicationsList(Map<dynamic, dynamic> sectionData) {
     final medicationsList = sectionData['medicationsList'];
     if (medicationsList == null || medicationsList.isEmpty) {
       return const Text('No se registraron medicamentos');
@@ -2772,9 +2779,9 @@ class _FrapRecordDetailsScreenState
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2967,9 +2974,11 @@ class _FrapRecordDetailsScreenState
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
+                            color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: color.withOpacity(0.3)),
+                            border: Border.all(
+                              color: color.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Row(
                             children: [
@@ -3008,7 +3017,7 @@ class _FrapRecordDetailsScreenState
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: color.withOpacity(0.8),
+                                        color: color.withValues(alpha: 0.8),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -3033,10 +3042,10 @@ class _FrapRecordDetailsScreenState
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
+                          color: Colors.blue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: Colors.blue.withOpacity(0.3),
+                            color: Colors.blue.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -3104,7 +3113,7 @@ class _FrapRecordDetailsScreenState
                     border: Border.all(color: Colors.grey[300]!),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -3205,7 +3214,7 @@ class _FrapRecordDetailsScreenState
 
   // Método auxiliar para mostrar detalles de ancho completo (como notas)
   Widget _buildFullWidthDetail(String label, dynamic value) {
-    if (value == null || value.toString().trim().isEmpty) {
+    if (value == null) {
       return const SizedBox.shrink();
     }
 
@@ -3223,110 +3232,549 @@ class _FrapRecordDetailsScreenState
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
+          if (value is Widget)
+            value
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Text(
+                value.toString(),
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
             ),
-            child: Text(
-              value.toString(),
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildPersonalMedicoList(Map<String, dynamic> sectionData) {
-    final personalMedicoList = sectionData['personalMedico'];
-    if (personalMedicoList == null || personalMedicoList.isEmpty) {
-      return const Text('No se registró personal médico');
+  Widget _buildPersonalMedicoList(Map<String, dynamic> data) {
+    final personalList = data['personalMedicoList'] as List<dynamic>? ?? [];
+
+    if (personalList.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+            const SizedBox(width: 12),
+            Text(
+              'No hay personal médico registrado',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
-    if (personalMedicoList is List) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (int i = 0; i < personalMedicoList.length; i++)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.indigo.withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Personal Médico',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.purple[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...personalList.map((personal) {
+          final nombre = personal['nombre']?.toString() ?? '';
+          final especialidad = personal['especialidad']?.toString() ?? '';
+          final cedula = personal['cedula']?.toString() ?? '';
+
+          return Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.purple.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.person, color: Colors.purple, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Colors.indigo,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
+                      Text(
+                        nombre,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.purple,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          personalMedicoList[i]['nombre'] ?? 'Sin especificar',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$especialidad (Cédula: $cedula)',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black87,
                         ),
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  // Método para verificar si hay datos de atención negativa
+  bool _hasAttentionNegativeData() {
+    final attentionNegativeData = _detailedInfo['attentionNegative'];
+    if (attentionNegativeData == null) return false;
+
+    // Verificar si hay algún campo con datos
+    if (attentionNegativeData is Map) {
+      final data = Map<String, dynamic>.from(attentionNegativeData);
+
+      // Verificar campos de texto
+      if (data['motivoNegativa']?.toString().trim().isNotEmpty == true) {
+        return true;
+      }
+      if (data['observaciones']?.toString().trim().isNotEmpty == true) {
+        return true;
+      }
+      if (data['declarationText']?.toString().trim().isNotEmpty == true) {
+        return true;
+      }
+
+      // Verificar firmas
+      if (data['patientSignature'] != null) {
+        return true;
+      }
+      if (data['witnessSignature'] != null) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Widget _buildVitalSignsDisplay(Map<dynamic, dynamic> data) {
+    // Obtener datos dinámicos de signos vitales
+    final vitalSignsData =
+        data['vitalSignsData'] as Map<String, dynamic>? ?? {};
+
+    // Corregir el cast de timeColumns
+    final timeColumnsRaw = data['timeColumns'];
+    final List<String> timeColumns =
+        timeColumnsRaw is List
+            ? timeColumnsRaw.map((e) => e.toString()).toList()
+            : <String>[];
+
+    // Lista de signos vitales estándar
+    final List<String> vitalSigns = [
+      'T/A',
+      'FC',
+      'FR',
+      'Temp.',
+      'Sat. O2',
+      'LLC',
+      'Glu',
+      'Glasgow',
+    ];
+
+    // Verificar si hay datos de signos vitales dinámicos
+    bool hasVitalSignsData = false;
+    final List<Widget> vitalSignsWidgets = [];
+
+    for (final vitalSign in vitalSigns) {
+      final vitalData = vitalSignsData[vitalSign];
+      if (vitalData != null &&
+          vitalData is Map<String, dynamic> &&
+          vitalData.isNotEmpty) {
+        hasVitalSignsData = true;
+
+        // Extraer las columnas de tiempo disponibles
+        final values = <String>[];
+
+        // Usar columnas de tiempo dinámicas o buscar columnas estándar
+        final availableTimeColumns =
+            timeColumns.isNotEmpty
+                ? timeColumns
+                : ['Hora 1', 'Hora 2', 'Hora 3'];
+
+        for (final timeKey in availableTimeColumns) {
+          final value = vitalData[timeKey]?.toString() ?? '';
+          values.add(value);
+        }
+
+        if (values.any((v) => v.isNotEmpty)) {
+          vitalSignsWidgets.add(
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.cyan.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.cyan.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    vitalSign,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.cyan,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          'Especialidad: ${personalMedicoList[i]['especialidad'] ?? 'No especificada'}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                      ...availableTimeColumns.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final timeColumn = entry.value;
+                        final value = values[index];
+
+                        return Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: Colors.cyan.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  timeColumn,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  value.isNotEmpty ? value : '-',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.cyan,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'Cédula: ${personalMedicoList[i]['cedula'] ?? 'No especificada'}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
+                        );
+                      }),
                     ],
                   ),
                 ],
               ),
             ),
-        ],
+          );
+        }
+      }
+    }
+
+    // Si no hay datos dinámicos, mostrar valores simples
+    if (!hasVitalSignsData) {
+      final simpleVitalSigns = <Widget>[];
+
+      for (final vitalSign in vitalSigns) {
+        final value = data[vitalSign]?.toString();
+        if (value != null && value.isNotEmpty) {
+          simpleVitalSigns.add(
+            Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(bottom: 4),
+              decoration: BoxDecoration(
+                color: Colors.cyan.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    vitalSign,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.cyan,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      }
+
+      if (simpleVitalSigns.isNotEmpty) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Signos Vitales',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.cyan[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...simpleVitalSigns,
+          ],
+        );
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Signos Vitales',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.cyan[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...vitalSignsWidgets,
+      ],
+    );
+  }
+
+  // Método para construir sección SAMPLE
+  Widget _buildSampleSection(Map<String, dynamic> data) {
+    final sampleFields = [
+      {'key': 'sampleAlergias', 'label': 'Alergias', 'icon': Icons.warning},
+      {
+        'key': 'sampleMedicamentos',
+        'label': 'Medicamentos',
+        'icon': Icons.medication,
+      },
+      {
+        'key': 'sampleEnfermedades',
+        'label': 'Historia médica previa',
+        'icon': Icons.history,
+      },
+      {
+        'key': 'sampleHoraAlimento',
+        'label': 'Última ingesta oral',
+        'icon': Icons.restaurant,
+      },
+      {
+        'key': 'sampleEventosPrevios',
+        'label': 'Eventos previos',
+        'icon': Icons.event,
+      },
+    ];
+
+    final sampleWidgets = <Widget>[];
+    bool hasSampleData = false;
+
+    for (final field in sampleFields) {
+      final value = data[field['key']]?.toString();
+      if (value != null && value.isNotEmpty) {
+        hasSampleData = true;
+        sampleWidgets.add(
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(field['icon'] as IconData, color: Colors.orange, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        field['label'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.orange,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    if (!hasSampleData) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+            const SizedBox(width: 12),
+            Text(
+              'No hay datos de evaluación SAMPLE',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
       );
     }
 
-    return const Text('Formato de personal médico no válido');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Evaluación SAMPLE',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.orange[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...sampleWidgets,
+      ],
+    );
+  }
+
+  // Método para construir lista de insumos
+  Widget _buildInsumosList(Map<String, dynamic> data) {
+    final insumosList = data['insumosList'] as List<dynamic>? ?? [];
+
+    if (insumosList.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+            const SizedBox(width: 12),
+            Text(
+              'No hay insumos registrados',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Insumos Utilizados',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.amber[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...insumosList.map((insumo) {
+          final cantidad = insumo['cantidad']?.toString() ?? '';
+          final articulo = insumo['articulo']?.toString() ?? '';
+
+          return Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.inventory, color: Colors.amber, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        articulo,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.amber,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Cantidad: $cantidad',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
   }
 }

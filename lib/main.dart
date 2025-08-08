@@ -47,18 +47,8 @@ void main() async {
     Hive.registerAdapter(PersonalMedicoAdapter());
     Hive.registerAdapter(EscalasObstetricasAdapter());
 
-    // Abrir cajas de Hive
-    try {
-      await Hive.openBox<Frap>('fraps');
-    } catch (e) {
-      // Si hay error, limpiar la caja y reintentar
-      try {
-        await Hive.deleteBoxFromDisk('fraps');
-        await Hive.openBox<Frap>('fraps');
-      } catch (e2) {
-        print('Error inicializando base de datos local: $e2');
-      }
-    }
+    // Abrir cajas de Hive con mejor manejo de errores
+    await _initializeHiveBoxes();
   } catch (e) {
     print('Error durante inicialización: $e');
   }
@@ -74,6 +64,32 @@ void main() async {
       child: MyApp(),
     ),
   );
+}
+
+// Función para inicializar las cajas de Hive
+Future<void> _initializeHiveBoxes() async {
+  try {
+    // Verificar si la caja ya está abierta
+    if (!Hive.isBoxOpen('fraps')) {
+      await Hive.openBox<Frap>('fraps');
+      print('Caja de FRAPs abierta correctamente');
+    } else {
+      print('Caja de FRAPs ya estaba abierta');
+    }
+  } catch (e) {
+    print('Error abriendo caja de FRAPs: $e');
+    try {
+      // Si hay error, intentar limpiar y reabrir
+      print('Intentando limpiar y reabrir la caja...');
+      await Hive.deleteBoxFromDisk('fraps');
+      await Future.delayed(Duration(milliseconds: 500)); // Pequeña pausa
+      await Hive.openBox<Frap>('fraps');
+      print('Caja de FRAPs reabierta correctamente después de limpiar');
+    } catch (e2) {
+      print('Error crítico inicializando base de datos: $e2');
+      // Continuar sin la base de datos local
+    }
+  }
 }
 
 // Providers principales

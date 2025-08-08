@@ -17,61 +17,68 @@ class PhysicalExamAdapter extends TypeAdapter<PhysicalExam> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return PhysicalExam(
-      vitalSigns: fields[0] as String,
-      head: fields[1] as String,
-      neck: fields[2] as String,
-      thorax: fields[3] as String,
-      abdomen: fields[4] as String,
-      extremities: fields[5] as String,
-      bloodPressure: fields[6] as String,
-      heartRate: fields[7] as String,
-      respiratoryRate: fields[8] as String,
-      temperature: fields[9] as String,
-      oxygenSaturation: fields[10] as String,
-      neurological: fields[11] as String,
-      eva: fields[12] as int,
-      llc: fields[13] as int,
-      glucosa: fields[14] as int,
-      ta: fields[15] as String,
+      eva: fields[0] as String,
+      llc: fields[1] as String,
+      glucosa: fields[2] as String,
+      ta: fields[3] as String,
+      sampleAlergias: fields[4] as String,
+      sampleMedicamentos: fields[5] as String,
+      sampleEnfermedades: fields[6] as String,
+      sampleHoraAlimento: fields[7] as String,
+      sampleEventosPrevios: fields[8] as String,
+      timeColumns: (fields[9] as List).cast<String>(),
+      vitalSignsData: (fields[10] as Map).map((dynamic k, dynamic v) =>
+          MapEntry(k as String, (v as Map).cast<String, String>())),
+      timestamp: fields[11] as String,
+      vitalSigns: fields[12] as String,
+      head: fields[13] as String,
+      neck: fields[14] as String,
+      thorax: fields[15] as String,
+      abdomen: fields[16] as String,
+      extremities: fields[17] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, PhysicalExam obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(18)
       ..writeByte(0)
-      ..write(obj.vitalSigns)
-      ..writeByte(1)
-      ..write(obj.head)
-      ..writeByte(2)
-      ..write(obj.neck)
-      ..writeByte(3)
-      ..write(obj.thorax)
-      ..writeByte(4)
-      ..write(obj.abdomen)
-      ..writeByte(5)
-      ..write(obj.extremities)
-      ..writeByte(6)
-      ..write(obj.bloodPressure)
-      ..writeByte(7)
-      ..write(obj.heartRate)
-      ..writeByte(8)
-      ..write(obj.respiratoryRate)
-      ..writeByte(9)
-      ..write(obj.temperature)
-      ..writeByte(10)
-      ..write(obj.oxygenSaturation)
-      ..writeByte(11)
-      ..write(obj.neurological)
-      ..writeByte(12)
       ..write(obj.eva)
-      ..writeByte(13)
+      ..writeByte(1)
       ..write(obj.llc)
-      ..writeByte(14)
+      ..writeByte(2)
       ..write(obj.glucosa)
+      ..writeByte(3)
+      ..write(obj.ta)
+      ..writeByte(4)
+      ..write(obj.sampleAlergias)
+      ..writeByte(5)
+      ..write(obj.sampleMedicamentos)
+      ..writeByte(6)
+      ..write(obj.sampleEnfermedades)
+      ..writeByte(7)
+      ..write(obj.sampleHoraAlimento)
+      ..writeByte(8)
+      ..write(obj.sampleEventosPrevios)
+      ..writeByte(9)
+      ..write(obj.timeColumns)
+      ..writeByte(10)
+      ..write(obj.vitalSignsData)
+      ..writeByte(11)
+      ..write(obj.timestamp)
+      ..writeByte(12)
+      ..write(obj.vitalSigns)
+      ..writeByte(13)
+      ..write(obj.head)
+      ..writeByte(14)
+      ..write(obj.neck)
       ..writeByte(15)
-      ..write(obj.ta);
+      ..write(obj.thorax)
+      ..writeByte(16)
+      ..write(obj.abdomen)
+      ..writeByte(17)
+      ..write(obj.extremities);
   }
 
   @override

@@ -36,6 +36,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
   final _interiorNumberController = TextEditingController();
   final _neighborhoodController = TextEditingController();
   final _cityController = TextEditingController();
+  final _addressDetailsController = TextEditingController();
   final _responsiblePersonController = TextEditingController();
 
   // Valores seleccionados
@@ -47,6 +48,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
   final List<String> _insuranceOptions = [
     'IMSS',
     'ISSSTE',
+    'PEMEX',
     'Seguro Popular',
     'Privado',
     'Sin seguro',
@@ -72,6 +74,8 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
       _interiorNumberController.text = patient.interiorNumber ?? '';
       _neighborhoodController.text = patient.neighborhood;
       _cityController.text = patient.city;
+      _addressDetailsController.text =
+          ''; // Campo no disponible en PatientFirestore
       _responsiblePersonController.text = patient.responsiblePerson ?? '';
 
       // Validar que el sexo del paciente esté en las opciones disponibles
@@ -115,6 +119,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
     _interiorNumberController.dispose();
     _neighborhoodController.dispose();
     _cityController.dispose();
+    _addressDetailsController.dispose();
     _responsiblePersonController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -580,6 +585,20 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
               }
               return null;
             },
+          ),
+          const SizedBox(height: 16),
+
+          // Detalles de dirección
+          TextFormField(
+            controller: _addressDetailsController,
+            decoration: const InputDecoration(
+              labelText: 'Detalles de dirección',
+              prefixIcon: Icon(Icons.info_outline),
+              border: OutlineInputBorder(),
+              hintText: 'Ej: Entre calles, referencias, etc.',
+            ),
+            textCapitalization: TextCapitalization.sentences,
+            maxLines: 2,
           ),
         ],
       ),

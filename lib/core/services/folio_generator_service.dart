@@ -1,49 +1,36 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:bg_med/core/services/frap_firestore_service.dart';
 import 'package:bg_med/core/services/frap_local_service.dart';
 
 class FolioGeneratorService {
   static const String _collectionName = 'preHospitalRecords';
-  static const String _countersCollectionName = 'patientCounters';
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FrapFirestoreService _cloudService = FrapFirestoreService();
   final FrapLocalService _localService = FrapLocalService();
 
   // Referencia a la colección
   CollectionReference get _collection => _firestore.collection(_collectionName);
-  CollectionReference get _countersCollection =>
-      _firestore.collection(_countersCollectionName);
 
   // Obtener el ID del usuario actual
   String? get _currentUserId => _auth.currentUser?.uid;
 
-  // Generar folio con iniciales del paciente
+  // Generar folio con iniciales del paciente y fecha/hora
   Future<String> generatePatientFolio(String patientName) async {
     try {
-      final userId = _currentUserId;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
-
       final initials = _extractInitials(patientName);
-      final year = DateTime.now().year;
+      final now = DateTime.now();
+      final year = now.year;
 
-      // Intentar usar contador atómico si hay conexión
-      try {
-        final counter = await _getPatientYearCounterAtomically(
-          initials,
-          year,
-          userId,
-        );
-        return '$initials-$year-${counter.toString().padLeft(4, '0')}';
-      } catch (e) {
-        // Si falla, usar contador local
-        final localCounter = await _getPatientYearCounterLocal(initials, year);
-        return '$initials-$year-${localCounter.toString().padLeft(4, '0')}';
-      }
+      // Formato: DDMMHHMM (día, mes, hora, minuto)
+      final day = now.day.toString().padLeft(2, '0');
+      final month = now.month.toString().padLeft(2, '0');
+      final hour = now.hour.toString().padLeft(2, '0');
+      final minute = now.minute.toString().padLeft(2, '0');
+
+      final dateTimeCode = '$day$month$hour$minute';
+
+      return '$initials-$year-$dateTimeCode';
     } catch (e) {
       // Fallback con timestamp
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -84,60 +71,6 @@ class FolioGeneratorService {
     }
 
     return initials;
-  }
-
-  // Obtener contador atómico para paciente y año
-  Future<int> _getPatientYearCounterAtomically(
-    String initials,
-    int year,
-    String userId,
-  ) async {
-    final counterKey = '$initials-$year';
-
-    return await _firestore.runTransaction<int>((transaction) async {
-      // Referencia al documento del contador
-      final counterRef = _countersCollection.doc(counterKey);
-
-      // Leer el documento actual
-      final counterDoc = await transaction.get(counterRef);
-
-      int currentCounter = 1;
-      if (counterDoc.exists) {
-        final data = counterDoc.data() as Map<String, dynamic>;
-        currentCounter = (data['counter'] ?? 0) + 1;
-      }
-
-      // Actualizar el contador
-      transaction.set(counterRef, {
-        'counter': currentCounter,
-        'lastUpdated': FieldValue.serverTimestamp(),
-        'userId': userId,
-        'initials': initials,
-        'year': year,
-      });
-
-      return currentCounter;
-    });
-  }
-
-  // Obtener contador local para paciente y año
-  Future<int> _getPatientYearCounterLocal(String initials, int year) async {
-    try {
-      // Intentar obtener desde registros locales
-      final localRecords = await _localService.getAllFrapRecords();
-
-      // Filtrar registros del mismo paciente y año
-      final patientRecords =
-          localRecords.where((record) {
-            final recordFolio = record.registryInfo['folio']?.toString() ?? '';
-            return recordFolio.startsWith('$initials-$year-');
-          }).toList();
-
-      return patientRecords.length + 1;
-    } catch (e) {
-      // Si falla, usar timestamp como contador
-      return DateTime.now().millisecondsSinceEpoch % 1000;
-    }
   }
 
   // Generar folio automático (método original para compatibilidad)
@@ -236,15 +169,32 @@ class FolioGeneratorService {
   Future<String> generateUniquePatientFolio(String patientName) async {
     String folio = await generatePatientFolio(patientName);
     int attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 5;
 
     while (await isFolioExists(folio) && attempts < maxAttempts) {
       attempts++;
-      // Agregar sufijo aleatorio si hay duplicado
-      final randomSuffix = (DateTime.now().millisecondsSinceEpoch % 1000)
+      // Agregar segundos como sufijo si hay duplicado
+      final now = DateTime.now();
+      final seconds = now.second.toString().padLeft(2, '0');
+      final milliseconds = (now.millisecondsSinceEpoch % 100)
           .toString()
-          .padLeft(3, '0');
-      folio = '${folio.split('-').take(3).join('-')}-$randomSuffix';
+          .padLeft(2, '0');
+
+      // Extraer las partes del folio original
+      final parts = folio.split('-');
+      if (parts.length >= 3) {
+        final initials = parts[0];
+        final year = parts[1];
+        final dateTimeCode = parts[2];
+
+        // Agregar segundos y milisegundos como sufijo
+        folio = '$initials-$year-$dateTimeCode$seconds$milliseconds';
+      } else {
+        // Si el formato no es el esperado, usar timestamp
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final initials = _extractInitials(patientName);
+        folio = '$initials-${DateTime.now().year}-$timestamp';
+      }
     }
 
     return folio;

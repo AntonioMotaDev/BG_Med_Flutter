@@ -35,16 +35,14 @@ class ClinicalHistory extends Equatable {
   @HiveField(12)
   final String transfusions;
   @HiveField(13)
-  final String horaUltimoAlimento; // SAMPLE: hora de último alimento
+  final String horaUltimoAlimento;
   @HiveField(14)
-  final String eventosPrevios; // SAMPLE: eventos previos
+  final String eventosPrevios;
 
   const ClinicalHistory({
-    // Campos existentes
     required this.allergies,
     required this.medications,
     required this.previousIllnesses,
-    // Nuevos campos con valores por defecto
     this.currentSymptoms = '',
     this.pain = '',
     this.painScale = '',
@@ -59,7 +57,6 @@ class ClinicalHistory extends Equatable {
     this.eventosPrevios = '',
   });
 
-  // Método copyWith para crear copias con cambios
   ClinicalHistory copyWith({
     String? allergies,
     String? medications,
@@ -118,20 +115,20 @@ class ClinicalHistory extends Equatable {
 
   @override
   List<Object?> get props => [
-        allergies,
-        medications,
-        previousIllnesses,
-        currentSymptoms,
-        pain,
-        painScale,
-        dosage,
-        frequency,
-        route,
-        time,
-        previousSurgeries,
-        hospitalizations,
-        transfusions,
-        horaUltimoAlimento,
-        eventosPrevios,
-      ];
-} 
+    allergies,
+    medications,
+    previousIllnesses,
+    currentSymptoms,
+    pain,
+    painScale,
+    dosage,
+    frequency,
+    route,
+    time,
+    previousSurgeries,
+    hospitalizations,
+    transfusions,
+    horaUltimoAlimento,
+    eventosPrevios,
+  ];
+}
