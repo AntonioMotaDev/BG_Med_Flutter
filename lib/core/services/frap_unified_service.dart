@@ -16,6 +16,54 @@ import 'package:bg_med/core/services/frap_migration_service.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+// Helper para construir dirección completa desde un paciente local
+String _buildFullAddressFromPatient(Patient patient) {
+  final List<String> parts = [];
+
+  final street = (patient.street).toString().trim();
+  final exterior = (patient.exteriorNumber).toString().trim();
+  final interior = (patient.interiorNumber ?? '').toString().trim();
+  final neighborhood = (patient.neighborhood).toString().trim();
+  final city = (patient.city).toString().trim();
+
+  if (street.isNotEmpty) {
+    String streetLine = street;
+    if (exterior.isNotEmpty) {
+      streetLine = '$streetLine $exterior';
+    }
+    if (interior.isNotEmpty) {
+      streetLine = '$streetLine Int. $interior';
+    }
+    parts.add(streetLine);
+  }
+  if (neighborhood.isNotEmpty) parts.add(neighborhood);
+  if (city.isNotEmpty) parts.add(city);
+
+  return parts.join(', ');
+}
+
+// Helper para construir dirección completa desde un mapa de patientInfo (nube)
+String _buildFullAddressFromMap(Map<String, dynamic> patientInfo) {
+  final List<String> parts = [];
+
+  final street = patientInfo['street']?.toString().trim() ?? '';
+  final exterior = patientInfo['exteriorNumber']?.toString().trim() ?? '';
+  final interior = patientInfo['interiorNumber']?.toString().trim() ?? '';
+  final neighborhood = patientInfo['neighborhood']?.toString().trim() ?? '';
+  final city = patientInfo['city']?.toString().trim() ?? '';
+
+  if (street.isNotEmpty) {
+    String streetLine = street;
+    if (exterior.isNotEmpty) streetLine = '$streetLine $exterior';
+    if (interior.isNotEmpty) streetLine = '$streetLine Int. $interior';
+    parts.add(streetLine);
+  }
+  if (neighborhood.isNotEmpty) parts.add(neighborhood);
+  if (city.isNotEmpty) parts.add(city);
+
+  return parts.join(', ');
+}
+
 class FrapUnifiedService {
   final FrapLocalService _localService;
   final FrapFirestoreService _cloudService;
@@ -543,7 +591,7 @@ class FrapUnifiedService {
           'maternalLastName': local.patient.maternalLastName,
           'age': local.patient.age,
           'sex': local.patient.sex,
-          'address': local.patient.address,
+          'address': local.patient.fullAddress,
           'phone': local.patient.phone,
           'street': local.patient.street,
           'exteriorNumber': local.patient.exteriorNumber,
@@ -650,7 +698,12 @@ class UnifiedFrapRecord {
   final DateTime createdAt;
   final String patientName;
   final int patientAge;
+  final String patientSex;
   final String patientGender;
+  final String patientAddress;
+  final String patientPhone;
+  final String patientInsurance;
+  final String patientResponsiblePerson;
   final double completionPercentage;
   final bool isSynced;
 
@@ -660,7 +713,12 @@ class UnifiedFrapRecord {
     required this.createdAt,
     required this.patientName,
     required this.patientAge,
+    required this.patientSex,
     required this.patientGender,
+    required this.patientAddress,
+    required this.patientPhone,
+    required this.patientInsurance,
+    required this.patientResponsiblePerson,
     required this.completionPercentage,
     required this.isSynced,
   });
@@ -671,7 +729,12 @@ class UnifiedFrapRecord {
       createdAt: local.createdAt,
       patientName: local.patient.fullName,
       patientAge: local.patient.age,
-      patientGender: local.patient.sex,
+      patientSex: local.patient.sex,
+      patientGender: local.patient.gender,
+      patientAddress: _buildFullAddressFromPatient(local.patient),
+      patientPhone: local.patient.phone,
+      patientInsurance: local.patient.insurance,
+      patientResponsiblePerson: local.patient.responsiblePerson ?? '',
       completionPercentage: local.completionPercentage,
       isSynced: local.isSynced,
     );
@@ -683,7 +746,13 @@ class UnifiedFrapRecord {
       createdAt: cloud.createdAt,
       patientName: cloud.patientName,
       patientAge: cloud.patientAge,
+      patientSex: cloud.patientGender,
       patientGender: cloud.patientGender,
+      patientAddress: _buildFullAddressFromMap(cloud.patientInfo),
+      patientPhone: cloud.patientInfo['phone']?.toString() ?? '',
+      patientInsurance: cloud.patientInfo['insurance']?.toString() ?? '',
+      patientResponsiblePerson:
+          cloud.patientInfo['responsiblePerson']?.toString() ?? '',
       completionPercentage: cloud.completionPercentage,
       isSynced: true,
     );
@@ -691,15 +760,6 @@ class UnifiedFrapRecord {
 
   // Propiedades adicionales
   bool get isLocal => localRecord != null;
-
-  String get patientAddress {
-    if (localRecord != null) {
-      return localRecord!.patient.address;
-    } else if (cloudRecord != null) {
-      return cloudRecord!.patientInfo['address']?.toString() ?? '';
-    }
-    return '';
-  }
 
   // Propiedad id para compatibilidad
   String get id {
@@ -729,7 +789,7 @@ class UnifiedFrapRecord {
         'name': local.patient.fullName,
         'age': local.patient.age,
         'sex': local.patient.sex,
-        'address': local.patient.address,
+        'address': local.patient.fullAddress,
         'phone': local.patient.phone,
         'insurance': local.patient.insurance,
         'responsiblePerson': local.patient.responsiblePerson,
@@ -787,10 +847,11 @@ class UnifiedFrapRecord {
             '${cloud.patientInfo['firstName'] ?? ''} ${cloud.patientInfo['paternalLastName'] ?? ''}',
         'age': cloud.patientInfo['age'],
         'sex': cloud.patientInfo['sex'],
-        'address': cloud.patientInfo['address'],
-        'phone': cloud.patientInfo['phone'],
-        'insurance': cloud.patientInfo['insurance'],
-        'responsiblePerson': cloud.patientInfo['responsiblePerson'],
+        'address': _buildFullAddressFromMap(cloud.patientInfo),
+        'phone': cloud.patientInfo['phone']?.toString() ?? '',
+        'insurance': cloud.patientInfo['insurance']?.toString() ?? '',
+        'responsiblePerson':
+            cloud.patientInfo['responsiblePerson']?.toString() ?? '',
         'gender': cloud.patientInfo['gender'],
         'firstName': cloud.patientInfo['firstName'],
         'paternalLastName': cloud.patientInfo['paternalLastName'],

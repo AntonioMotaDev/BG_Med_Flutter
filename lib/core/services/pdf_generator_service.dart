@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -9,29 +8,353 @@ import 'dart:convert';
 import 'package:bg_med/core/services/frap_unified_service.dart';
 import 'package:flutter/services.dart';
 
-class PdfGeneratorService {
-  pw.Font? _unicodeFont;
+// DTO Classes for unified data representation
+class PatientDisplayData {
+  final String fullName;
+  final String address;
+  final String age;
+  final String sex;
+  final String gender;
+  final String phone;
+  final String insurance;
+  final String responsiblePerson;
+  final String emergencyContact;
+  final String addressDetails;
+  final String tipoEntrega;
 
-  // Cargar fuente Unicode
-  Future<void> _loadUnicodeFont() async {
-    if (_unicodeFont != null) return;
+  PatientDisplayData({
+    required this.fullName,
+    required this.address,
+    required this.age,
+    required this.sex,
+    required this.gender,
+    required this.phone,
+    required this.insurance,
+    required this.responsiblePerson,
+    required this.emergencyContact,
+    required this.addressDetails,
+    required this.tipoEntrega,
+  });
+}
+
+class ServiceDisplayData {
+  final String ubicacion;
+  final String tipoServicio;
+  final String tipoServicioEspecifique;
+  final String lugarOcurrencia;
+  final String horaLlamada;
+  final String horaArribo;
+  final String horaLlegada;
+  final String horaTermino;
+  final String tiempoEsperaArribo;
+  final String tiempoEsperaLlegada;
+  final String tiempoTotal;
+
+  ServiceDisplayData({
+    required this.ubicacion,
+    required this.tipoServicio,
+    required this.tipoServicioEspecifique,
+    required this.lugarOcurrencia,
+    required this.horaLlamada,
+    required this.horaArribo,
+    required this.horaLlegada,
+    required this.horaTermino,
+    required this.tiempoEsperaArribo,
+    required this.tiempoEsperaLlegada,
+    required this.tiempoTotal,
+  });
+}
+
+class VitalSignsDisplayData {
+  final List<String> timeColumns;
+  final Map<String, Map<String, String>> vitalSigns;
+  final String eva;
+  final String llc;
+  final String glucosa;
+  final String ta;
+
+  VitalSignsDisplayData({
+    required this.timeColumns,
+    required this.vitalSigns,
+    required this.eva,
+    required this.llc,
+    required this.glucosa,
+    required this.ta,
+  });
+}
+
+class SampleDisplayData {
+  final String alergias;
+  final String medicamentos;
+  final String enfermedades;
+  final String horaAlimento;
+  final String eventosPrevios;
+
+  SampleDisplayData({
+    required this.alergias,
+    required this.medicamentos,
+    required this.enfermedades,
+    required this.horaAlimento,
+    required this.eventosPrevios,
+  });
+}
+
+class ClinicalDisplayData {
+  final String currentCondition;
+  final String allergies;
+  final String medications;
+  final String previousIllnesses;
+  final String previousSurgeries;
+  final String hospitalizations;
+  final String transfusions;
+  final Map<String, bool> accidentTypes;
+  final String agenteCausal;
+  final String cinematica;
+  final String medidaSeguridad;
+
+  ClinicalDisplayData({
+    required this.currentCondition,
+    required this.allergies,
+    required this.medications,
+    required this.previousIllnesses,
+    required this.previousSurgeries,
+    required this.hospitalizations,
+    required this.transfusions,
+    required this.accidentTypes,
+    required this.agenteCausal,
+    required this.cinematica,
+    required this.medidaSeguridad,
+  });
+}
+
+class ManagementDisplayData {
+  final Map<String, String> procedures;
+  final String oxigenoLitros;
+  final List<Map<String, dynamic>> insumos;
+  final List<Map<String, dynamic>> personalMedico;
+  final String medicamentos;
+
+  ManagementDisplayData({
+    required this.procedures,
+    required this.oxigenoLitros,
+    required this.insumos,
+    required this.personalMedico,
+    required this.medicamentos,
+  });
+}
+
+class AmbulanceDisplayData {
+  final String numeroAmbulancia;
+  final String tipoAmbulancia;
+  final String personalABordo;
+  final String equipamiento;
+  final String observaciones;
+
+  AmbulanceDisplayData({
+    required this.numeroAmbulancia,
+    required this.tipoAmbulancia,
+    required this.personalABordo,
+    required this.equipamiento,
+    required this.observaciones,
+  });
+}
+
+class GynecoObstetricDisplayData {
+  final String fum;
+  final String semanasGestacion;
+  final String gesta;
+  final String partos;
+  final String cesareas;
+  final String abortos;
+  final String hora;
+  final String metodosAnticonceptivos;
+  final bool ruidosCardiacosFetales;
+  final bool expulsionPlacenta;
+  final Map<String, dynamic>? escalasObstetricas;
+
+  GynecoObstetricDisplayData({
+    required this.fum,
+    required this.semanasGestacion,
+    required this.gesta,
+    required this.partos,
+    required this.cesareas,
+    required this.abortos,
+    required this.hora,
+    required this.metodosAnticonceptivos,
+    required this.ruidosCardiacosFetales,
+    required this.expulsionPlacenta,
+    this.escalasObstetricas,
+  });
+}
+
+class PriorityDisplayData {
+  final String priority;
+  final String pupils;
+  final String skinColor;
+  final String skin;
+  final String temperature;
+  final String influence;
+  final String especifique;
+
+  PriorityDisplayData({
+    required this.priority,
+    required this.pupils,
+    required this.skinColor,
+    required this.skin,
+    required this.temperature,
+    required this.influence,
+    required this.especifique,
+  });
+}
+
+class RegistryDisplayData {
+  final String convenio;
+  final String episodio;
+  final String solicitadoPor;
+  final String folio;
+  final String fecha;
+
+  RegistryDisplayData({
+    required this.convenio,
+    required this.episodio,
+    required this.solicitadoPor,
+    required this.folio,
+    required this.fecha,
+  });
+}
+
+class ReceptionDisplayData {
+  final String receivingDoctor;
+  final String? doctorSignature;
+  final String originPlace;
+  final String consultPlace;
+  final String destinationPlace;
+
+  ReceptionDisplayData({
+    required this.receivingDoctor,
+    this.doctorSignature,
+    required this.originPlace,
+    required this.consultPlace,
+    required this.destinationPlace,
+  });
+}
+
+class FrapPdfDisplayData {
+  final PatientDisplayData patient;
+  final ServiceDisplayData service;
+  final VitalSignsDisplayData vitalSigns;
+  final SampleDisplayData sample;
+  final ClinicalDisplayData clinical;
+  final ManagementDisplayData management;
+  final AmbulanceDisplayData ambulance;
+  final GynecoObstetricDisplayData gynecoObstetric;
+  final PriorityDisplayData priority;
+  final RegistryDisplayData registry;
+  final ReceptionDisplayData reception;
+  final String? consentimientoServicio;
+
+  FrapPdfDisplayData({
+    required this.patient,
+    required this.service,
+    required this.vitalSigns,
+    required this.sample,
+    required this.clinical,
+    required this.management,
+    required this.ambulance,
+    required this.gynecoObstetric,
+    required this.priority,
+    required this.registry,
+    required this.reception,
+    this.consentimientoServicio,
+  });
+}
+
+class PdfGeneratorService {
+  static final PdfGeneratorService _instance = PdfGeneratorService._internal();
+  factory PdfGeneratorService() => _instance;
+  PdfGeneratorService._internal();
+
+  // Cached fonts
+  pw.Font? _robotoRegular;
+  pw.Font? _robotoBold;
+  pw.Font? _robotoItalic;
+  pw.Font? _robotoBoldItalic;
+  bool _fontsLoaded = false;
+
+  // Cached styles
+  late pw.TextStyle _sectionTitleStyle;
+  late pw.TextStyle _labelStyle;
+  late pw.TextStyle _valueStyle;
+  late pw.TextStyle _headerStyle;
+
+  // Debug logging
+  final bool _debugLogs = false;
+
+  void _log(String message) {
+    if (!_debugLogs) return;
+    // ignore: avoid_print
+    print('[PDF] $message');
+  }
+
+  // Initialize fonts and styles (singleton pattern)
+  Future<void> _initializeFontsAndStyles() async {
+    if (_fontsLoaded) return;
 
     try {
-      // Usar una fuente que soporte Unicode mejor que Helvetica
-      _unicodeFont = pw.Font.times();
-      print('Fuente Times cargada correctamente para soporte Unicode');
+      _robotoRegular = pw.Font.ttf(
+        await rootBundle.load('assets/fonts/Roboto-Regular.ttf'),
+      );
+      _robotoBold = pw.Font.ttf(
+        await rootBundle.load('assets/fonts/Roboto-Bold.ttf'),
+      );
+      _robotoItalic = pw.Font.ttf(
+        await rootBundle.load('assets/fonts/Roboto-Italic.ttf'),
+      );
+      _robotoBoldItalic = pw.Font.ttf(
+        await rootBundle.load('assets/fonts/Roboto-BoldItalic.ttf'),
+      );
     } catch (e) {
-      print('No se pudo cargar fuente Times: $e');
+      _log('Error loading Roboto fonts: $e');
       try {
-        // Usar Courier como alternativa
-        _unicodeFont = pw.Font.courier();
-        print('Fuente Courier cargada como alternativa');
-      } catch (e2) {
-        print('No se pudo cargar fuente Courier: $e2');
-        // Dejar _unicodeFont como null para usar la fuente por defecto
-        print('Usando fuente por defecto (puede tener problemas con Unicode)');
+        _robotoRegular = pw.Font.times();
+        _robotoBold = pw.Font.timesBold();
+        _robotoItalic = pw.Font.timesItalic();
+        _robotoBoldItalic = pw.Font.timesBoldItalic();
+      } catch (_) {
+        _log('Fallback fonts also failed');
       }
     }
+
+    // Initialize styles
+    _sectionTitleStyle = pw.TextStyle(
+      fontSize: 9,
+      fontWeight: pw.FontWeight.bold,
+      color: PdfColors.blueGrey800,
+      font: _robotoBold,
+    );
+
+    _labelStyle = pw.TextStyle(
+      fontSize: 6,
+      fontWeight: pw.FontWeight.bold,
+      color: PdfColors.grey800,
+      font: _robotoBold,
+    );
+
+    _valueStyle = pw.TextStyle(
+      fontSize: 6,
+      color: PdfColors.grey700,
+      font: _robotoRegular,
+    );
+
+    _headerStyle = pw.TextStyle(
+      fontSize: 12,
+      fontWeight: pw.FontWeight.bold,
+      color: PdfColors.blue800,
+      font: _robotoBold,
+    );
+
+    _fontsLoaded = true;
+    _log('Fonts and styles initialized successfully');
   }
 
   // Helper to safely decode base64 image data for PDF
@@ -51,106 +374,58 @@ class PdfGeneratorService {
 
   /// Generates a PDF document for a given UnifiedFrapRecord.
   Future<Uint8List> generateFrapPdf(UnifiedFrapRecord record) async {
-    // Cargar fuente Unicode antes de crear el documento
-    await _loadUnicodeFont();
+    // Initialize fonts and styles
+    await _initializeFontsAndStyles();
+
+    // Build unified display data
+    final displayData = _buildDisplayData(record);
+    print('--------------------------------');
+    print('Datos de patientInfo: ${record.getDetailedInfo()['patientInfo']}');
+    print('--------------------------------');
+    _log('Display data built successfully');
 
     final pdf = pw.Document(
       title: 'Registro de Atención Prehospitalaria',
       author: 'BG Med',
     );
 
-    // Define text styles for consistency with Unicode support
-    final sectionTitleStyle = pw.TextStyle(
-      fontSize: 12,
-      fontWeight: pw.FontWeight.bold,
-      color: PdfColors.blueGrey800,
-      font: _unicodeFont,
-    );
-
-    final labelStyle = pw.TextStyle(
-      fontSize: 8,
-      fontWeight: pw.FontWeight.bold,
-      color: PdfColors.grey800,
-      font: _unicodeFont,
-    );
-
-    final valueStyle = pw.TextStyle(
-      fontSize: 8,
-      color: PdfColors.grey700,
-      font: _unicodeFont,
-    );
-
-    // Helper to create a section container
-    pw.Widget buildSection(String title, pw.Widget content) {
-      final backgroundColor = PdfColors.white;
-
-      return pw.Container(
-        padding: const pw.EdgeInsets.all(4),
-        margin: const pw.EdgeInsets.only(bottom: 6),
-        decoration: pw.BoxDecoration(
-          border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
-          borderRadius: pw.BorderRadius.circular(4),
-          color: backgroundColor,
-        ),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(title, style: sectionTitleStyle),
-            pw.SizedBox(height: 3),
-            content,
-          ],
-        ),
-      );
-    }
-
-    // Helper to build signature display
-    pw.Widget buildSignatureDisplay(String? signatureData, String label) {
-      return pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text('$label:', style: labelStyle),
-          pw.SizedBox(height: 3),
-          pw.Container(
-            height: 40,
-            width: 120,
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: PdfColors.grey400),
-            ),
-            child:
-                _getImageFromBase64(signatureData) != null
-                    ? pw.Image(_getImageFromBase64(signatureData)!)
-                    : pw.Center(
-                      child: pw.Text('Firma no disponible', style: valueStyle),
-                    ),
-          ),
-        ],
-      );
-    }
+    // Apply theme if fonts are available
+    final theme =
+        _fontsLoaded
+            ? pw.ThemeData.withFont(
+              base: _robotoRegular!,
+              bold: _robotoBold!,
+              italic: _robotoItalic!,
+              boldItalic: _robotoBoldItalic!,
+            )
+            : null;
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.letter.copyWith(
-          marginTop: 0.2 * PdfPageFormat.inch,
-          marginBottom: 0.2 * PdfPageFormat.inch,
-          marginLeft: 0.3 * PdfPageFormat.inch,
-          marginRight: 0.3 * PdfPageFormat.inch,
+        pageFormat: PdfPageFormat(
+          21.0 * PdfPageFormat.cm,
+          29.7 * PdfPageFormat.cm,
+          marginTop: 1.0 * PdfPageFormat.cm,
+          marginBottom: 1.0 * PdfPageFormat.cm,
+          marginLeft: 1.0 * PdfPageFormat.cm,
+          marginRight: 1.0 * PdfPageFormat.cm,
         ),
+        theme: theme,
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Title of the document
-              pw.Center(
-                child: pw.Text(
-                  'REGISTRO DE ATENCIÓN PREHOSPITALARIA',
-                  style: pw.TextStyle(
-                    fontSize: 16,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.black,
+              // Header with title and administrative details
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'REGISTRO DE ATENCIÓN PREHOSPITALARIA',
+                    style: _headerStyle,
                   ),
-                ),
+                ],
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 8),
 
               // Administrative details at top right
               pw.Row(
@@ -161,82 +436,31 @@ class PdfGeneratorService {
                     children: [
                       _buildAdminDetail(
                         'Convenio:',
-                        _getRegistryInfo(record, 'convenio'),
+                        displayData.registry.convenio,
                       ),
                       _buildAdminDetail(
                         'Episodio:',
-                        _getRegistryInfo(record, 'episodio'),
+                        displayData.registry.episodio,
                       ),
                       _buildAdminDetail(
                         'Solicitado por:',
-                        _getRegistryInfo(record, 'solicitadoPor'),
+                        displayData.registry.solicitadoPor,
                       ),
-                      _buildAdminDetail(
-                        'Folio:',
-                        _getRegistryInfo(record, 'folio'),
-                      ),
-                      _buildAdminDetail(
-                        'Fecha:',
-                        _getRegistryInfo(record, 'fecha'),
-                      ),
+                      _buildAdminDetail('Folio:', displayData.registry.folio),
+                      _buildAdminDetail('Fecha:', displayData.registry.fecha),
                     ],
                   ),
                 ],
               ),
               pw.SizedBox(height: 15),
 
-              // Consentimiento de Servicio
-              if (_getConsentimientoServicio(record).isNotEmpty)
-                pw.Container(
-                  width: double.infinity,
-                  padding: const pw.EdgeInsets.all(8),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.black, width: 1),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'CONSENTIMIENTO DE SERVICIO',
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.black,
-                        ),
-                      ),
-                      pw.SizedBox(height: 5),
-                      pw.Text(
-                        'He recibido atención médica prehospitalaria y autorizo el traslado a la unidad médica correspondiente.',
-                        style: pw.TextStyle(fontSize: 8),
-                      ),
-                      pw.SizedBox(height: 10),
-                      pw.Container(
-                        height: 40,
-                        decoration: pw.BoxDecoration(
-                          border: pw.Border.all(color: PdfColors.grey400),
-                        ),
-                        child:
-                            _getImageFromBase64(
-                                      _getConsentimientoServicio(record),
-                                    ) !=
-                                    null
-                                ? pw.Image(
-                                  _getImageFromBase64(
-                                    _getConsentimientoServicio(record),
-                                  )!,
-                                )
-                                : pw.Center(
-                                  child: pw.Text(
-                                    'Firma no disponible',
-                                    style: valueStyle,
-                                  ),
-                                ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (_getConsentimientoServicio(record).isNotEmpty)
-                pw.SizedBox(height: 8),
+              // Time tracking grid
+              _buildTimeTrackingGrid(displayData.service),
+              pw.SizedBox(height: 10),
+
+              // Patient Info Section
+              _buildPatientInfoSection(displayData.patient),
+              pw.SizedBox(height: 10),
 
               // Main content in two columns
               pw.Row(
@@ -249,800 +473,94 @@ class PdfGeneratorService {
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         // Location and Service Type
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'UBICACIÓN Y TIPO DE SERVICIO',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Ubicación: ${_getServiceInfo(record, 'ubicacion')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Tipo de servicio: ${_getServiceInfo(record, 'tipoServicio')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Especifique: ${_getServiceInfo(record, 'tipoServicioEspecifique')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
+                        _buildLocationAndServiceSection(displayData.service),
+                        pw.SizedBox(height: 6),
                         // Place of Occurrence
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'LUGAR DE OCURRENCIA',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Lugar: ${_getServiceInfo(record, 'lugarOcurrencia')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
+                        _buildPlaceOfOccurrenceSection(displayData.service),
+                        pw.SizedBox(height: 6),
                         // Patient Information
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'INFORMACIÓN DEL PACIENTE',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Nombre: ${record.patientName}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Edad: ${record.patientAge} años',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Sexo: ${record.patientGender}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Dirección: ${record.patientAddress}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Teléfono: ${_getPatientInfo(record, 'phone')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Seguro: ${_getPatientInfo(record, 'insurance')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
+                        _buildPatientInfoSection(displayData.patient),
+                        pw.SizedBox(height: 6),
                         // Current Condition
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'PADECIMIENTO ACTUAL',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                _getPatientInfo(record, 'currentCondition'),
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
+                        _buildCurrentConditionSection(displayData.clinical),
+                        pw.SizedBox(height: 6),
                         // Pathological History
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'ANTECEDENTES PATOLÓGICOS',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Respiratoria: ${_getPathologicalHistory(record, 'respiratoria')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Cardiovascular: ${_getPathologicalHistory(record, 'cardiovascular')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Neurológica: ${_getPathologicalHistory(record, 'neurologica')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Alérgico: ${_getPathologicalHistory(record, 'alergico')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
+                        _buildPathologicalHistorySection(displayData.clinical),
+                        pw.SizedBox(height: 6),
                         // Clinical History
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'ANTECEDENTES CLÍNICOS',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Atropellado: ${_getClinicalHistory(record, 'atropellado')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Intoxicación: ${_getClinicalHistory(record, 'intoxicacion')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Choque: ${_getClinicalHistory(record, 'choque')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Agente causal: ${_getClinicalHistory(record, 'agenteCausal')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
-                        // Physical Examination
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'EXPLORACIÓN FÍSICA',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'T/A: ${_getPhysicalExam(record, 'T/A')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'FC: ${_getPhysicalExam(record, 'FC')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'FR: ${_getPhysicalExam(record, 'FR')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Temp.: ${_getPhysicalExam(record, 'Temp.')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Sat. O2: ${_getPhysicalExam(record, 'Sat. O2')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
-                        // SAMPLE Assessment
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'EVALUACIÓN SAMPLE',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'S - Signos y síntomas: ${_getPhysicalExam(record, 'sampleAlergias')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'A - Alergias: ${_getPhysicalExam(record, 'sampleAlergias')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'M - Medicamentos: ${_getPhysicalExam(record, 'sampleMedicamentos')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'P - Historia médica previa: ${_getPhysicalExam(record, 'sampleEnfermedades')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'L - Última ingesta oral: ${_getPhysicalExam(record, 'sampleHoraAlimento')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'E - Eventos previos: ${_getPhysicalExam(record, 'sampleEventosPrevios')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
-                        // EVA Scale
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'ESCALA EVA (DOLOR)',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Nivel de dolor: ${_getPhysicalExam(record, 'eva')}/10',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'LLC: ${_getPhysicalExam(record, 'llc')} segundos',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Glucosa: ${_getPhysicalExam(record, 'glucosa')} mg/dl',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'T/A: ${_getPhysicalExam(record, 'ta')} mm/Hg',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildClinicalHistorySection(displayData.clinical),
+                        pw.SizedBox(height: 6),
+                        // Physical Examination (dynamic)
+                        _buildPhysicalExamSection(displayData.vitalSigns),
                       ],
                     ),
                   ),
-
                   pw.SizedBox(width: 8),
-
                   // Right Column
                   pw.Expanded(
                     flex: 1,
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
+                        // SAMPLE Assessment
+                        _buildSampleSection(displayData.sample),
+                        pw.SizedBox(height: 6),
+                        // EVA Scale
+                        _buildEvaSection(displayData.vitalSigns),
+                        pw.SizedBox(height: 6),
+                        // Consentimiento de Servicio
+                        if (displayData.consentimientoServicio?.isNotEmpty ==
+                            true)
+                          _buildConsentimientoSection(
+                            displayData.consentimientoServicio!,
+                          ),
+                        if (displayData.consentimientoServicio?.isNotEmpty ==
+                            true)
+                          pw.SizedBox(height: 6),
                         // Management
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'MANEJO',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Vía aérea: ${_getManagement(record, 'viaAerea')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Canalización: ${_getManagement(record, 'canalizacion')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Inmovilización: ${_getManagement(record, 'inmovilizacion')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Monitor: ${_getManagement(record, 'monitor')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'RCP básica: ${_getManagement(record, 'rcpBasica')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Oxígeno: ${_getManagement(record, 'oxigeno')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Lt/min: ${_getManagement(record, 'ltMin')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
+                        _buildManagementSection(displayData.management),
+                        pw.SizedBox(height: 6),
                         // Medications
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'MEDICAMENTOS',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                _getMedications(record, 'medications'),
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
+                        _buildMedicationsSection(displayData.management),
+                        pw.SizedBox(height: 6),
+                        // Gynecological-Obstetric
+                        _buildGynecoObstetricSection(
+                          displayData.gynecoObstetric,
                         ),
-                        pw.SizedBox(height: 8),
-
-                        // Gynecological-Obstetric Emergencies
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'URGENCIAS GINECO-OBSTÉTRICAS',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'FUM: ${_getGynecoObstetric(record, 'fum')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Semanas gestación: ${_getGynecoObstetric(record, 'semanasGestacion')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Gesta: ${_getGynecoObstetric(record, 'gesta')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Partos: ${_getGynecoObstetric(record, 'partos')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
-                        // Priority Justification
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'JUSTIFICACIÓN DE PRIORIDAD',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Prioridad: ${_getPriorityJustification(record, 'priority')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Pupilas: ${_getPriorityJustification(record, 'pupils')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Color piel: ${_getPriorityJustification(record, 'skinColor')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Piel: ${_getPriorityJustification(record, 'skin')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
-                        // Receiving Medical Unit
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'UNIDAD MÉDICA QUE RECIBE',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Lugar origen: ${_getReceivingUnit(record, 'originPlace')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Lugar consulta: ${_getReceivingUnit(record, 'consultPlace')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Lugar destino: ${_getReceivingUnit(record, 'destinationPlace')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Ambulancia: ${_getReceivingUnit(record, 'ambulanceNumber')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.Text(
-                                'Personal: ${_getReceivingUnit(record, 'personal')}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
-                        // Patient Reception
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(8),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(
-                                'RECEPCIÓN DEL PACIENTE',
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: PdfColors.black,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Médico: ${_getPatientReception(record, 'receivingDoctor') ?? 'N/A'}',
-                                style: pw.TextStyle(fontSize: 8),
-                              ),
-                              pw.SizedBox(height: 10),
-                              pw.Text(
-                                'Firma del médico:',
-                                style: pw.TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
-                              pw.Container(
-                                height: 30,
-                                decoration: pw.BoxDecoration(
-                                  border: pw.Border(
-                                    bottom: pw.BorderSide(
-                                      color: PdfColors.black,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                child:
-                                    _getImageFromBase64(
-                                              _getPatientReception(
-                                                record,
-                                                'doctorSignature',
-                                              ),
-                                            ) !=
-                                            null
-                                        ? pw.Image(
-                                          _getImageFromBase64(
-                                            _getPatientReception(
-                                              record,
-                                              'doctorSignature',
-                                            ),
-                                          )!,
-                                        )
-                                        : pw.Container(),
-                              ),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-
-                        // Insumos Utilizados
-                        if (_getInsumos(record).isNotEmpty)
-                          pw.Container(
-                            width: double.infinity,
-                            padding: const pw.EdgeInsets.all(8),
-                            decoration: pw.BoxDecoration(
-                              border: pw.Border.all(
-                                color: PdfColors.black,
-                                width: 1,
-                              ),
-                            ),
-                            child: pw.Column(
-                              crossAxisAlignment: pw.CrossAxisAlignment.start,
-                              children: [
-                                pw.Text(
-                                  'INSUMOS UTILIZADOS',
-                                  style: pw.TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: pw.FontWeight.bold,
-                                    color: PdfColors.black,
-                                  ),
-                                ),
-                                pw.SizedBox(height: 5),
-                                ..._getInsumos(record).map(
-                                  (insumo) => pw.Text(
-                                    '• ${insumo['cantidad']} ${insumo['articulo']}',
-                                    style: pw.TextStyle(fontSize: 8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (_getInsumos(record).isNotEmpty)
-                          pw.SizedBox(height: 8),
-
-                        // Personal Médico
-                        if (_getPersonalMedico(record).isNotEmpty)
-                          pw.Container(
-                            width: double.infinity,
-                            padding: const pw.EdgeInsets.all(8),
-                            decoration: pw.BoxDecoration(
-                              border: pw.Border.all(
-                                color: PdfColors.black,
-                                width: 1,
-                              ),
-                            ),
-                            child: pw.Column(
-                              crossAxisAlignment: pw.CrossAxisAlignment.start,
-                              children: [
-                                pw.Text(
-                                  'PERSONAL MÉDICO',
-                                  style: pw.TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: pw.FontWeight.bold,
-                                    color: PdfColors.black,
-                                  ),
-                                ),
-                                pw.SizedBox(height: 5),
-                                ..._getPersonalMedico(record).map(
-                                  (personal) => pw.Text(
-                                    '• ${personal['nombre']} - ${personal['especialidad']} (${personal['cedula']})',
-                                    style: pw.TextStyle(fontSize: 8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (_getPersonalMedico(record).isNotEmpty)
-                          pw.SizedBox(height: 8),
-
+                        pw.SizedBox(height: 6),
                         // Escalas Obstétricas
-                        if (_getEscalasObstetricas(record) != null)
-                          pw.Container(
-                            width: double.infinity,
-                            padding: const pw.EdgeInsets.all(8),
-                            decoration: pw.BoxDecoration(
-                              border: pw.Border.all(
-                                color: PdfColors.black,
-                                width: 1,
-                              ),
-                            ),
-                            child: pw.Column(
-                              crossAxisAlignment: pw.CrossAxisAlignment.start,
-                              children: [
-                                pw.Text(
-                                  'ESCALAS OBSTÉTRICAS',
-                                  style: pw.TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: pw.FontWeight.bold,
-                                    color: PdfColors.black,
-                                  ),
-                                ),
-                                pw.SizedBox(height: 5),
-                                pw.Text(
-                                  'Frecuencia cardíaca fetal: ${_getEscalasObstetricas(record)!['frecuenciaCardiacaFetal']} lpm',
-                                  style: pw.TextStyle(fontSize: 8),
-                                ),
-                                pw.Text(
-                                  'Contracciones: ${_getEscalasObstetricas(record)!['contracciones']}',
-                                  style: pw.TextStyle(fontSize: 8),
-                                ),
-                                if (_getEscalasObstetricas(
-                                  record,
-                                )!['silvermanAnderson'].isNotEmpty)
-                                  pw.Text(
-                                    'Silverman-Anderson: ${_getEscalasObstetricas(record)!['silvermanAnderson']}',
-                                    style: pw.TextStyle(fontSize: 8),
-                                  ),
-                                if (_getEscalasObstetricas(
-                                  record,
-                                )!['apgar'].isNotEmpty)
-                                  pw.Text(
-                                    'Apgar: ${_getEscalasObstetricas(record)!['apgar']}',
-                                    style: pw.TextStyle(fontSize: 8),
-                                  ),
-                              ],
-                            ),
+                        if (displayData.gynecoObstetric.escalasObstetricas !=
+                            null)
+                          _buildEscalasObstetricasSection(
+                            displayData.gynecoObstetric.escalasObstetricas!,
                           ),
-                        if (_getEscalasObstetricas(record) != null)
-                          pw.SizedBox(height: 8),
+                        if (displayData.gynecoObstetric.escalasObstetricas !=
+                            null)
+                          pw.SizedBox(height: 6),
+                        // Priority Justification
+                        _buildPriorityJustificationSection(
+                          displayData.priority,
+                        ),
+                        pw.SizedBox(height: 6),
+                        // Receiving Unit
+                        _buildReceivingUnitSection(displayData.reception),
+                        pw.SizedBox(height: 6),
+                        // Ambulance
+                        _buildAmbulanceSection(displayData.ambulance),
+                        pw.SizedBox(height: 6),
+                        // Patient Reception
+                        _buildPatientReceptionSection(displayData.reception),
+                        pw.SizedBox(height: 6),
+                        // Supplies
+                        if (displayData.management.insumos.isNotEmpty)
+                          _buildInsumosSection(displayData.management.insumos),
+                        if (displayData.management.insumos.isNotEmpty)
+                          pw.SizedBox(height: 6),
+                        // Personal Médico
+                        if (displayData.management.personalMedico.isNotEmpty)
+                          _buildPersonalMedicoSection(
+                            displayData.management.personalMedico,
+                          ),
                       ],
                     ),
                   ),
@@ -1091,8 +609,12 @@ class PdfGeneratorService {
           return patient.insurance;
         case 'responsiblePerson':
           return patient.responsiblePerson ?? '';
+        case 'sex':
+          return patient.sex;
         case 'gender':
           return patient.gender;
+        case 'age':
+          return patient.age.toString();
         case 'addressDetails':
           return patient.addressDetails;
         case 'tipoEntrega':
@@ -1266,6 +788,13 @@ class PdfGeneratorService {
     if (record.localRecord != null) {
       return record.localRecord!.physicalExam.vitalSignsData[vitalSign] ?? {};
     }
+    // Fallback a datos de nube via detailedInfo
+    final physicalExam =
+        record.getDetailedInfo()['physicalExam'] as Map<String, dynamic>?;
+    final data = physicalExam?[vitalSign];
+    if (data is Map) {
+      return data.map((k, v) => MapEntry(k.toString(), v?.toString() ?? ''));
+    }
     return {};
   }
 
@@ -1273,6 +802,12 @@ class PdfGeneratorService {
   List<String> _getTimeColumns(UnifiedFrapRecord record) {
     if (record.localRecord != null) {
       return record.localRecord!.physicalExam.timeColumns;
+    }
+    final physicalExam =
+        record.getDetailedInfo()['physicalExam'] as Map<String, dynamic>?;
+    final tc = physicalExam?['timeColumns'];
+    if (tc is List) {
+      return tc.map((e) => e.toString()).toList();
     }
     return [];
   }
@@ -1308,7 +843,11 @@ class PdfGeneratorService {
     if (record.localRecord != null) {
       return record.localRecord!.consentimientoServicio;
     }
-    return '';
+    final serviceInfo =
+        record.getDetailedInfo()['serviceInfo'] as Map<String, dynamic>?;
+    final sig = serviceInfo?['consentimientoSignature']?.toString();
+    if (sig != null && sig.trim().isNotEmpty) return sig;
+    return serviceInfo?['consentimientoServicio']?.toString() ?? '';
   }
 
   List<Map<String, dynamic>> _getInsumos(UnifiedFrapRecord record) {
@@ -1322,6 +861,25 @@ class PdfGeneratorService {
           )
           .toList();
     }
+    // Fallback cloud
+    final details = record.getDetailedInfo();
+    final management = details['management'] as Map<String, dynamic>?;
+    final list =
+        (management?['insumos'] as List?) ?? (details['insumos'] as List?);
+    if (list is List) {
+      return list
+          .where((e) => e != null)
+          .map(
+            (e) =>
+                e is Map
+                    ? {
+                      'cantidad': e['cantidad']?.toString() ?? '',
+                      'articulo': e['articulo']?.toString() ?? '',
+                    }
+                    : {'cantidad': '', 'articulo': e.toString()},
+          )
+          .toList();
+    }
     return [];
   }
 
@@ -1329,11 +887,36 @@ class PdfGeneratorService {
     if (record.localRecord != null) {
       return record.localRecord!.personalMedico
           .map(
-            (personal) => {
-              'nombre': personal.nombre,
-              'especialidad': personal.especialidad,
-              'cedula': personal.cedula,
+            (p) => {
+              'nombre': p.nombre,
+              'especialidad': p.especialidad,
+              'cedula': p.cedula,
             },
+          )
+          .toList();
+    }
+    // Fallback cloud
+    final details = record.getDetailedInfo();
+    final management = details['management'] as Map<String, dynamic>?;
+    final list =
+        (management?['personalMedico'] as List?) ??
+        (details['personalMedico'] as List?);
+    if (list is List) {
+      return list
+          .where((e) => e != null)
+          .map(
+            (e) =>
+                e is Map
+                    ? {
+                      'nombre': e['nombre']?.toString() ?? '',
+                      'especialidad': e['especialidad']?.toString() ?? '',
+                      'cedula': e['cedula']?.toString() ?? '',
+                    }
+                    : {
+                      'nombre': e.toString(),
+                      'especialidad': '',
+                      'cedula': '',
+                    },
           )
           .toList();
     }
@@ -1343,15 +926,33 @@ class PdfGeneratorService {
   Map<String, dynamic>? _getEscalasObstetricas(UnifiedFrapRecord record) {
     if (record.localRecord != null &&
         record.localRecord!.escalasObstetricas != null) {
-      final escalas = record.localRecord!.escalasObstetricas!;
+      final e = record.localRecord!.escalasObstetricas!;
       return {
-        'silvermanAnderson': escalas.silvermanAnderson,
-        'apgar': escalas.apgar,
-        'frecuenciaCardiacaFetal': escalas.frecuenciaCardiacaFetal,
-        'contracciones': escalas.contracciones,
+        'silvermanAnderson': e.silvermanAnderson,
+        'apgar': e.apgar,
+        'frecuenciaCardiacaFetal': e.frecuenciaCardiacaFetal,
+        'contracciones': e.contracciones,
       };
     }
-    return null;
+    // Fallback cloud
+    final details = record.getDetailedInfo();
+    final gyneco = details['gynecoObstetric'] as Map<String, dynamic>?;
+    if (gyneco != null) {
+      final silver = gyneco['silvermanAnderson'];
+      final apgar = gyneco['apgar'];
+      final fcf = gyneco['frecuenciaCardiacaFetal'];
+      final cont = gyneco['contracciones'];
+      if (silver != null || apgar != null || fcf != null || cont != null) {
+        return {
+          'silvermanAnderson': silver,
+          'apgar': apgar,
+          'frecuenciaCardiacaFetal': fcf,
+          'contracciones': cont,
+        };
+      }
+    }
+    final esc = details['escalasObstetricas'] as Map<String, dynamic>?;
+    return esc;
   }
 
   // Helper to build detail rows with label and value
@@ -1384,7 +985,7 @@ class PdfGeneratorService {
   }
 
   // Build time tracking grid similar to the image
-  pw.Widget _buildTimeTrackingGrid(UnifiedFrapRecord record) {
+  pw.Widget _buildTimeTrackingGrid(ServiceDisplayData service) {
     return pw.Container(
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 1),
@@ -1400,30 +1001,44 @@ class PdfGeneratorService {
             ),
             child: pw.Row(
               children: [
-                _buildTimeGridCell('Hora de llamada', true),
-                _buildTimeGridCell('Hora de arribo', true),
-                _buildTimeGridCell('Tiempo de espera', true),
-                _buildTimeGridCell('Hora de llegada', true),
-                _buildTimeGridCell('Tiempo de espera', true),
-                _buildTimeGridCell('Hora de termino', true),
+                pw.Expanded(child: _buildTimeGridCell('Hora de llamada', true)),
+                pw.Expanded(child: _buildTimeGridCell('Hora de arribo', true)),
+                pw.Expanded(
+                  child: _buildTimeGridCell('Tiempo de espera', true),
+                ),
               ],
             ),
           ),
           // Data row
           pw.Row(
             children: [
-              _buildTimeGridCell(_getServiceInfo(record, 'horaLlamada'), false),
-              _buildTimeGridCell(_getServiceInfo(record, 'horaArribo'), false),
-              _buildTimeGridCell(
-                _getServiceInfo(record, 'tiempoEsperaArribo'),
-                false,
+              pw.Expanded(
+                child: _buildTimeGridCell(service.horaLlamada, false),
               ),
-              _buildTimeGridCell(_getServiceInfo(record, 'horaLlegada'), false),
-              _buildTimeGridCell(
-                _getServiceInfo(record, 'tiempoEsperaLlegada'),
-                false,
+              pw.Expanded(child: _buildTimeGridCell(service.horaArribo, false)),
+              pw.Expanded(
+                child: _buildTimeGridCell(service.tiempoEsperaArribo, false),
               ),
-              _buildTimeGridCell(_getServiceInfo(record, 'horaTermino'), false),
+            ],
+          ),
+          pw.Row(
+            children: [
+              pw.Expanded(child: _buildTimeGridCell('Hora de llegada', true)),
+              pw.Expanded(child: _buildTimeGridCell('Hora de termino', true)),
+              pw.Expanded(child: _buildTimeGridCell('Tiempo de espera', true)),
+            ],
+          ),
+          pw.Row(
+            children: [
+              pw.Expanded(
+                child: _buildTimeGridCell(service.horaLlegada, false),
+              ),
+              pw.Expanded(
+                child: _buildTimeGridCell(service.horaTermino, false),
+              ),
+              pw.Expanded(
+                child: _buildTimeGridCell(service.tiempoEsperaLlegada, false),
+              ),
             ],
           ),
         ],
@@ -1433,32 +1048,30 @@ class PdfGeneratorService {
 
   // Build time grid cell
   pw.Widget _buildTimeGridCell(String text, bool isHeader) {
-    return pw.Expanded(
-      child: pw.Container(
-        height: 25,
-        decoration: pw.BoxDecoration(
-          border: pw.Border(
-            right: pw.BorderSide(color: PdfColors.black, width: 1),
-          ),
-          color: isHeader ? PdfColors.grey200 : PdfColors.white,
+    return pw.Container(
+      height: 10,
+      decoration: pw.BoxDecoration(
+        border: pw.Border(
+          right: pw.BorderSide(color: PdfColors.black, width: 1),
         ),
-        child: pw.Center(
-          child: pw.Text(
-            text,
-            style: pw.TextStyle(
-              fontSize: 8,
-              fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-              color: PdfColors.black,
-            ),
-            textAlign: pw.TextAlign.center,
+        color: isHeader ? PdfColors.grey200 : PdfColors.white,
+      ),
+      child: pw.Center(
+        child: pw.Text(
+          text,
+          style: pw.TextStyle(
+            fontSize: 7,
+            fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+            color: PdfColors.black,
           ),
+          textAlign: pw.TextAlign.center,
         ),
       ),
     );
   }
 
   // Build location and service type section
-  pw.Widget _buildLocationAndServiceSection(UnifiedFrapRecord record) {
+  pw.Widget _buildLocationAndServiceSection(ServiceDisplayData service) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -1485,7 +1098,7 @@ class PdfGeneratorService {
                 child: pw.Padding(
                   padding: const pw.EdgeInsets.only(left: 5, bottom: 2),
                   child: pw.Text(
-                    _getServiceInfo(record, 'ubicacion'),
+                    service.ubicacion,
                     style: pw.TextStyle(fontSize: 9),
                   ),
                 ),
@@ -1509,24 +1122,18 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Traslado',
-              _getServiceInfo(record, 'tipoServicio') == 'Traslado',
+              service.tipoServicio == 'Traslado',
             ),
             _buildCheckboxOption(
               'Urgencia',
-              _getServiceInfo(record, 'tipoServicio') == 'Urgencia',
+              service.tipoServicio == 'Urgencia',
             ),
-            _buildCheckboxOption(
-              'Estudio',
-              _getServiceInfo(record, 'tipoServicio') == 'Estudio',
-            ),
+            _buildCheckboxOption('Estudio', service.tipoServicio == 'Estudio'),
             _buildCheckboxOption(
               'Cuidados Intensivos',
-              _getServiceInfo(record, 'tipoServicio') == 'Cuidados Intensivos',
+              service.tipoServicio == 'Cuidados Intensivos',
             ),
-            _buildCheckboxOption(
-              'Otro',
-              _getServiceInfo(record, 'tipoServicio') == 'Otro',
-            ),
+            _buildCheckboxOption('Otro', service.tipoServicio == 'Otro'),
           ],
         ),
         pw.SizedBox(height: 10),
@@ -1554,7 +1161,7 @@ class PdfGeneratorService {
                 child: pw.Padding(
                   padding: const pw.EdgeInsets.only(left: 5, bottom: 2),
                   child: pw.Text(
-                    _getServiceInfo(record, 'tipoServicioEspecifique'),
+                    service.tipoServicioEspecifique,
                     style: pw.TextStyle(fontSize: 9),
                   ),
                 ),
@@ -1567,7 +1174,7 @@ class PdfGeneratorService {
   }
 
   // Build place of occurrence section
-  pw.Widget _buildPlaceOfOccurrenceSection(UnifiedFrapRecord record) {
+  pw.Widget _buildPlaceOfOccurrenceSection(ServiceDisplayData service) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -1582,25 +1189,22 @@ class PdfGeneratorService {
         pw.SizedBox(height: 5),
         pw.Row(
           children: [
-            _buildCheckboxOption(
-              'Hogar',
-              _getServiceInfo(record, 'lugarOcurrencia') == 'Hogar',
-            ),
+            _buildCheckboxOption('Hogar', service.lugarOcurrencia == 'Hogar'),
             _buildCheckboxOption(
               'Escuela',
-              _getServiceInfo(record, 'lugarOcurrencia') == 'Escuela',
+              service.lugarOcurrencia == 'Escuela',
             ),
             _buildCheckboxOption(
               'Trabajo',
-              _getServiceInfo(record, 'lugarOcurrencia') == 'Trabajo',
+              service.lugarOcurrencia == 'Trabajo',
             ),
             _buildCheckboxOption(
               'Recreativo',
-              _getServiceInfo(record, 'lugarOcurrencia') == 'Recreativo',
+              service.lugarOcurrencia == 'Recreativo',
             ),
             _buildCheckboxOption(
               'Vía Pública',
-              _getServiceInfo(record, 'lugarOcurrencia') == 'Vía Pública',
+              service.lugarOcurrencia == 'Vía Pública',
             ),
           ],
         ),
@@ -1610,36 +1214,245 @@ class PdfGeneratorService {
 
   // Build checkbox option
   pw.Widget _buildCheckboxOption(String label, bool isChecked) {
-    return pw.Expanded(
-      child: pw.Row(
+    return pw.Row(
+      mainAxisSize: pw.MainAxisSize.min,
+      children: [
+        pw.Container(
+          width: 10,
+          height: 10,
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: PdfColors.black, width: 1),
+            color: isChecked ? PdfColors.black : PdfColors.white,
+          ),
+          child:
+              isChecked
+                  ? pw.Center(
+                    child: pw.Text(
+                      'ok',
+                      style: pw.TextStyle(
+                        color: PdfColors.white,
+                        fontSize: 7,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                  )
+                  : null,
+        ),
+        pw.SizedBox(width: 3),
+        pw.Text(label, style: pw.TextStyle(fontSize: 7)),
+      ],
+    );
+  }
+
+  // Build patient information section
+  pw.Widget _buildPatientInfoSection(PatientDisplayData patient) {
+    _log('Building PDF patient info section');
+    _log('Patient fullName: ${patient.fullName}');
+    _log('Patient address: ${patient.address}');
+    _log('Patient age: ${patient.age}');
+    _log('Patient sex: ${patient.sex}');
+    _log('Patient gender: ${patient.gender}');
+    _log('Patient phone: ${patient.phone}');
+    _log('Patient insurance: ${patient.insurance}');
+    _log('Patient responsiblePerson: ${patient.responsiblePerson}');
+
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
         children: [
+          // Header
           pw.Container(
-            width: 12,
-            height: 12,
+            width: double.infinity,
+            padding: pw.EdgeInsets.all(4),
             decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: PdfColors.black, width: 1),
-              color: isChecked ? PdfColors.black : PdfColors.white,
+              color: PdfColors.grey300,
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
             ),
-            child:
-                isChecked
-                    ? pw.Center(
-                      child: pw.Text(
-                        '✓',
-                        style: pw.TextStyle(
-                          color: PdfColors.white,
-                          fontSize: 8,
-                          fontWeight: pw.FontWeight.bold,
+            child: pw.Center(
+              child: pw.Text(
+                'INFORMACIÓN DEL PACIENTE',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          // Primera fila: Nombre completo
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
+              ),
+            ),
+            child: pw.Container(
+              width: double.infinity,
+              padding: pw.EdgeInsets.all(3),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('Nombre:', style: pw.TextStyle(fontSize: 6)),
+                  pw.SizedBox(height: 2),
+                  pw.Text(patient.fullName, style: pw.TextStyle(fontSize: 8)),
+                ],
+              ),
+            ),
+          ),
+
+          // Segunda fila: Edad | Sexo
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
+              ),
+            ),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  flex: 1,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
                         ),
                       ),
-                    )
-                    : null,
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Edad:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(patient.age, style: pw.TextStyle(fontSize: 8)),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Sexo:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(patient.sex, style: pw.TextStyle(fontSize: 8)),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Género:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          patient.gender,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          pw.SizedBox(width: 3),
-          pw.Expanded(
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(fontSize: 8),
-              textAlign: pw.TextAlign.left,
+
+          // Tercera fila: Dirección completa
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
+              ),
+            ),
+            child: pw.Container(
+              width: double.infinity,
+              padding: pw.EdgeInsets.all(3),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('Dirección:', style: pw.TextStyle(fontSize: 6)),
+                  pw.SizedBox(height: 2),
+                  pw.Text(patient.address, style: pw.TextStyle(fontSize: 8)),
+                ],
+              ),
+            ),
+          ),
+
+          // Cuarta fila: Teléfono
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
+              ),
+            ),
+            child: pw.Container(
+              width: double.infinity,
+              padding: pw.EdgeInsets.all(3),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('Teléfono:', style: pw.TextStyle(fontSize: 6)),
+                  pw.SizedBox(height: 2),
+                  pw.Text(patient.phone, style: pw.TextStyle(fontSize: 8)),
+                ],
+              ),
+            ),
+          ),
+
+          // Quinta fila: Derechohabiencia
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
+              ),
+            ),
+            child: pw.Container(
+              width: double.infinity,
+              padding: pw.EdgeInsets.all(3),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Derechohabiencia:',
+                    style: pw.TextStyle(fontSize: 6),
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.Text(patient.insurance, style: pw.TextStyle(fontSize: 8)),
+                ],
+              ),
+            ),
+          ),
+
+          // Sexta fila: Persona Responsable
+          pw.Container(
+            width: double.infinity,
+            padding: pw.EdgeInsets.all(3),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Persona Responsable:',
+                  style: pw.TextStyle(fontSize: 6),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  patient.responsiblePerson,
+                  style: pw.TextStyle(fontSize: 8),
+                ),
+              ],
             ),
           ),
         ],
@@ -1647,323 +1460,8 @@ class PdfGeneratorService {
     );
   }
 
-  // Build patient information section
-  pw.Widget _buildPatientInfoSection(UnifiedFrapRecord record) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'INFORMACIÓN DEL PACIENTE:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
-          ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Apellido Paterno:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'paternalLastName'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Apellido Materno:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'maternalLastName'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Nombre(s):',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'firstName'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Edad:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  '${record.patientAge}',
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Sexo:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            _buildCheckboxOption(
-              'Masculino',
-              record.patientGender.toLowerCase() == 'masculino',
-            ),
-            _buildCheckboxOption(
-              'Femenino',
-              record.patientGender.toLowerCase() == 'femenino',
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Calle:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'street'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'No. Ext.:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'exteriorNumber'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-            pw.SizedBox(width: 10),
-            pw.Text(
-              'Colonia:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'neighborhood'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'No. Int.:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'interiorNumber'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-            pw.SizedBox(width: 10),
-            pw.Text(
-              'Ciudad:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'city'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Teléfono:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'phone'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Derechohabiencia:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'insurance'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Persona Responsable:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getPatientInfo(record, 'responsiblePerson'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   // Build registry information section
-  pw.Widget _buildRegistryInfoSection(UnifiedFrapRecord record) {
+  pw.Widget _buildRegistryInfoSection(RegistryDisplayData registry) {
     return pw.Container(
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 1),
@@ -1993,20 +1491,11 @@ class PdfGeneratorService {
             padding: const pw.EdgeInsets.all(8),
             child: pw.Column(
               children: [
-                _buildDetailRow(
-                  'Convenio',
-                  _getRegistryInfo(record, 'convenio'),
-                ),
-                _buildDetailRow('Folio', _getRegistryInfo(record, 'folio')),
-                _buildDetailRow(
-                  'Episodio',
-                  _getRegistryInfo(record, 'episodio'),
-                ),
-                _buildDetailRow('Fecha', _getRegistryInfo(record, 'fecha')),
-                _buildDetailRow(
-                  'Solicitado por',
-                  _getRegistryInfo(record, 'solicitadoPor'),
-                ),
+                _buildDetailRow('Convenio', registry.convenio),
+                _buildDetailRow('Folio', registry.folio),
+                _buildDetailRow('Episodio', registry.episodio),
+                _buildDetailRow('Fecha', registry.fecha),
+                _buildDetailRow('Solicitado por', registry.solicitadoPor),
               ],
             ),
           ),
@@ -2027,7 +1516,7 @@ class PdfGeneratorService {
   }
 
   // Build current condition section
-  pw.Widget _buildCurrentConditionSection(UnifiedFrapRecord record) {
+  pw.Widget _buildCurrentConditionSection(ClinicalDisplayData clinical) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -2049,7 +1538,7 @@ class PdfGeneratorService {
           child: pw.Padding(
             padding: const pw.EdgeInsets.all(5),
             child: pw.Text(
-              _getPatientInfo(record, 'currentCondition'),
+              clinical.currentCondition,
               style: pw.TextStyle(fontSize: 9),
             ),
           ),
@@ -2059,7 +1548,7 @@ class PdfGeneratorService {
   }
 
   // Build pathological history section
-  pw.Widget _buildPathologicalHistorySection(UnifiedFrapRecord record) {
+  pw.Widget _buildPathologicalHistorySection(ClinicalDisplayData clinical) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -2076,11 +1565,11 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Respiratoria',
-              _getPathologicalHistory(record, 'respiratoria') == 'Sí',
+              clinical.accidentTypes['respiratoria'] == true,
             ),
             _buildCheckboxOption(
               'Emocional',
-              _getPathologicalHistory(record, 'emocional') == 'Sí',
+              clinical.accidentTypes['emocional'] == true,
             ),
             _buildCheckboxOption('Sistémica', false),
           ],
@@ -2089,15 +1578,15 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Cardiovascular',
-              _getPathologicalHistory(record, 'cardiovascular') == 'Sí',
+              clinical.accidentTypes['cardiovascular'] == true,
             ),
             _buildCheckboxOption(
               'Neurológica',
-              _getPathologicalHistory(record, 'neurologica') == 'Sí',
+              clinical.accidentTypes['neurologica'] == true,
             ),
             _buildCheckboxOption(
               'Alérgico',
-              _getPathologicalHistory(record, 'alergico') == 'Sí',
+              clinical.accidentTypes['alergico'] == true,
             ),
           ],
         ),
@@ -2105,11 +1594,11 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Metabólica',
-              _getPathologicalHistory(record, 'metabolica') == 'Sí',
+              clinical.accidentTypes['metabolica'] == true,
             ),
             _buildCheckboxOption(
               'Otra',
-              _getPathologicalHistory(record, 'otro') == 'Sí',
+              clinical.accidentTypes['otro'] == true,
             ),
             pw.Expanded(
               child: pw.Text('Especifique:', style: pw.TextStyle(fontSize: 8)),
@@ -2121,7 +1610,7 @@ class PdfGeneratorService {
   }
 
   // Build clinical history section
-  pw.Widget _buildClinicalHistorySection(UnifiedFrapRecord record) {
+  pw.Widget _buildClinicalHistorySection(ClinicalDisplayData clinical) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -2143,15 +1632,15 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Atropellado',
-              _getClinicalHistory(record, 'atropellado') == 'Sí',
+              clinical.accidentTypes['atropellado'] == true,
             ),
             _buildCheckboxOption(
               'Lx. Por caída',
-              _getClinicalHistory(record, 'lxPorCaida') == 'Sí',
+              clinical.accidentTypes['lxPorCaida'] == true,
             ),
             _buildCheckboxOption(
               'Intoxicación',
-              _getClinicalHistory(record, 'intoxicacion') == 'Sí',
+              clinical.accidentTypes['intoxicacion'] == true,
             ),
           ],
         ),
@@ -2159,15 +1648,15 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Amputación',
-              _getClinicalHistory(record, 'amputacion') == 'Sí',
+              clinical.accidentTypes['amputacion'] == true,
             ),
             _buildCheckboxOption(
               'Choque',
-              _getClinicalHistory(record, 'choque') == 'Sí',
+              clinical.accidentTypes['choque'] == true,
             ),
             _buildCheckboxOption(
               'Agresión',
-              _getClinicalHistory(record, 'agresion') == 'Sí',
+              clinical.accidentTypes['agresion'] == true,
             ),
           ],
         ),
@@ -2175,15 +1664,15 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'H.P.A.B.',
-              _getClinicalHistory(record, 'hpab') == 'Sí',
+              clinical.accidentTypes['hpab'] == true,
             ),
             _buildCheckboxOption(
               'H.P.A.F.',
-              _getClinicalHistory(record, 'hpaf') == 'Sí',
+              clinical.accidentTypes['hpaf'] == true,
             ),
             _buildCheckboxOption(
               'Volcadura',
-              _getClinicalHistory(record, 'volcadura') == 'Sí',
+              clinical.accidentTypes['volcadura'] == true,
             ),
           ],
         ),
@@ -2191,11 +1680,11 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Quemadura',
-              _getClinicalHistory(record, 'quemadura') == 'Sí',
+              clinical.accidentTypes['quemadura'] == true,
             ),
             _buildCheckboxOption(
               'Otro',
-              _getClinicalHistory(record, 'otroTipo') == 'Sí',
+              clinical.accidentTypes['otroTipo'] == true,
             ),
             pw.Expanded(
               child: pw.Text('Especifique:', style: pw.TextStyle(fontSize: 8)),
@@ -2217,7 +1706,7 @@ class PdfGeneratorService {
             ),
           ),
           child: pw.Text(
-            _getClinicalHistory(record, 'agenteCausal'),
+            clinical.agenteCausal,
             style: pw.TextStyle(fontSize: 8),
           ),
         ),
@@ -2235,10 +1724,7 @@ class PdfGeneratorService {
               bottom: pw.BorderSide(color: PdfColors.black, width: 1),
             ),
           ),
-          child: pw.Text(
-            _getClinicalHistory(record, 'cinematica'),
-            style: pw.TextStyle(fontSize: 8),
-          ),
+          child: pw.Text(clinical.cinematica, style: pw.TextStyle(fontSize: 8)),
         ),
         pw.SizedBox(height: 5),
         pw.Text(
@@ -2255,7 +1741,7 @@ class PdfGeneratorService {
             ),
           ),
           child: pw.Text(
-            _getClinicalHistory(record, 'medidaSeguridad'),
+            clinical.medidaSeguridad,
             style: pw.TextStyle(fontSize: 8),
           ),
         ),
@@ -2264,7 +1750,7 @@ class PdfGeneratorService {
   }
 
   // Build physical examination section
-  pw.Widget _buildPhysicalExamSection(UnifiedFrapRecord record) {
+  pw.Widget _buildPhysicalExamSection(VitalSignsDisplayData vitalSigns) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -2277,66 +1763,17 @@ class PdfGeneratorService {
           ),
         ),
         pw.SizedBox(height: 5),
-        pw.Container(
-          decoration: pw.BoxDecoration(
-            border: pw.Border.all(color: PdfColors.black, width: 1),
-          ),
-          child: pw.Column(
-            children: [
-              // Header row
-              pw.Container(
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Row(
-                  children: [
-                    pw.Expanded(
-                      flex: 2,
-                      child: pw.Container(
-                        padding: const pw.EdgeInsets.all(3),
-                        decoration: pw.BoxDecoration(
-                          border: pw.Border(
-                            right: pw.BorderSide(
-                              color: PdfColors.black,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        child: pw.Text(
-                          '',
-                          style: pw.TextStyle(
-                            fontSize: 8,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    _buildTimeGridCell('Hora 1', true),
-                    _buildTimeGridCell('Hora 2', true),
-                    _buildTimeGridCell('Hora 3', true),
-                  ],
-                ),
-              ),
-              // Data rows
-              _buildVitalSignRow('T/A', record),
-              _buildVitalSignRow('FC', record),
-              _buildVitalSignRow('FR', record),
-              _buildVitalSignRow('Temp.', record),
-              _buildVitalSignRow('Sat. O2', record),
-              _buildVitalSignRow('LIC', record),
-              _buildVitalSignRow('Glu', record),
-              _buildVitalSignRow('Glasgow', record),
-            ],
-          ),
-        ),
+        // Usar tabla dinámica basada en timeColumns y vitalSignsData
+        _buildDynamicVitalSignsTable(vitalSigns),
       ],
     );
   }
 
   // Build vital sign row
-  pw.Widget _buildVitalSignRow(String vitalSign, UnifiedFrapRecord record) {
+  pw.Widget _buildVitalSignRow(
+    String vitalSign,
+    VitalSignsDisplayData vitalSigns,
+  ) {
     return pw.Container(
       decoration: pw.BoxDecoration(
         border: pw.Border(
@@ -2354,16 +1791,13 @@ class PdfGeneratorService {
                   right: pw.BorderSide(color: PdfColors.black, width: 1),
                 ),
               ),
-              child: pw.Text(
-                vitalSign,
-                style: pw.TextStyle(
-                  fontSize: 8,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
+              child: pw.Text(vitalSign, style: _labelStyle),
             ),
           ),
-          _buildTimeGridCell(_getPhysicalExam(record, vitalSign), false),
+          _buildTimeGridCell(
+            'N/A',
+            false,
+          ), // Obsolete method - replaced by dynamic table
           _buildTimeGridCell('', false),
           _buildTimeGridCell('', false),
         ],
@@ -2683,7 +2117,7 @@ class PdfGeneratorService {
   }
 
   // Build management section
-  pw.Widget _buildManagementSection(UnifiedFrapRecord record) {
+  pw.Widget _buildManagementSection(ManagementDisplayData management) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -2700,15 +2134,15 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Vía aérea',
-              _getManagement(record, 'viaAerea') == 'Sí',
+              management.procedures['viaAerea'] == 'Sí',
             ),
             _buildCheckboxOption(
               'Canalización',
-              _getManagement(record, 'canalizacion') == 'Sí',
+              management.procedures['canalizacion'] == 'Sí',
             ),
             _buildCheckboxOption(
               'Empaquetamiento',
-              _getManagement(record, 'empaquetamiento') == 'Sí',
+              management.procedures['empaquetamiento'] == 'Sí',
             ),
           ],
         ),
@@ -2716,15 +2150,15 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Inmovilización',
-              _getManagement(record, 'inmovilizacion') == 'Sí',
+              management.procedures['inmovilizacion'] == 'Sí',
             ),
             _buildCheckboxOption(
               'Monitor',
-              _getManagement(record, 'monitor') == 'Sí',
+              management.procedures['monitor'] == 'Sí',
             ),
             _buildCheckboxOption(
               'RCP Básica',
-              _getManagement(record, 'rcpBasica') == 'Sí',
+              management.procedures['rcpBasica'] == 'Sí',
             ),
           ],
         ),
@@ -2732,15 +2166,15 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'MAST O PNA',
-              _getManagement(record, 'mastPna') == 'Sí',
+              management.procedures['mastPna'] == 'Sí',
             ),
             _buildCheckboxOption(
               'Collarín Cervical',
-              _getManagement(record, 'collarinCervical') == 'Sí',
+              management.procedures['collarinCervical'] == 'Sí',
             ),
             _buildCheckboxOption(
               'Desfibrilación',
-              _getManagement(record, 'desfibrilacion') == 'Sí',
+              management.procedures['desfibrilacion'] == 'Sí',
             ),
           ],
         ),
@@ -2748,15 +2182,15 @@ class PdfGeneratorService {
           children: [
             _buildCheckboxOption(
               'Apoyo Vent.',
-              _getManagement(record, 'apoyoVent') == 'Sí',
+              management.procedures['apoyoVent'] == 'Sí',
             ),
             _buildCheckboxOption(
               'Oxígeno',
-              _getManagement(record, 'oxigeno') == 'Sí',
+              management.procedures['oxigeno'] == 'Sí',
             ),
             pw.Expanded(
               child: pw.Text(
-                'Lt/min: ${_getManagement(record, 'ltMin')}',
+                'Lt/min: ${management.oxigenoLitros}',
                 style: pw.TextStyle(fontSize: 8),
               ),
             ),
@@ -2775,7 +2209,7 @@ class PdfGeneratorService {
   }
 
   // Build medications section
-  pw.Widget _buildMedicationsSection(UnifiedFrapRecord record) {
+  pw.Widget _buildMedicationsSection(ManagementDisplayData management) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -2797,7 +2231,7 @@ class PdfGeneratorService {
           child: pw.Padding(
             padding: const pw.EdgeInsets.all(5),
             child: pw.Text(
-              _getMedications(record, 'medications'),
+              management.medicamentos,
               style: pw.TextStyle(fontSize: 9),
             ),
           ),
@@ -2807,7 +2241,9 @@ class PdfGeneratorService {
   }
 
   // Build gynecological-obstetric section
-  pw.Widget _buildGynecoObstetricSection(UnifiedFrapRecord record) {
+  pw.Widget _buildGynecoObstetricSection(
+    GynecoObstetricDisplayData gynecoObstetric,
+  ) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -2844,7 +2280,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getGynecoObstetric(record, 'fum'),
+                  gynecoObstetric.fum,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -2864,7 +2300,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getGynecoObstetric(record, 'semanasGestacion'),
+                  gynecoObstetric.semanasGestacion,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -2910,7 +2346,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getGynecoObstetric(record, 'gesta'),
+                  gynecoObstetric.gesta,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -2930,7 +2366,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getGynecoObstetric(record, 'partos'),
+                  gynecoObstetric.partos,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -2954,7 +2390,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getGynecoObstetric(record, 'cesareas'),
+                  gynecoObstetric.cesareas,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -2974,7 +2410,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getGynecoObstetric(record, 'hora'),
+                  gynecoObstetric.hora,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -2998,7 +2434,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getGynecoObstetric(record, 'abortos'),
+                  gynecoObstetric.abortos,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -3018,7 +2454,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getGynecoObstetric(record, 'metodosAnticonceptivos'),
+                  gynecoObstetric.metodosAnticonceptivos,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -3146,7 +2582,7 @@ class PdfGeneratorService {
   }
 
   // Build priority justification section
-  pw.Widget _buildPriorityJustificationSection(UnifiedFrapRecord record) {
+  pw.Widget _buildPriorityJustificationSection(PriorityDisplayData priority) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -3161,22 +2597,10 @@ class PdfGeneratorService {
         pw.SizedBox(height: 5),
         pw.Row(
           children: [
-            _buildCheckboxOption(
-              'Rojo',
-              _getPriorityJustification(record, 'priority') == 'Rojo',
-            ),
-            _buildCheckboxOption(
-              'Amarillo',
-              _getPriorityJustification(record, 'priority') == 'Amarillo',
-            ),
-            _buildCheckboxOption(
-              'Verde',
-              _getPriorityJustification(record, 'priority') == 'Verde',
-            ),
-            _buildCheckboxOption(
-              'Negro',
-              _getPriorityJustification(record, 'priority') == 'Negro',
-            ),
+            _buildCheckboxOption('Rojo', priority.priority == 'Rojo'),
+            _buildCheckboxOption('Amarillo', priority.priority == 'Amarillo'),
+            _buildCheckboxOption('Verde', priority.priority == 'Verde'),
+            _buildCheckboxOption('Negro', priority.priority == 'Negro'),
           ],
         ),
         pw.SizedBox(height: 5),
@@ -3186,30 +2610,15 @@ class PdfGeneratorService {
         ),
         pw.Row(
           children: [
-            _buildCheckboxOption(
-              'Iguales',
-              _getPriorityJustification(record, 'pupils') == 'Iguales',
-            ),
-            _buildCheckboxOption(
-              'Midriasis',
-              _getPriorityJustification(record, 'pupils') == 'Midriasis',
-            ),
-            _buildCheckboxOption(
-              'Miosis',
-              _getPriorityJustification(record, 'pupils') == 'Miosis',
-            ),
+            _buildCheckboxOption('Iguales', priority.pupils == 'Iguales'),
+            _buildCheckboxOption('Midriasis', priority.pupils == 'Midriasis'),
+            _buildCheckboxOption('Miosis', priority.pupils == 'Miosis'),
           ],
         ),
         pw.Row(
           children: [
-            _buildCheckboxOption(
-              'Anisocoria',
-              _getPriorityJustification(record, 'pupils') == 'Anisocoria',
-            ),
-            _buildCheckboxOption(
-              'Arreflexia',
-              _getPriorityJustification(record, 'pupils') == 'Arreflexia',
-            ),
+            _buildCheckboxOption('Anisocoria', priority.pupils == 'Anisocoria'),
+            _buildCheckboxOption('Arreflexia', priority.pupils == 'Arreflexia'),
           ],
         ),
         pw.SizedBox(height: 5),
@@ -3219,22 +2628,10 @@ class PdfGeneratorService {
         ),
         pw.Row(
           children: [
-            _buildCheckboxOption(
-              'Normal',
-              _getPriorityJustification(record, 'skinColor') == 'Normal',
-            ),
-            _buildCheckboxOption(
-              'Cianosis',
-              _getPriorityJustification(record, 'skinColor') == 'Cianosis',
-            ),
-            _buildCheckboxOption(
-              'Marmórea',
-              _getPriorityJustification(record, 'skinColor') == 'Marmórea',
-            ),
-            _buildCheckboxOption(
-              'Pálida',
-              _getPriorityJustification(record, 'skinColor') == 'Pálida',
-            ),
+            _buildCheckboxOption('Normal', priority.skinColor == 'Normal'),
+            _buildCheckboxOption('Cianosis', priority.skinColor == 'Cianosis'),
+            _buildCheckboxOption('Marmórea', priority.skinColor == 'Marmórea'),
+            _buildCheckboxOption('Pálida', priority.skinColor == 'Pálida'),
           ],
         ),
         pw.SizedBox(height: 5),
@@ -3244,14 +2641,8 @@ class PdfGeneratorService {
         ),
         pw.Row(
           children: [
-            _buildCheckboxOption(
-              'Seca',
-              _getPriorityJustification(record, 'skin') == 'Seca',
-            ),
-            _buildCheckboxOption(
-              'Húmeda',
-              _getPriorityJustification(record, 'skin') == 'Húmeda',
-            ),
+            _buildCheckboxOption('Seca', priority.skin == 'Seca'),
+            _buildCheckboxOption('Húmeda', priority.skin == 'Húmeda'),
           ],
         ),
         pw.SizedBox(height: 5),
@@ -3261,18 +2652,12 @@ class PdfGeneratorService {
         ),
         pw.Row(
           children: [
-            _buildCheckboxOption(
-              'Normal',
-              _getPriorityJustification(record, 'temperature') == 'Normal',
-            ),
+            _buildCheckboxOption('Normal', priority.temperature == 'Normal'),
             _buildCheckboxOption(
               'Caliente',
-              _getPriorityJustification(record, 'temperature') == 'Caliente',
+              priority.temperature == 'Caliente',
             ),
-            _buildCheckboxOption(
-              'Fría',
-              _getPriorityJustification(record, 'temperature') == 'Fría',
-            ),
+            _buildCheckboxOption('Fría', priority.temperature == 'Fría'),
           ],
         ),
         pw.SizedBox(height: 5),
@@ -3282,18 +2667,12 @@ class PdfGeneratorService {
         ),
         pw.Row(
           children: [
-            _buildCheckboxOption(
-              'Alcohol',
-              _getPriorityJustification(record, 'influence') == 'Alcohol',
-            ),
+            _buildCheckboxOption('Alcohol', priority.influence == 'Alcohol'),
             _buildCheckboxOption(
               'Otras drogas',
-              _getPriorityJustification(record, 'influence') == 'Otras drogas',
+              priority.influence == 'Otras drogas',
             ),
-            _buildCheckboxOption(
-              'Otro',
-              _getPriorityJustification(record, 'influence') == 'Otro',
-            ),
+            _buildCheckboxOption('Otro', priority.influence == 'Otro'),
           ],
         ),
         pw.SizedBox(height: 5),
@@ -3313,7 +2692,7 @@ class PdfGeneratorService {
                   ),
                 ),
                 child: pw.Text(
-                  _getPriorityJustification(record, 'especifique'),
+                  priority.especifique,
                   style: pw.TextStyle(fontSize: 8),
                 ),
               ),
@@ -3325,266 +2704,159 @@ class PdfGeneratorService {
   }
 
   // Build receiving unit section
-  pw.Widget _buildReceivingUnitSection(UnifiedFrapRecord record) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'UNIDAD MÉDICA QUE RECIBE:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
+  pw.Widget _buildReceivingUnitSection(ReceptionDisplayData reception) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('UNIDAD MÉDICA QUE RECIBE', style: _sectionTitleStyle),
+          pw.SizedBox(height: 5),
+          pw.Row(
+            children: [
+              pw.Text('Lugar de origen:', style: _labelStyle),
+              pw.SizedBox(width: 5),
+              pw.Expanded(
+                child: pw.Container(
+                  height: 15,
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border(
+                      bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+                    ),
+                  ),
+                  child: pw.Text(reception.originPlace, style: _valueStyle),
+                ),
+              ),
+            ],
           ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Lugar de origen:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+          pw.SizedBox(height: 5),
+          pw.Row(
+            children: [
+              pw.Text('Lugar de consulta:', style: _labelStyle),
+              pw.SizedBox(width: 5),
+              pw.Expanded(
+                child: pw.Container(
+                  height: 15,
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border(
+                      bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+                    ),
                   ),
-                ),
-                child: pw.Text(
-                  _getReceivingUnit(record, 'originPlace'),
-                  style: pw.TextStyle(fontSize: 8),
+                  child: pw.Text(reception.consultPlace, style: _valueStyle),
                 ),
               ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Lugar de consulta:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+            ],
+          ),
+          pw.SizedBox(height: 5),
+          pw.Row(
+            children: [
+              pw.Text('Lugar de destino:', style: _labelStyle),
+              pw.SizedBox(width: 5),
+              pw.Expanded(
+                child: pw.Container(
+                  height: 15,
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border(
+                      bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+                    ),
+                  ),
+                  child: pw.Text(
+                    reception.destinationPlace,
+                    style: _valueStyle,
                   ),
                 ),
-                child: pw.Text(
-                  _getReceivingUnit(record, 'consultPlace'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
               ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Lugar de destino:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getReceivingUnit(record, 'destinationPlace'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   // Build ambulance section
-  pw.Widget _buildAmbulanceSection(UnifiedFrapRecord record) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'AMBULANCIA:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
+  pw.Widget _buildAmbulanceSection(AmbulanceDisplayData ambulance) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('AMBULANCIA', style: _sectionTitleStyle),
+          pw.SizedBox(height: 5),
+          pw.Text('Número: ${ambulance.numeroAmbulancia}', style: _valueStyle),
+          pw.Text('Tipo: ${ambulance.tipoAmbulancia}', style: _valueStyle),
+          pw.Text(
+            'Personal a bordo: ${ambulance.personalABordo}',
+            style: _valueStyle,
           ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
+          pw.Text(
+            'Equipamiento: ${ambulance.equipamiento}',
+            style: _valueStyle,
+          ),
+          if (ambulance.observaciones != 'N/A')
             pw.Text(
-              'No.:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+              'Observaciones: ${ambulance.observaciones}',
+              style: _valueStyle,
             ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getReceivingUnit(record, 'ambulanceNumber'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-            pw.SizedBox(width: 10),
-            pw.Text(
-              'Placas:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getReceivingUnit(record, 'plate'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Personal:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getReceivingUnit(record, 'personal'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Dr.:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  _getReceivingUnit(record, 'responsibleDoctor'),
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   // Build patient reception section
-  pw.Widget _buildPatientReceptionSection(UnifiedFrapRecord record) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'RECEPCIÓN DEL PACIENTE:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
-          ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Médico que recibe:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+  pw.Widget _buildPatientReceptionSection(ReceptionDisplayData reception) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('RECEPCIÓN DEL PACIENTE', style: _sectionTitleStyle),
+          pw.SizedBox(height: 5),
+          pw.Row(
+            children: [
+              pw.Text('Médico que recibe:', style: _labelStyle),
+              pw.SizedBox(width: 5),
+              pw.Expanded(
+                child: pw.Container(
+                  height: 15,
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border(
+                      bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+                    ),
                   ),
-                ),
-                child: pw.Text(
-                  _getPatientReception(record, 'receivingDoctor') ?? '',
-                  style: pw.TextStyle(fontSize: 8),
+                  child: pw.Text(reception.receivingDoctor, style: _valueStyle),
                 ),
               ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 10),
-        pw.Text(
-          'Nombre y firma:',
-          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 3),
-        pw.Container(
-          height: 30,
-          decoration: pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-            ),
+            ],
           ),
-          child:
-              _getImageFromBase64(
-                        _getPatientReception(record, 'doctorSignature'),
-                      ) !=
-                      null
-                  ? pw.Image(
-                    _getImageFromBase64(
-                      _getPatientReception(record, 'doctorSignature'),
-                    )!,
-                  )
-                  : pw.Container(),
-        ),
-      ],
+          pw.SizedBox(height: 10),
+          pw.Text('Nombre y firma:', style: _labelStyle),
+          pw.SizedBox(height: 3),
+          pw.Container(
+            height: 30,
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
+            ),
+            child:
+                _getImageFromBase64(reception.doctorSignature) != null
+                    ? pw.Image(_getImageFromBase64(reception.doctorSignature)!)
+                    : pw.Container(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -3625,9 +2897,10 @@ class PdfGeneratorService {
   }
 
   // Método para construir tabla de signos vitales dinámicos
-  pw.Widget _buildDynamicVitalSignsTable(UnifiedFrapRecord record) {
-    final timeColumns = _getTimeColumns(record);
-    final vitalSigns = [
+  pw.Widget _buildDynamicVitalSignsTable(VitalSignsDisplayData vitalSigns) {
+    final timeColumns =
+        vitalSigns.timeColumns.take(3).toList(); // Limit to 3 columns
+    const vitalSignLabels = [
       'T/A',
       'FC',
       'FR',
@@ -3638,105 +2911,644 @@ class PdfGeneratorService {
       'Glasgow',
     ];
 
-    if (timeColumns.isEmpty) {
-      // Si no hay columnas de tiempo, mostrar valores simples
-      return pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children:
-            vitalSigns
-                .map(
-                  (sign) => pw.Text(
-                    '$sign: ${_getPhysicalExam(record, sign)}',
-                    style: pw.TextStyle(fontSize: 8),
+    return pw.Table(
+      border: pw.TableBorder.all(color: PdfColors.black, width: 1),
+      children: [
+        // Header row
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColors.grey200),
+          children: [
+            pw.Container(
+              height: 20,
+              child: pw.Center(
+                child: pw.Text('Signo Vital', style: _labelStyle),
+              ),
+            ),
+            ...timeColumns.map(
+              (time) => pw.Container(
+                height: 20,
+                child: pw.Center(child: pw.Text(time, style: _labelStyle)),
+              ),
+            ),
+          ],
+        ),
+        // Data rows
+        ...vitalSignLabels.map((vitalSign) {
+          final data = vitalSigns.vitalSigns[vitalSign] ?? {};
+          return pw.TableRow(
+            children: [
+              pw.Container(
+                height: 20,
+                padding: const pw.EdgeInsets.all(2),
+                child: pw.Center(child: pw.Text(vitalSign, style: _valueStyle)),
+              ),
+              ...timeColumns.map(
+                (time) => pw.Container(
+                  height: 20,
+                  padding: const pw.EdgeInsets.all(2),
+                  child: pw.Center(
+                    child: pw.Text(data[time] ?? '', style: _valueStyle),
                   ),
-                )
-                .toList(),
+                ),
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  // Build unified display data from UnifiedFrapRecord
+  FrapPdfDisplayData _buildDisplayData(UnifiedFrapRecord record) {
+    _log('Building display data for patient: ${record.patientName}');
+    final detailedInfo = record.getDetailedInfo(); // Cache this expensive call
+
+    return FrapPdfDisplayData(
+      patient: _buildPatientDisplayData(record, detailedInfo),
+      service: _buildServiceDisplayData(record, detailedInfo),
+      vitalSigns: _buildVitalSignsDisplayData(record, detailedInfo),
+      sample: _buildSampleDisplayData(record, detailedInfo),
+      clinical: _buildClinicalDisplayData(record, detailedInfo),
+      management: _buildManagementDisplayData(record, detailedInfo),
+      ambulance: _buildAmbulanceDisplayData(record, detailedInfo),
+      gynecoObstetric: _buildGynecoObstetricDisplayData(record, detailedInfo),
+      priority: _buildPriorityDisplayData(record, detailedInfo),
+      registry: _buildRegistryDisplayData(record, detailedInfo),
+      reception: _buildReceptionDisplayData(record, detailedInfo),
+      consentimientoServicio: _getConsentimientoServicio(record),
+    );
+  }
+
+  PatientDisplayData _buildPatientDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    _log('Building patient display data...');
+    _log('Record has localRecord: ${record.localRecord != null}');
+    _log('Patient name: ${record.patientName}');
+    _log('Patient age: ${record.patientAge}');
+    _log('Patient gender: ${record.patientGender}');
+
+    if (record.localRecord != null) {
+      final patient = record.localRecord!.patient;
+      _log('Using local patient data');
+      _log('Patient firstName: ${patient.firstName}');
+      _log('Patient paternalLastName: ${patient.paternalLastName}');
+      _log('Patient sex: ${patient.sex}');
+      _log('Patient gender: ${patient.gender}');
+      _log('Patient address: ${patient.address}');
+      return PatientDisplayData(
+        fullName:
+            '${patient.firstName} ${patient.paternalLastName} ${patient.maternalLastName}',
+        address: patient.address,
+        age: patient.age.toString(),
+        sex: (patient.sex.isNotEmpty ? patient.sex : patient.gender),
+        gender: patient.gender,
+        phone: patient.phone,
+        insurance: patient.insurance,
+        responsiblePerson: patient.responsiblePerson ?? 'N/A',
+        emergencyContact: 'N/A', // Not available in Patient model
+        addressDetails: patient.addressDetails,
+        tipoEntrega: patient.tipoEntrega,
+      );
+    } else {
+      _log('Using cloud patient data');
+      final patientInfo =
+          detailedInfo['patientInfo'] as Map<String, dynamic>? ?? {};
+      _log('Cloud patientInfo keys: ${patientInfo.keys.toList()}');
+
+      return PatientDisplayData(
+        fullName: record.patientName,
+        address: record.patientAddress,
+        age: record.patientAge.toString(),
+        sex: patientInfo['sex']?.toString() ?? record.patientGender,
+        gender: patientInfo['gender']?.toString() ?? 'N/A',
+        phone: patientInfo['phone']?.toString() ?? 'N/A',
+        insurance: patientInfo['insurance']?.toString() ?? 'N/A',
+        responsiblePerson:
+            patientInfo['responsiblePerson']?.toString() ?? 'N/A',
+        emergencyContact: patientInfo['emergencyContact']?.toString() ?? 'N/A',
+        addressDetails: patientInfo['addressDetails']?.toString() ?? 'N/A',
+        tipoEntrega: patientInfo['tipoEntrega']?.toString() ?? 'N/A',
       );
     }
+  }
 
-    // Construir tabla con columnas de tiempo
+  ServiceDisplayData _buildServiceDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    final serviceInfo =
+        detailedInfo['serviceInfo'] as Map<String, dynamic>? ?? {};
+    return ServiceDisplayData(
+      ubicacion: serviceInfo['ubicacion']?.toString() ?? 'N/A',
+      tipoServicio: serviceInfo['tipoServicio']?.toString() ?? 'N/A',
+      tipoServicioEspecifique:
+          serviceInfo['tipoServicioEspecifique']?.toString() ?? 'N/A',
+      lugarOcurrencia: serviceInfo['lugarOcurrencia']?.toString() ?? 'N/A',
+      horaLlamada: serviceInfo['horaLlamada']?.toString() ?? 'N/A',
+      horaArribo: serviceInfo['horaArribo']?.toString() ?? 'N/A',
+      horaLlegada: serviceInfo['horaLlegada']?.toString() ?? 'N/A',
+      horaTermino: serviceInfo['horaTermino']?.toString() ?? 'N/A',
+      tiempoEsperaArribo:
+          serviceInfo['tiempoEsperaArribo']?.toString() ?? 'N/A',
+      tiempoEsperaLlegada:
+          serviceInfo['tiempoEsperaLlegada']?.toString() ?? 'N/A',
+      tiempoTotal: _calculateTotalTime(serviceInfo),
+    );
+  }
+
+  VitalSignsDisplayData _buildVitalSignsDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    List<String> timeColumns = [];
+    Map<String, Map<String, String>> vitalSigns = {};
+
+    if (record.localRecord != null) {
+      final physicalExam = record.localRecord!.physicalExam;
+      timeColumns = physicalExam.timeColumns;
+      vitalSigns = physicalExam.vitalSignsData.map(
+        (key, value) => MapEntry(key, value.map((k, v) => MapEntry(k, v))),
+      );
+
+      return VitalSignsDisplayData(
+        timeColumns: timeColumns,
+        vitalSigns: vitalSigns,
+        eva: physicalExam.eva,
+        llc: physicalExam.llc,
+        glucosa: physicalExam.glucosa,
+        ta: physicalExam.ta,
+      );
+    } else {
+      final physicalExam =
+          detailedInfo['physicalExam'] as Map<String, dynamic>? ?? {};
+      final tc = physicalExam['timeColumns'];
+      if (tc is List) {
+        timeColumns = tc.map((e) => e.toString()).toList();
+      }
+
+      // Extract vital signs from cloud data
+      const vitalSignKeys = [
+        'T/A',
+        'FC',
+        'FR',
+        'Temp.',
+        'Sat. O2',
+        'LLC',
+        'Glu',
+        'Glasgow',
+      ];
+      for (final key in vitalSignKeys) {
+        final data = physicalExam[key];
+        if (data is Map) {
+          vitalSigns[key] = data.map(
+            (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+          );
+        }
+      }
+
+      return VitalSignsDisplayData(
+        timeColumns: timeColumns,
+        vitalSigns: vitalSigns,
+        eva: physicalExam['eva']?.toString() ?? 'N/A',
+        llc: physicalExam['llc']?.toString() ?? 'N/A',
+        glucosa: physicalExam['glucosa']?.toString() ?? 'N/A',
+        ta: physicalExam['ta']?.toString() ?? 'N/A',
+      );
+    }
+  }
+
+  SampleDisplayData _buildSampleDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    if (record.localRecord != null) {
+      final physicalExam = record.localRecord!.physicalExam;
+      return SampleDisplayData(
+        alergias: physicalExam.sampleAlergias,
+        medicamentos: physicalExam.sampleMedicamentos,
+        enfermedades: physicalExam.sampleEnfermedades,
+        horaAlimento: physicalExam.sampleHoraAlimento,
+        eventosPrevios: physicalExam.sampleEventosPrevios,
+      );
+    } else {
+      final physicalExam =
+          detailedInfo['physicalExam'] as Map<String, dynamic>? ?? {};
+      return SampleDisplayData(
+        alergias: physicalExam['sampleAlergias']?.toString() ?? 'N/A',
+        medicamentos: physicalExam['sampleMedicamentos']?.toString() ?? 'N/A',
+        enfermedades: physicalExam['sampleEnfermedades']?.toString() ?? 'N/A',
+        horaAlimento: physicalExam['sampleHoraAlimento']?.toString() ?? 'N/A',
+        eventosPrevios:
+            physicalExam['sampleEventosPrevios']?.toString() ?? 'N/A',
+      );
+    }
+  }
+
+  ClinicalDisplayData _buildClinicalDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    if (record.localRecord != null) {
+      final clinicalHistory = record.localRecord!.clinicalHistory;
+      return ClinicalDisplayData(
+        currentCondition: clinicalHistory.currentSymptoms,
+        allergies: clinicalHistory.allergies,
+        medications: clinicalHistory.medications,
+        previousIllnesses: clinicalHistory.previousIllnesses,
+        previousSurgeries: clinicalHistory.previousSurgeries,
+        hospitalizations: clinicalHistory.hospitalizations,
+        transfusions: clinicalHistory.transfusions,
+        accidentTypes: _extractAccidentTypes(detailedInfo),
+        agenteCausal: _getFromClinicalHistory(detailedInfo, 'agenteCausal'),
+        cinematica: _getFromClinicalHistory(detailedInfo, 'cinematica'),
+        medidaSeguridad: _getFromClinicalHistory(
+          detailedInfo,
+          'medidaSeguridad',
+        ),
+      );
+    } else {
+      return ClinicalDisplayData(
+        currentCondition: _getFromClinicalHistory(
+          detailedInfo,
+          'currentSymptoms',
+        ),
+        allergies: _getFromClinicalHistory(detailedInfo, 'allergies'),
+        medications: _getFromClinicalHistory(detailedInfo, 'medications'),
+        previousIllnesses: _getFromClinicalHistory(
+          detailedInfo,
+          'previousIllnesses',
+        ),
+        previousSurgeries: _getFromClinicalHistory(
+          detailedInfo,
+          'previousSurgeries',
+        ),
+        hospitalizations: _getFromClinicalHistory(
+          detailedInfo,
+          'hospitalizations',
+        ),
+        transfusions: _getFromClinicalHistory(detailedInfo, 'transfusions'),
+        accidentTypes: _extractAccidentTypes(detailedInfo),
+        agenteCausal: _getFromClinicalHistory(detailedInfo, 'agenteCausal'),
+        cinematica: _getFromClinicalHistory(detailedInfo, 'cinematica'),
+        medidaSeguridad: _getFromClinicalHistory(
+          detailedInfo,
+          'medidaSeguridad',
+        ),
+      );
+    }
+  }
+
+  ManagementDisplayData _buildManagementDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    final management =
+        detailedInfo['management'] as Map<String, dynamic>? ?? {};
+    final insumos = _getInsumos(record);
+    final personalMedico = _getPersonalMedico(record);
+
+    return ManagementDisplayData(
+      procedures: {
+        'viaAerea': _boolToString(management['viaAerea']),
+        'canalizacion': _boolToString(management['canalizacion']),
+        'inmovilizacion': _boolToString(management['inmovilizacion']),
+        'monitor': _boolToString(management['monitor']),
+        'rcpBasica': _boolToString(management['rcpBasica']),
+        'oxigeno': _boolToString(management['oxigeno']),
+      },
+      oxigenoLitros: management['ltMin']?.toString() ?? 'N/A',
+      insumos: insumos,
+      personalMedico: personalMedico,
+      medicamentos:
+          detailedInfo['medications']?['medications']?.toString() ?? 'N/A',
+    );
+  }
+
+  AmbulanceDisplayData _buildAmbulanceDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    final ambulance = detailedInfo['ambulance'] as Map<String, dynamic>? ?? {};
+    return AmbulanceDisplayData(
+      numeroAmbulancia: ambulance['numero']?.toString() ?? 'N/A',
+      tipoAmbulancia: ambulance['tipo']?.toString() ?? 'N/A',
+      personalABordo: ambulance['personalABordo']?.toString() ?? 'N/A',
+      equipamiento: ambulance['equipamiento']?.toString() ?? 'N/A',
+      observaciones: ambulance['observaciones']?.toString() ?? 'N/A',
+    );
+  }
+
+  GynecoObstetricDisplayData _buildGynecoObstetricDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    final gynecoObstetric =
+        detailedInfo['gynecoObstetric'] as Map<String, dynamic>? ?? {};
+    final escalas = _getEscalasObstetricas(record);
+
+    return GynecoObstetricDisplayData(
+      fum: gynecoObstetric['fum']?.toString() ?? 'N/A',
+      semanasGestacion:
+          gynecoObstetric['semanasGestacion']?.toString() ?? 'N/A',
+      gesta: gynecoObstetric['gesta']?.toString() ?? 'N/A',
+      partos: gynecoObstetric['partos']?.toString() ?? 'N/A',
+      cesareas: gynecoObstetric['cesareas']?.toString() ?? 'N/A',
+      abortos: gynecoObstetric['abortos']?.toString() ?? 'N/A',
+      hora: gynecoObstetric['hora']?.toString() ?? 'N/A',
+      metodosAnticonceptivos:
+          gynecoObstetric['metodosAnticonceptivos']?.toString() ?? 'N/A',
+      ruidosCardiacosFetales: gynecoObstetric['ruidosCardiacosFetales'] == true,
+      expulsionPlacenta: gynecoObstetric['expulsionPlacenta'] == true,
+      escalasObstetricas: escalas,
+    );
+  }
+
+  PriorityDisplayData _buildPriorityDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    final priority =
+        detailedInfo['priorityJustification'] as Map<String, dynamic>? ?? {};
+    return PriorityDisplayData(
+      priority: priority['priority']?.toString() ?? 'N/A',
+      pupils: priority['pupils']?.toString() ?? 'N/A',
+      skinColor: priority['skinColor']?.toString() ?? 'N/A',
+      skin: priority['skin']?.toString() ?? 'N/A',
+      temperature: priority['temperature']?.toString() ?? 'N/A',
+      influence: priority['influence']?.toString() ?? 'N/A',
+      especifique: priority['especifique']?.toString() ?? 'N/A',
+    );
+  }
+
+  RegistryDisplayData _buildRegistryDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    final registryInfo =
+        detailedInfo['registryInfo'] as Map<String, dynamic>? ?? {};
+    return RegistryDisplayData(
+      convenio: registryInfo['convenio']?.toString() ?? 'N/A',
+      episodio: registryInfo['episodio']?.toString() ?? 'N/A',
+      solicitadoPor: registryInfo['solicitadoPor']?.toString() ?? 'N/A',
+      folio: registryInfo['folio']?.toString() ?? 'N/A',
+      fecha: registryInfo['fecha']?.toString() ?? 'N/A',
+    );
+  }
+
+  ReceptionDisplayData _buildReceptionDisplayData(
+    UnifiedFrapRecord record,
+    Map<String, dynamic> detailedInfo,
+  ) {
+    final reception =
+        detailedInfo['patientReception'] as Map<String, dynamic>? ?? {};
+    final receivingUnit =
+        detailedInfo['receivingUnit'] as Map<String, dynamic>? ?? {};
+
+    return ReceptionDisplayData(
+      receivingDoctor: reception['receivingDoctor']?.toString() ?? 'N/A',
+      doctorSignature: reception['doctorSignature']?.toString(),
+      originPlace: receivingUnit['originPlace']?.toString() ?? 'N/A',
+      consultPlace: receivingUnit['consultPlace']?.toString() ?? 'N/A',
+      destinationPlace: receivingUnit['destinationPlace']?.toString() ?? 'N/A',
+    );
+  }
+
+  // Helper methods
+  String _calculateTotalTime(Map<String, dynamic> serviceInfo) {
+    // Simple calculation - could be enhanced
+    final inicio = serviceInfo['horaLlamada']?.toString();
+    final fin = serviceInfo['horaTermino']?.toString();
+    if (inicio != null && fin != null && inicio != 'N/A' && fin != 'N/A') {
+      return 'Calculado'; // Placeholder for actual time calculation
+    }
+    return 'N/A';
+  }
+
+  Map<String, bool> _extractAccidentTypes(Map<String, dynamic> detailedInfo) {
+    final clinicalHistory =
+        detailedInfo['clinicalHistory'] as Map<String, dynamic>? ?? {};
+    return {
+      'atropellado':
+          clinicalHistory['atropellado'] == true ||
+          clinicalHistory['atropellado'] == 'Sí',
+      'lxPorCaida':
+          clinicalHistory['lxPorCaida'] == true ||
+          clinicalHistory['lxPorCaida'] == 'Sí',
+      'intoxicacion':
+          clinicalHistory['intoxicacion'] == true ||
+          clinicalHistory['intoxicacion'] == 'Sí',
+      'amputacion':
+          clinicalHistory['amputacion'] == true ||
+          clinicalHistory['amputacion'] == 'Sí',
+      'choque':
+          clinicalHistory['choque'] == true ||
+          clinicalHistory['choque'] == 'Sí',
+      'agresion':
+          clinicalHistory['agresion'] == true ||
+          clinicalHistory['agresion'] == 'Sí',
+      'hpab':
+          clinicalHistory['hpab'] == true || clinicalHistory['hpab'] == 'Sí',
+      'hpaf':
+          clinicalHistory['hpaf'] == true || clinicalHistory['hpaf'] == 'Sí',
+      'volcadura':
+          clinicalHistory['volcadura'] == true ||
+          clinicalHistory['volcadura'] == 'Sí',
+      'quemadura':
+          clinicalHistory['quemadura'] == true ||
+          clinicalHistory['quemadura'] == 'Sí',
+      'otroTipo':
+          clinicalHistory['otroTipo'] == true ||
+          clinicalHistory['otroTipo'] == 'Sí',
+    };
+  }
+
+  String _getFromClinicalHistory(
+    Map<String, dynamic> detailedInfo,
+    String key,
+  ) {
+    final clinicalHistory =
+        detailedInfo['clinicalHistory'] as Map<String, dynamic>? ?? {};
+    final value = clinicalHistory[key];
+    if (value == true) return 'Sí';
+    if (value == false) return 'No';
+    return value?.toString() ?? 'N/A';
+  }
+
+  String _boolToString(dynamic value) {
+    if (value == true) return 'Sí';
+    if (value == false) return 'No';
+    return value?.toString() ?? 'N/A';
+  }
+
+  // Missing section builders - adding these new methods
+  pw.Widget _buildConsentimientoSection(String signatureData) {
     return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 1),
       ),
       child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          // Header row
-          pw.Container(
-            decoration: pw.BoxDecoration(
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-              ),
-            ),
-            child: pw.Row(
-              children: [
-                pw.Expanded(
-                  flex: 2,
-                  child: pw.Container(
-                    padding: const pw.EdgeInsets.all(3),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border(
-                        right: pw.BorderSide(color: PdfColors.black, width: 1),
-                      ),
-                    ),
-                    child: pw.Text(
-                      'Signo Vital',
-                      style: pw.TextStyle(
-                        fontSize: 8,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                ...timeColumns.map((time) => _buildTimeGridCell(time, true)),
-              ],
-            ),
+          pw.Text('CONSENTIMIENTO DE SERVICIO', style: _sectionTitleStyle),
+          pw.SizedBox(height: 5),
+          pw.Text(
+            'He recibido atención médica prehospitalaria y autorizo el traslado a la unidad médica correspondiente.',
+            style: _valueStyle,
           ),
-          // Data rows
-          ...vitalSigns.map(
-            (sign) => _buildVitalSignRowDynamic(sign, record, timeColumns),
+          pw.SizedBox(height: 10),
+          pw.Container(
+            height: 40,
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey400),
+            ),
+            child:
+                _getImageFromBase64(signatureData) != null
+                    ? pw.Image(_getImageFromBase64(signatureData)!)
+                    : pw.Center(
+                      child: pw.Text('Firma no disponible', style: _valueStyle),
+                    ),
           ),
         ],
       ),
     );
   }
 
-  // Método para construir fila de signo vital dinámico
-  pw.Widget _buildVitalSignRowDynamic(
-    String vitalSign,
-    UnifiedFrapRecord record,
-    List<String> timeColumns,
-  ) {
-    final vitalData = _getVitalSignsData(record, vitalSign);
-
+  pw.Widget _buildSampleSection(SampleDisplayData sample) {
     return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
       decoration: pw.BoxDecoration(
-        border: pw.Border(
-          bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
-        ),
+        border: pw.Border.all(color: PdfColors.black, width: 1),
       ),
-      child: pw.Row(
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Expanded(
-            flex: 2,
-            child: pw.Container(
-              padding: const pw.EdgeInsets.all(3),
-              decoration: pw.BoxDecoration(
-                border: pw.Border(
-                  right: pw.BorderSide(color: PdfColors.black, width: 1),
-                ),
-              ),
-              child: pw.Text(
-                vitalSign,
-                style: pw.TextStyle(
-                  fontSize: 8,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
+          pw.Text('EVALUACIÓN SAMPLE', style: _sectionTitleStyle),
+          pw.SizedBox(height: 5),
+          pw.Text(
+            'S - Signos y síntomas: ${sample.alergias}',
+            style: _valueStyle,
+          ),
+          pw.Text('A - Alergias: ${sample.alergias}', style: _valueStyle),
+          pw.Text(
+            'M - Medicamentos: ${sample.medicamentos}',
+            style: _valueStyle,
+          ),
+          pw.Text(
+            'P - Historia médica previa: ${sample.enfermedades}',
+            style: _valueStyle,
+          ),
+          pw.Text(
+            'L - Última ingesta oral: ${sample.horaAlimento}',
+            style: _valueStyle,
+          ),
+          pw.Text(
+            'E - Eventos previos: ${sample.eventosPrevios}',
+            style: _valueStyle,
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildEvaSection(VitalSignsDisplayData vitalSigns) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('ESCALA EVA (DOLOR)', style: _sectionTitleStyle),
+          pw.SizedBox(height: 5),
+          pw.Text('Nivel de dolor: ${vitalSigns.eva}/10', style: _valueStyle),
+          pw.Text('LLC: ${vitalSigns.llc} segundos', style: _valueStyle),
+          pw.Text('Glucosa: ${vitalSigns.glucosa} mg/dl', style: _valueStyle),
+          pw.Text('T/A: ${vitalSigns.ta} mm/Hg', style: _valueStyle),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildEscalasObstetricasSection(Map<String, dynamic> escalas) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('ESCALAS OBSTÉTRICAS', style: _sectionTitleStyle),
+          pw.SizedBox(height: 5),
+          pw.Text(
+            'Frecuencia cardíaca fetal: ${escalas['frecuenciaCardiacaFetal'] ?? 'N/A'} lpm',
+            style: _valueStyle,
+          ),
+          pw.Text(
+            'Contracciones: ${escalas['contracciones'] ?? 'N/A'}',
+            style: _valueStyle,
+          ),
+          if (escalas['silvermanAnderson'] != null &&
+              (escalas['silvermanAnderson'] as Map).isNotEmpty)
+            pw.Text(
+              'Silverman-Anderson: ${escalas['silvermanAnderson']}',
+              style: _valueStyle,
+            ),
+          if (escalas['apgar'] != null && (escalas['apgar'] as Map).isNotEmpty)
+            pw.Text('Apgar: ${escalas['apgar']}', style: _valueStyle),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildInsumosSection(List<Map<String, dynamic>> insumos) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('INSUMOS UTILIZADOS', style: _sectionTitleStyle),
+          pw.SizedBox(height: 4),
+          ...insumos.map(
+            (insumo) => pw.Text(
+              '• ${insumo['cantidad']} ${insumo['articulo']}',
+              style: _valueStyle,
             ),
           ),
-          ...timeColumns.map(
-            (time) => _buildTimeGridCell(vitalData[time] ?? '', false),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildPersonalMedicoSection(List<Map<String, dynamic>> personal) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('PERSONAL MÉDICO', style: _sectionTitleStyle),
+          pw.SizedBox(height: 4),
+          ...personal.map(
+            (p) => pw.Text(
+              '• ${p['nombre']} - ${p['especialidad']} (${p['cedula']})',
+              style: _valueStyle,
+            ),
           ),
         ],
       ),
