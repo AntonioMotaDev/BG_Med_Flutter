@@ -42,6 +42,7 @@ class ServiceDisplayData {
   final String tipoServicio;
   final String tipoServicioEspecifique;
   final String lugarOcurrencia;
+  final String lugarOcurrenciaEspecifique;
   final String horaLlamada;
   final String horaArribo;
   final String horaLlegada;
@@ -49,12 +50,14 @@ class ServiceDisplayData {
   final String tiempoEsperaArribo;
   final String tiempoEsperaLlegada;
   final String tiempoTotal;
+  final String currentCondition;
 
   ServiceDisplayData({
     required this.ubicacion,
     required this.tipoServicio,
     required this.tipoServicioEspecifique,
     required this.lugarOcurrencia,
+    required this.lugarOcurrenciaEspecifique,
     required this.horaLlamada,
     required this.horaArribo,
     required this.horaLlegada,
@@ -62,6 +65,7 @@ class ServiceDisplayData {
     required this.tiempoEsperaArribo,
     required this.tiempoEsperaLlegada,
     required this.tiempoTotal,
+    required this.currentCondition,
   });
 }
 
@@ -380,7 +384,9 @@ class PdfGeneratorService {
     // Build unified display data
     final displayData = _buildDisplayData(record);
     print('--------------------------------');
-    print('Datos de patientInfo: ${record.getDetailedInfo()['patientInfo']}');
+    print(
+      'Datos de clinicalHistory: ${record.getDetailedInfo()['clinicalHistory']}',
+    );
     print('--------------------------------');
     _log('Display data built successfully');
 
@@ -427,39 +433,39 @@ class PdfGeneratorService {
               ),
               pw.SizedBox(height: 8),
 
-              // Administrative details at top right
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.end,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      _buildAdminDetail(
-                        'Convenio:',
-                        displayData.registry.convenio,
-                      ),
-                      _buildAdminDetail(
-                        'Episodio:',
-                        displayData.registry.episodio,
-                      ),
-                      _buildAdminDetail(
-                        'Solicitado por:',
-                        displayData.registry.solicitadoPor,
-                      ),
-                      _buildAdminDetail('Folio:', displayData.registry.folio),
-                      _buildAdminDetail('Fecha:', displayData.registry.fecha),
-                    ],
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 15),
+              _buildAdminDetailsTable(displayData.registry),
+              pw.SizedBox(height: 5),
 
-              // Time tracking grid
               _buildTimeTrackingGrid(displayData.service),
+              pw.SizedBox(height: 2),
+
+              _buildServiceInfoSection(displayData.service),
+              pw.SizedBox(height: 5),
+
+              _buildPatientInfoSection(
+                displayData.patient,
+                displayData.service.currentCondition,
+              ),
               pw.SizedBox(height: 10),
 
-              // Patient Info Section
-              _buildPatientInfoSection(displayData.patient),
+              _buildClinicalHistorySection(displayData.clinical),
+              pw.SizedBox(height: 10),
+
+              _buildPhysicalExamSection(displayData.vitalSigns),
+              pw.SizedBox(height: 10),
+
+              if (displayData.patient.sex?.toLowerCase() == 'femenino') ...[
+                _buildGynecoObstetricSection(displayData.gynecoObstetric),
+                pw.SizedBox(height: 10),
+              ],
+
+              _buildEvaSection(displayData.vitalSigns),
+              pw.SizedBox(height: 10),
+
+              _buildManagementSection(displayData.management),
+              pw.SizedBox(height: 10),
+
+              _buildMedicationsSection(displayData.management),
               pw.SizedBox(height: 10),
 
               // Main content in two columns
@@ -473,13 +479,9 @@ class PdfGeneratorService {
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         // Location and Service Type
-                        _buildLocationAndServiceSection(displayData.service),
-                        pw.SizedBox(height: 6),
+                        // (Sección de ubicación y tipo combinada arriba en Información del Servicio)
                         // Place of Occurrence
                         _buildPlaceOfOccurrenceSection(displayData.service),
-                        pw.SizedBox(height: 6),
-                        // Patient Information
-                        _buildPatientInfoSection(displayData.patient),
                         pw.SizedBox(height: 6),
                         // Current Condition
                         _buildCurrentConditionSection(displayData.clinical),
@@ -966,11 +968,7 @@ class PdfGeneratorService {
             width: 80,
             child: pw.Text(
               '$label:',
-              style: pw.TextStyle(
-                fontSize: 8,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.grey800,
-              ),
+              style: pw.TextStyle(fontSize: 8, color: PdfColors.grey800),
             ),
           ),
           pw.Expanded(
@@ -992,6 +990,25 @@ class PdfGeneratorService {
       ),
       child: pw.Column(
         children: [
+          pw.Container(
+            width: double.infinity,
+            padding: pw.EdgeInsets.all(4),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey300,
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
+            ),
+            child: pw.Center(
+              child: pw.Text(
+                'INFORMACIÓN DEL SERVICIO',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
           // Header row
           pw.Container(
             decoration: pw.BoxDecoration(
@@ -1003,6 +1020,11 @@ class PdfGeneratorService {
               children: [
                 pw.Expanded(child: _buildTimeGridCell('Hora de llamada', true)),
                 pw.Expanded(child: _buildTimeGridCell('Hora de arribo', true)),
+                pw.Expanded(
+                  child: _buildTimeGridCell('Tiempo de espera', true),
+                ),
+                pw.Expanded(child: _buildTimeGridCell('Hora de llegada', true)),
+                pw.Expanded(child: _buildTimeGridCell('Hora de termino', true)),
                 pw.Expanded(
                   child: _buildTimeGridCell('Tiempo de espera', true),
                 ),
@@ -1019,17 +1041,6 @@ class PdfGeneratorService {
               pw.Expanded(
                 child: _buildTimeGridCell(service.tiempoEsperaArribo, false),
               ),
-            ],
-          ),
-          pw.Row(
-            children: [
-              pw.Expanded(child: _buildTimeGridCell('Hora de llegada', true)),
-              pw.Expanded(child: _buildTimeGridCell('Hora de termino', true)),
-              pw.Expanded(child: _buildTimeGridCell('Tiempo de espera', true)),
-            ],
-          ),
-          pw.Row(
-            children: [
               pw.Expanded(
                 child: _buildTimeGridCell(service.horaLlegada, false),
               ),
@@ -1059,117 +1070,10 @@ class PdfGeneratorService {
       child: pw.Center(
         child: pw.Text(
           text,
-          style: pw.TextStyle(
-            fontSize: 7,
-            fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-            color: PdfColors.black,
-          ),
+          style: pw.TextStyle(fontSize: 7, color: PdfColors.black),
           textAlign: pw.TextAlign.center,
         ),
       ),
-    );
-  }
-
-  // Build location and service type section
-  pw.Widget _buildLocationAndServiceSection(ServiceDisplayData service) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        // Location field
-        pw.Row(
-          children: [
-            pw.Text(
-              'Ubicación:',
-              style: pw.TextStyle(
-                fontSize: 10,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.black,
-              ),
-            ),
-            pw.SizedBox(width: 10),
-            pw.Expanded(
-              child: pw.Container(
-                height: 20,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Padding(
-                  padding: const pw.EdgeInsets.only(left: 5, bottom: 2),
-                  child: pw.Text(
-                    service.ubicacion,
-                    style: pw.TextStyle(fontSize: 9),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 10),
-
-        // Service type section
-        pw.Text(
-          'Tipo de servicio:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
-          ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'Traslado',
-              service.tipoServicio == 'Traslado',
-            ),
-            _buildCheckboxOption(
-              'Urgencia',
-              service.tipoServicio == 'Urgencia',
-            ),
-            _buildCheckboxOption('Estudio', service.tipoServicio == 'Estudio'),
-            _buildCheckboxOption(
-              'Cuidados Intensivos',
-              service.tipoServicio == 'Cuidados Intensivos',
-            ),
-            _buildCheckboxOption('Otro', service.tipoServicio == 'Otro'),
-          ],
-        ),
-        pw.SizedBox(height: 10),
-
-        // Specify field
-        pw.Row(
-          children: [
-            pw.Text(
-              'Especifique:',
-              style: pw.TextStyle(
-                fontSize: 10,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.black,
-              ),
-            ),
-            pw.SizedBox(width: 10),
-            pw.Expanded(
-              child: pw.Container(
-                height: 20,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Padding(
-                  padding: const pw.EdgeInsets.only(left: 5, bottom: 2),
-                  child: pw.Text(
-                    service.tipoServicioEspecifique,
-                    style: pw.TextStyle(fontSize: 9),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -1245,16 +1149,19 @@ class PdfGeneratorService {
   }
 
   // Build patient information section
-  pw.Widget _buildPatientInfoSection(PatientDisplayData patient) {
-    _log('Building PDF patient info section');
-    _log('Patient fullName: ${patient.fullName}');
-    _log('Patient address: ${patient.address}');
-    _log('Patient age: ${patient.age}');
-    _log('Patient sex: ${patient.sex}');
-    _log('Patient gender: ${patient.gender}');
-    _log('Patient phone: ${patient.phone}');
-    _log('Patient insurance: ${patient.insurance}');
-    _log('Patient responsiblePerson: ${patient.responsiblePerson}');
+  pw.Widget _buildPatientInfoSection(
+    PatientDisplayData patient,
+    String currentCondition,
+  ) {
+    // _log('Building PDF patient info section');
+    // _log('Patient fullName: ${patient.fullName}');
+    // _log('Patient address: ${patient.address}');
+    // _log('Patient age: ${patient.age}');
+    // _log('Patient sex: ${patient.sex}');
+    // _log('Patient gender: ${patient.gender}');
+    // _log('Patient phone: ${patient.phone}');
+    // _log('Patient insurance: ${patient.insurance}');
+    // _log('Patient responsiblePerson: ${patient.responsiblePerson}');
 
     return pw.Container(
       decoration: pw.BoxDecoration(
@@ -1283,28 +1190,7 @@ class PdfGeneratorService {
             ),
           ),
 
-          // Primera fila: Nombre completo
-          pw.Container(
-            decoration: pw.BoxDecoration(
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
-              ),
-            ),
-            child: pw.Container(
-              width: double.infinity,
-              padding: pw.EdgeInsets.all(3),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('Nombre:', style: pw.TextStyle(fontSize: 6)),
-                  pw.SizedBox(height: 2),
-                  pw.Text(patient.fullName, style: pw.TextStyle(fontSize: 8)),
-                ],
-              ),
-            ),
-          ),
-
-          // Segunda fila: Edad | Sexo
+          // Fila: Nombre | Edad | Sexo
           pw.Container(
             decoration: pw.BoxDecoration(
               border: pw.Border(
@@ -1313,6 +1199,33 @@ class PdfGeneratorService {
             ),
             child: pw.Row(
               children: [
+                // Nombre
+                pw.Expanded(
+                  flex: 4,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Nombre:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          patient.fullName,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Edad
                 pw.Expanded(
                   flex: 1,
                   child: pw.Container(
@@ -1335,10 +1248,19 @@ class PdfGeneratorService {
                     ),
                   ),
                 ),
+                // Sexo
                 pw.Expanded(
                   flex: 2,
                   child: pw.Container(
                     padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
@@ -1349,6 +1271,7 @@ class PdfGeneratorService {
                     ),
                   ),
                 ),
+                // Derechohabiencia
                 pw.Expanded(
                   flex: 2,
                   child: pw.Container(
@@ -1356,10 +1279,13 @@ class PdfGeneratorService {
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('Género:', style: pw.TextStyle(fontSize: 6)),
+                        pw.Text(
+                          'Derechohabiencia:',
+                          style: pw.TextStyle(fontSize: 6),
+                        ),
                         pw.SizedBox(height: 2),
                         pw.Text(
-                          patient.gender,
+                          patient.insurance,
                           style: pw.TextStyle(fontSize: 8),
                         ),
                       ],
@@ -1370,73 +1296,93 @@ class PdfGeneratorService {
             ),
           ),
 
-          // Tercera fila: Dirección completa
+          // Tercera fila: Dirección | Teléfono | Persona responsable
           pw.Container(
             decoration: pw.BoxDecoration(
               border: pw.Border(
                 bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
               ),
             ),
-            child: pw.Container(
-              width: double.infinity,
-              padding: pw.EdgeInsets.all(3),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('Dirección:', style: pw.TextStyle(fontSize: 6)),
-                  pw.SizedBox(height: 2),
-                  pw.Text(patient.address, style: pw.TextStyle(fontSize: 8)),
-                ],
-              ),
-            ),
-          ),
-
-          // Cuarta fila: Teléfono
-          pw.Container(
-            decoration: pw.BoxDecoration(
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
-              ),
-            ),
-            child: pw.Container(
-              width: double.infinity,
-              padding: pw.EdgeInsets.all(3),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('Teléfono:', style: pw.TextStyle(fontSize: 6)),
-                  pw.SizedBox(height: 2),
-                  pw.Text(patient.phone, style: pw.TextStyle(fontSize: 8)),
-                ],
-              ),
-            ),
-          ),
-
-          // Quinta fila: Derechohabiencia
-          pw.Container(
-            decoration: pw.BoxDecoration(
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
-              ),
-            ),
-            child: pw.Container(
-              width: double.infinity,
-              padding: pw.EdgeInsets.all(3),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'Derechohabiencia:',
-                    style: pw.TextStyle(fontSize: 6),
+            child: pw.Row(
+              children: [
+                // Dirección
+                pw.Expanded(
+                  flex: 3,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Dirección:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          patient.address,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
                   ),
-                  pw.SizedBox(height: 2),
-                  pw.Text(patient.insurance, style: pw.TextStyle(fontSize: 8)),
-                ],
-              ),
+                ),
+                // Teléfono
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Teléfono:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          patient.phone,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Persona responsable
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Persona responsable:',
+                          style: pw.TextStyle(fontSize: 6),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          patient.responsiblePerson,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // Sexta fila: Persona Responsable
+          // Séptima fila: Padecimiento actual
           pw.Container(
             width: double.infinity,
             padding: pw.EdgeInsets.all(3),
@@ -1444,14 +1390,11 @@ class PdfGeneratorService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(
-                  'Persona Responsable:',
+                  'Padecimiento actual:',
                   style: pw.TextStyle(fontSize: 6),
                 ),
                 pw.SizedBox(height: 2),
-                pw.Text(
-                  patient.responsiblePerson,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
+                pw.Text(currentCondition, style: pw.TextStyle(fontSize: 8)),
               ],
             ),
           ),
@@ -1500,17 +1443,6 @@ class PdfGeneratorService {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // Build administrative detail
-  pw.Widget _buildAdminDetail(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 2),
-      child: pw.Text(
-        '$label $value',
-        style: pw.TextStyle(fontSize: 9, color: PdfColors.black),
       ),
     );
   }
@@ -1611,141 +1543,195 @@ class PdfGeneratorService {
 
   // Build clinical history section
   pw.Widget _buildClinicalHistorySection(ClinicalDisplayData clinical) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'ANTECEDENTES CLÍNICOS:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
-          ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'A) Tipo:',
-          style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 3),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'Atropellado',
-              clinical.accidentTypes['atropellado'] == true,
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        children: [
+          // Header similar to patient info
+          pw.Container(
+            width: double.infinity,
+            padding: pw.EdgeInsets.all(4),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey300,
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
             ),
-            _buildCheckboxOption(
-              'Lx. Por caída',
-              clinical.accidentTypes['lxPorCaida'] == true,
-            ),
-            _buildCheckboxOption(
-              'Intoxicación',
-              clinical.accidentTypes['intoxicacion'] == true,
-            ),
-          ],
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'Amputación',
-              clinical.accidentTypes['amputacion'] == true,
-            ),
-            _buildCheckboxOption(
-              'Choque',
-              clinical.accidentTypes['choque'] == true,
-            ),
-            _buildCheckboxOption(
-              'Agresión',
-              clinical.accidentTypes['agresion'] == true,
-            ),
-          ],
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'H.P.A.B.',
-              clinical.accidentTypes['hpab'] == true,
-            ),
-            _buildCheckboxOption(
-              'H.P.A.F.',
-              clinical.accidentTypes['hpaf'] == true,
-            ),
-            _buildCheckboxOption(
-              'Volcadura',
-              clinical.accidentTypes['volcadura'] == true,
-            ),
-          ],
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'Quemadura',
-              clinical.accidentTypes['quemadura'] == true,
-            ),
-            _buildCheckboxOption(
-              'Otro',
-              clinical.accidentTypes['otroTipo'] == true,
-            ),
-            pw.Expanded(
-              child: pw.Text('Especifique:', style: pw.TextStyle(fontSize: 8)),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'B) Agente causal:',
-          style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 3),
-        pw.Container(
-          width: double.infinity,
-          height: 20,
-          decoration: pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+            child: pw.Center(
+              child: pw.Text(
+                'ANTECEDENTES CLÍNICOS',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
             ),
           ),
-          child: pw.Text(
-            clinical.agenteCausal,
-            style: pw.TextStyle(fontSize: 8),
-          ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Cinemática:',
-          style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 3),
-        pw.Container(
-          width: double.infinity,
-          height: 20,
-          decoration: pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+          // Tipo y Agente Causal (nuevo layout)
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                top: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
+            ),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Columna "Tipo"
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('A) Tipo:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        if (clinical.accidentTypes['atropellado'] == true)
+                          pw.Text(
+                            'Atropellado',
+                            style: pw.TextStyle(fontSize: 8),
+                          ),
+                        if (clinical.accidentTypes['lxPorCaida'] == true)
+                          pw.Text(
+                            'Lx. Por caída',
+                            style: pw.TextStyle(fontSize: 8),
+                          ),
+                        if (clinical.accidentTypes['intoxicacion'] == true)
+                          pw.Text(
+                            'Intoxicación',
+                            style: pw.TextStyle(fontSize: 8),
+                          ),
+                        if (clinical.accidentTypes['amputacion'] == true)
+                          pw.Text(
+                            'Amputación',
+                            style: pw.TextStyle(fontSize: 8),
+                          ),
+                        if (clinical.accidentTypes['choque'] == true)
+                          pw.Text('Choque', style: pw.TextStyle(fontSize: 8)),
+                        if (clinical.accidentTypes['agresion'] == true)
+                          pw.Text('Agresión', style: pw.TextStyle(fontSize: 8)),
+                        if (clinical.accidentTypes['hpab'] == true)
+                          pw.Text('H.P.A.B.', style: pw.TextStyle(fontSize: 8)),
+                        if (clinical.accidentTypes['hpaf'] == true)
+                          pw.Text('H.P.A.F.', style: pw.TextStyle(fontSize: 8)),
+                        if (clinical.accidentTypes['volcadura'] == true)
+                          pw.Text(
+                            'Volcadura',
+                            style: pw.TextStyle(fontSize: 8),
+                          ),
+                        if (clinical.accidentTypes['quemadura'] == true)
+                          pw.Text(
+                            'Quemadura',
+                            style: pw.TextStyle(fontSize: 8),
+                          ),
+                        if (clinical.accidentTypes['otroTipo'] == true)
+                          pw.Row(
+                            children: [
+                              pw.Text('Otro', style: pw.TextStyle(fontSize: 8)),
+                              pw.SizedBox(width: 4),
+                              pw.Text(
+                                'Especifique:',
+                                style: pw.TextStyle(fontSize: 8),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Columna "Agente causal"
+                pw.Expanded(
+                  flex: 3,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'B) Agente causal:',
+                          style: pw.TextStyle(
+                            fontSize: 7,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Container(
+                          width: double.infinity,
+                          height: 20,
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border(
+                              bottom: pw.BorderSide(
+                                color: PdfColors.black,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: pw.Align(
+                            alignment: pw.Alignment.centerLeft,
+                            child: pw.Text(
+                              clinical.agenteCausal,
+                              style: pw.TextStyle(fontSize: 8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          child: pw.Text(clinical.cinematica, style: pw.TextStyle(fontSize: 8)),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Medida de seguridad:',
-          style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 3),
-        pw.Container(
-          width: double.infinity,
-          height: 20,
-          decoration: pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+          pw.SizedBox(height: 3),
+          pw.Text(
+            'Cinemática:',
+            style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 3),
+          pw.Container(
+            width: double.infinity,
+            height: 20,
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
+            ),
+            child: pw.Text(
+              clinical.cinematica,
+              style: pw.TextStyle(fontSize: 8),
             ),
           ),
-          child: pw.Text(
-            clinical.medidaSeguridad,
-            style: pw.TextStyle(fontSize: 8),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'Medida de seguridad:',
+            style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
           ),
-        ),
-      ],
+          pw.SizedBox(height: 3),
+          pw.Container(
+            width: double.infinity,
+            height: 20,
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
+            ),
+            child: pw.Text(
+              clinical.medidaSeguridad,
+              style: pw.TextStyle(fontSize: 8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2960,7 +2946,6 @@ class PdfGeneratorService {
 
   // Build unified display data from UnifiedFrapRecord
   FrapPdfDisplayData _buildDisplayData(UnifiedFrapRecord record) {
-    _log('Building display data for patient: ${record.patientName}');
     final detailedInfo = record.getDetailedInfo(); // Cache this expensive call
 
     return FrapPdfDisplayData(
@@ -3046,6 +3031,8 @@ class PdfGeneratorService {
       tipoServicioEspecifique:
           serviceInfo['tipoServicioEspecifique']?.toString() ?? 'N/A',
       lugarOcurrencia: serviceInfo['lugarOcurrencia']?.toString() ?? 'N/A',
+      lugarOcurrenciaEspecifique:
+          serviceInfo['lugarOcurrenciaEspecifique']?.toString() ?? 'N/A',
       horaLlamada: serviceInfo['horaLlamada']?.toString() ?? 'N/A',
       horaArribo: serviceInfo['horaArribo']?.toString() ?? 'N/A',
       horaLlegada: serviceInfo['horaLlegada']?.toString() ?? 'N/A',
@@ -3055,6 +3042,7 @@ class PdfGeneratorService {
       tiempoEsperaLlegada:
           serviceInfo['tiempoEsperaLlegada']?.toString() ?? 'N/A',
       tiempoTotal: _calculateTotalTime(serviceInfo),
+      currentCondition: serviceInfo['currentCondition']?.toString() ?? 'N/A',
     );
   }
 
@@ -3552,6 +3540,179 @@ class PdfGeneratorService {
           ),
         ],
       ),
+    );
+  }
+
+  // Build basic service info section (added to satisfy call site)
+  pw.Widget _buildServiceInfoSection(ServiceDisplayData service) {
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        children: [
+          // row
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.1),
+              ),
+            ),
+            child: pw.Row(
+              children: [
+                // Lugar de ocurrencia
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Lugar de ocurrencia:',
+                          style: pw.TextStyle(fontSize: 6),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          (service.lugarOcurrencia.isEmpty ||
+                                  service.lugarOcurrencia == 'Otro')
+                              ? service.lugarOcurrenciaEspecifique
+                              : service.lugarOcurrencia,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Ubicación
+                pw.Expanded(
+                  flex: 4,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Ubicacion:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          service.ubicacion,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Tipo de servicio
+                pw.Expanded(
+                  flex: 1,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Tipo:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          service.tipoServicio,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Especifique
+                pw.Expanded(
+                  flex: 1,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Especifique:',
+                          style: pw.TextStyle(fontSize: 6),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          service.tipoServicioEspecifique,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildLabeledCell(String label, String value) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Text(label, style: _labelStyle),
+              pw.SizedBox(width: 3),
+              pw.Text(value, style: pw.TextStyle(fontSize: 8)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildAdminDetailsTable(RegistryDisplayData registry) {
+    return pw.Table(
+      border: pw.TableBorder.all(color: PdfColors.black, width: 1),
+      children: [
+        pw.TableRow(
+          children: [
+            _buildLabeledCell('Convenio', registry.convenio),
+            _buildLabeledCell('Episodio', registry.episodio),
+            _buildLabeledCell('Solicitado por', registry.solicitadoPor),
+            _buildLabeledCell('Folio', registry.folio),
+            _buildLabeledCell('Fecha', registry.fecha),
+          ],
+        ),
+      ],
     );
   }
 }

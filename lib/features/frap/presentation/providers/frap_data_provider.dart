@@ -64,7 +64,8 @@ class FrapData {
       pathologicalHistory: pathologicalHistory ?? this.pathologicalHistory,
       clinicalHistory: clinicalHistory ?? this.clinicalHistory,
       physicalExam: physicalExam ?? this.physicalExam,
-      priorityJustification: priorityJustification ?? this.priorityJustification,
+      priorityJustification:
+          priorityJustification ?? this.priorityJustification,
       injuryLocation: injuryLocation ?? this.injuryLocation,
       receivingUnit: receivingUnit ?? this.receivingUnit,
       patientReception: patientReception ?? this.patientReception,
@@ -111,15 +112,16 @@ class FrapData {
 
   int getFilledFieldsCount(String sectionId) {
     final sectionData = getSectionData(sectionId);
-    return sectionData.values.where((value) => 
-      value != null && 
-      value.toString().trim().isNotEmpty
-    ).length;
+    return sectionData.values
+        .where((value) => value != null && value.toString().trim().isNotEmpty)
+        .length;
   }
 }
 
 // Provider para manejar los datos del FRAP
-final frapDataProvider = StateNotifierProvider<FrapDataNotifier, FrapData>((ref) {
+final frapDataProvider = StateNotifierProvider<FrapDataNotifier, FrapData>((
+  ref,
+) {
   return FrapDataNotifier();
 });
 
@@ -129,49 +131,65 @@ class FrapDataNotifier extends StateNotifier<FrapData> {
   void updateSectionData(String sectionId, Map<String, dynamic> data) {
     switch (sectionId) {
       case 'service_info':
-        state = state.copyWith(serviceInfo: data);
+        state = state.copyWith(serviceInfo: {...state.serviceInfo, ...data});
         break;
       case 'registry_info':
-        state = state.copyWith(registryInfo: data);
+        state = state.copyWith(registryInfo: {...state.registryInfo, ...data});
         break;
       case 'patient_info':
-        state = state.copyWith(patientInfo: data);
+        state = state.copyWith(patientInfo: {...state.patientInfo, ...data});
         break;
       case 'management':
-        state = state.copyWith(management: data);
+        state = state.copyWith(management: {...state.management, ...data});
         break;
       case 'medications':
-        state = state.copyWith(medications: data);
+        state = state.copyWith(medications: {...state.medications, ...data});
         break;
       case 'gyneco_obstetric':
-        state = state.copyWith(gynecoObstetric: data);
+        state = state.copyWith(
+          gynecoObstetric: {...state.gynecoObstetric, ...data},
+        );
         break;
       case 'attention_negative':
-        state = state.copyWith(attentionNegative: data);
+        state = state.copyWith(
+          attentionNegative: {...state.attentionNegative, ...data},
+        );
         break;
       case 'pathological_history':
-        state = state.copyWith(pathologicalHistory: data);
+        state = state.copyWith(
+          pathologicalHistory: {...state.pathologicalHistory, ...data},
+        );
         break;
       case 'clinical_history':
-        state = state.copyWith(clinicalHistory: data);
+        state = state.copyWith(
+          clinicalHistory: {...state.clinicalHistory, ...data},
+        );
         break;
       case 'physical_exam':
-        state = state.copyWith(physicalExam: data);
+        state = state.copyWith(physicalExam: {...state.physicalExam, ...data});
         break;
       case 'priority_justification':
-        state = state.copyWith(priorityJustification: data);
+        state = state.copyWith(
+          priorityJustification: {...state.priorityJustification, ...data},
+        );
         break;
       case 'injury_location':
-        state = state.copyWith(injuryLocation: data);
+        state = state.copyWith(
+          injuryLocation: {...state.injuryLocation, ...data},
+        );
         break;
       case 'receiving_unit':
-        state = state.copyWith(receivingUnit: data);
+        state = state.copyWith(
+          receivingUnit: {...state.receivingUnit, ...data},
+        );
         break;
       case 'patient_reception':
-        state = state.copyWith(patientReception: data);
+        state = state.copyWith(
+          patientReception: {...state.patientReception, ...data},
+        );
         break;
       case 'insumos':
-        state = state.copyWith(insumos: data);
+        state = state.copyWith(insumos: {...state.insumos, ...data});
         break;
     }
   }
@@ -183,4 +201,4 @@ class FrapDataNotifier extends StateNotifier<FrapData> {
   void setAllData(FrapData data) {
     state = data;
   }
-} 
+}
