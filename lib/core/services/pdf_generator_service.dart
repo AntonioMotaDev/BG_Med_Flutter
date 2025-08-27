@@ -454,7 +454,7 @@ class PdfGeneratorService {
               _buildPhysicalExamSection(displayData.vitalSigns),
               pw.SizedBox(height: 10),
 
-              if (displayData.patient.sex?.toLowerCase() == 'femenino') ...[
+              if (displayData.patient.sex.toLowerCase() == 'femenino') ...[
                 _buildGynecoObstetricSection(displayData.gynecoObstetric),
                 pw.SizedBox(height: 10),
               ],

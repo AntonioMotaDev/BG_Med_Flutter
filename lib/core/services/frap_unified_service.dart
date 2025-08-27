@@ -132,8 +132,13 @@ class FrapUnifiedService {
               try {
                 await _localService.markAsSynced(localRecordId);
               } catch (e) {
-                // Si el método no existe, ignorar el error
-                print('Warning: markAsSynced method not available');
+                // Si el método no existe, registrar la advertencia
+                FrapConversionLogger.logConversionError(
+                  'mark_as_synced',
+                  localRecordId,
+                  'Method not available: $e',
+                  null,
+                );
               }
             }
           } catch (e) {
@@ -197,17 +202,28 @@ class FrapUnifiedService {
         );
         currentRegistryInfo['folio'] = newFolio;
 
-        print('Folio generado automáticamente con iniciales: $newFolio');
+        FrapConversionLogger.logConversionSuccess('folio_generation', 'auto', {
+          'folio': newFolio,
+        });
 
         return frapData.copyWith(registryInfo: currentRegistryInfo);
       } catch (e) {
-        print('Error generando folio automático: $e');
+        FrapConversionLogger.logConversionError(
+          'folio_generation',
+          'auto',
+          e.toString(),
+          null,
+        );
         // Si falla la generación, usar un folio con timestamp
         final fallbackFolio =
             'SN-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch}';
         currentRegistryInfo['folio'] = fallbackFolio;
 
-        print('Usando folio de respaldo: $fallbackFolio');
+        FrapConversionLogger.logConversionSuccess(
+          'folio_generation',
+          'fallback',
+          {'folio': fallbackFolio},
+        );
 
         return frapData.copyWith(registryInfo: currentRegistryInfo);
       }
@@ -250,7 +266,12 @@ class FrapUnifiedService {
       // Si no hay nombre, usar valor por defecto
       return 'Sin Nombre';
     } catch (e) {
-      print('Error obteniendo nombre del paciente: $e');
+      FrapConversionLogger.logConversionError(
+        'patient_name_extraction',
+        'unknown',
+        e.toString(),
+        null,
+      );
       return 'Sin Nombre';
     }
   }
@@ -260,38 +281,34 @@ class FrapUnifiedService {
     final List<UnifiedFrapRecord> unifiedRecords = [];
 
     try {
-      print('Iniciando getAllRecords...');
       FrapConversionLogger.logConversionStart('get_all_records', 'batch');
 
       // Obtener registros locales
-      print('Obteniendo registros locales...');
       final localRecords = await _localService.getAllFrapRecords();
-      print('Registros locales obtenidos: ${localRecords.length}');
 
       // Obtener registros de la nube si hay conexión
       List<FrapFirestore> cloudRecords = [];
       final hasInternet = await hasInternetConnection();
-      print('Conexión a internet: $hasInternet');
 
       if (hasInternet) {
         try {
-          print('Obteniendo registros de la nube...');
           cloudRecords = await _cloudService.getAllFrapRecords();
-          print('Registros de la nube obtenidos: ${cloudRecords.length}');
         } catch (e) {
-          print('Error obteniendo registros de la nube: $e');
+          FrapConversionLogger.logConversionError(
+            'get_all_records',
+            'cloud_fetch',
+            e.toString(),
+            null,
+          );
         }
       }
 
       // Procesar registros locales
-      print('Procesando registros locales...');
       for (final localRecord in localRecords) {
         unifiedRecords.add(UnifiedFrapRecord.fromLocal(localRecord));
       }
-      print('Registros locales procesados: ${unifiedRecords.length}');
 
       // Procesar registros de la nube
-      print('Procesando registros de la nube...');
       for (final cloudRecord in cloudRecords) {
         // Verificar si ya existe en local
         final existingLocal =
@@ -328,14 +345,16 @@ class FrapUnifiedService {
                 }
               }
             } catch (e) {
-              print('Error actualizando registro local: $e');
+              FrapConversionLogger.logConversionError(
+                'get_all_records',
+                'update_local',
+                e.toString(),
+                null,
+              );
             }
           }
         }
       }
-      print(
-        'Registros de la nube procesados. Total unificado: ${unifiedRecords.length}',
-      );
 
       // Ordenar por fecha de creación (más recientes primero)
       unifiedRecords.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -345,12 +364,13 @@ class FrapUnifiedService {
         'cloudRecords': cloudRecords.length,
         'unifiedRecords': unifiedRecords.length,
       });
-
-      print(
-        'getAllRecords completado. Total de registros: ${unifiedRecords.length}',
-      );
     } catch (e) {
-      print('Error obteniendo registros unificados: $e');
+      FrapConversionLogger.logConversionError(
+        'get_all_records',
+        'batch',
+        e.toString(),
+        null,
+      );
       FrapConversionLogger.logConversionError(
         'get_all_records',
         'batch',
@@ -580,7 +600,8 @@ class FrapUnifiedService {
 
       final cloudFrap = FrapFirestore(
         id: local.id,
-        userId: '', // Se debe obtener del contexto de autenticación
+        userId:
+            '', // Se debe obtener del contexto de autenticación o pasar como parámetro
         createdAt: local.createdAt,
         updatedAt: local.updatedAt,
         serviceInfo: local.serviceInfo,
@@ -746,7 +767,7 @@ class UnifiedFrapRecord {
       createdAt: cloud.createdAt,
       patientName: cloud.patientName,
       patientAge: cloud.patientAge,
-      patientSex: cloud.patientGender,
+      patientSex: cloud.patientSex,
       patientGender: cloud.patientGender,
       patientAddress: _buildFullAddressFromMap(cloud.patientInfo),
       patientPhone: cloud.patientInfo['phone']?.toString() ?? '',

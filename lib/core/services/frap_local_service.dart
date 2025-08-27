@@ -4,6 +4,8 @@ import 'package:bg_med/core/models/frap.dart';
 import 'package:bg_med/core/models/patient.dart';
 import 'package:bg_med/core/models/clinical_history.dart';
 import 'package:bg_med/core/models/physical_exam.dart';
+import 'package:bg_med/core/models/insumo.dart';
+import 'package:bg_med/core/models/personal_medico.dart';
 import 'package:bg_med/features/frap/presentation/providers/frap_data_provider.dart';
 
 class FrapLocalService {
@@ -355,6 +357,10 @@ class FrapLocalService {
       city: city,
       insurance: patientInfo['insurance'] ?? '',
       responsiblePerson: patientInfo['responsiblePerson'],
+      // Mapear genero -> gender si viene del dialog
+      gender: (patientInfo['gender'] ?? patientInfo['genero'] ?? '').toString(),
+      addressDetails: patientInfo['addressDetails'] ?? '',
+      tipoEntrega: patientInfo['tipoEntrega'] ?? '',
     );
 
     // Extraer historia clínica
@@ -378,6 +384,58 @@ class FrapLocalService {
       transfusions: clinicalHistoryData['transfusions'] ?? '',
     );
 
+    // Preparar serviceInfo duplicando currentCondition / emergencyContact si venían en patientInfo
+    final Map<String, dynamic> mergedServiceInfo = {...frapData.serviceInfo};
+    final currentCondition = (patientInfo['currentCondition'] ?? '').toString();
+    final emergencyContact = (patientInfo['emergencyContact'] ?? '').toString();
+    if (currentCondition.isNotEmpty) {
+      mergedServiceInfo['currentCondition'] = currentCondition;
+    }
+    if (emergencyContact.isNotEmpty) {
+      mergedServiceInfo['emergencyContact'] = emergencyContact;
+    }
+
+    // Construir listas de Insumo y PersonalMedico desde provider state si existen
+    final List<Insumo> insumos = <Insumo>[];
+    if (frapData.insumos.isNotEmpty) {
+      final list = frapData.insumos['insumosList'] as List<dynamic>?;
+      if (list != null) {
+        for (final item in list) {
+          if (item is Map) {
+            final cantidad = int.tryParse(item['cantidad'].toString()) ?? 0;
+            final articulo = (item['articulo'] ?? '').toString();
+            if (cantidad > 0 && articulo.isNotEmpty) {
+              insumos.add(Insumo(cantidad: cantidad, articulo: articulo));
+            }
+          }
+        }
+      }
+    }
+
+    final List<PersonalMedico> personalMedico = <PersonalMedico>[];
+    // Se captura en receiving_unit_form_dialog como lista de mapas bajo 'personalMedico'
+    if (frapData.receivingUnit.isNotEmpty) {
+      final list = frapData.receivingUnit['personalMedico'] as List<dynamic>?;
+      if (list != null) {
+        for (final item in list) {
+          if (item is Map) {
+            final nombre = (item['nombre'] ?? '').toString();
+            final especialidad = (item['especialidad'] ?? '').toString();
+            final cedula = (item['cedula'] ?? '').toString();
+            if (nombre.isNotEmpty) {
+              personalMedico.add(
+                PersonalMedico(
+                  nombre: nombre,
+                  especialidad: especialidad,
+                  cedula: cedula,
+                ),
+              );
+            }
+          }
+        }
+      }
+    }
+
     // Extraer examen físico
     final physicalExamData = frapData.physicalExam;
 
@@ -395,7 +453,7 @@ class FrapLocalService {
       physicalExam: physicalExam,
       createdAt: createdAt,
       updatedAt: now,
-      serviceInfo: frapData.serviceInfo,
+      serviceInfo: mergedServiceInfo,
       registryInfo: frapData.registryInfo,
       management: frapData.management,
       medications: frapData.medications,
@@ -406,6 +464,8 @@ class FrapLocalService {
       injuryLocation: frapData.injuryLocation,
       receivingUnit: frapData.receivingUnit,
       patientReception: frapData.patientReception,
+      insumos: insumos,
+      personalMedico: personalMedico,
     );
   }
 

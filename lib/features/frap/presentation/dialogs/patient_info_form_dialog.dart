@@ -100,7 +100,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       // Campos adicionales que estaban faltando
       _tipoEntregaSeleccionado = data['tipoEntrega'] ?? '';
       _tipoEntregaOtroController.text = data['tipoEntregaOtro'] ?? '';
-      _generoSeleccionado = data['genero'] ?? '';
+      _generoSeleccionado = data['gender'] ?? '';
 
       // Si ya hay datos, probablemente es un paciente seleccionado
       if (data['patientId'] != null) {
@@ -1310,7 +1310,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         'responsiblePerson': _responsiblePersonController.text.trim(),
         'tipoEntrega': _tipoEntregaSeleccionado,
         'tipoEntregaOtro': _tipoEntregaOtroController.text.trim(),
-        'genero': _generoSeleccionado,
+        'gender': _generoSeleccionado,
         'isNewPatient': _selectedPatient == null,
         'timestamp': DateTime.now().toIso8601String(),
       };
