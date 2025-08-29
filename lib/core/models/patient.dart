@@ -43,6 +43,14 @@ class Patient extends Equatable {
   @HiveField(17)
   final String tipoEntrega;
 
+  // Nuevos campos para sincronización con diálogos y PDF
+  @HiveField(18)
+  final String? emergencyContact; // Contacto de emergencia
+  @HiveField(19)
+  final String? currentCondition; // Padecimiento actual
+  @HiveField(20)
+  final String? tipoEntregaOtro; // Especificación de "Otro" en tipo de entrega
+
   const Patient({
     required this.name,
     required this.age,
@@ -62,6 +70,9 @@ class Patient extends Equatable {
     this.responsiblePerson,
     this.gender = '',
     this.tipoEntrega = '',
+    this.emergencyContact,
+    this.currentCondition,
+    this.tipoEntregaOtro,
   });
 
   String get fullName {
@@ -115,6 +126,9 @@ class Patient extends Equatable {
     String? responsiblePerson,
     String? gender,
     String? tipoEntrega,
+    String? emergencyContact,
+    String? currentCondition,
+    String? tipoEntregaOtro,
   }) {
     return Patient(
       name: name ?? this.name,
@@ -135,6 +149,9 @@ class Patient extends Equatable {
       responsiblePerson: responsiblePerson ?? this.responsiblePerson,
       gender: gender ?? this.gender,
       tipoEntrega: tipoEntrega ?? this.tipoEntrega,
+      emergencyContact: emergencyContact ?? this.emergencyContact,
+      currentCondition: currentCondition ?? this.currentCondition,
+      tipoEntregaOtro: tipoEntregaOtro ?? this.tipoEntregaOtro,
     );
   }
 
@@ -158,6 +175,9 @@ class Patient extends Equatable {
       'responsiblePerson': responsiblePerson,
       'gender': gender,
       'tipoEntrega': tipoEntrega,
+      'emergencyContact': emergencyContact,
+      'currentCondition': currentCondition,
+      'tipoEntregaOtro': tipoEntregaOtro,
     };
   }
 
@@ -181,5 +201,8 @@ class Patient extends Equatable {
     responsiblePerson,
     gender,
     tipoEntrega,
+    emergencyContact,
+    currentCondition,
+    tipoEntregaOtro,
   ];
 }

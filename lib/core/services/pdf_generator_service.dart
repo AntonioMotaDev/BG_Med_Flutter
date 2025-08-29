@@ -431,42 +431,66 @@ class PdfGeneratorService {
                   ),
                 ],
               ),
-              pw.SizedBox(height: 8),
+              pw.SizedBox(height: 3),
 
-              _buildAdminDetailsTable(displayData.registry),
-              pw.SizedBox(height: 5),
-
-              _buildTimeTrackingGrid(displayData.service),
-              pw.SizedBox(height: 2),
-
-              _buildServiceInfoSection(displayData.service),
-              pw.SizedBox(height: 5),
-
-              _buildPatientInfoSection(
-                displayData.patient,
-                displayData.service.currentCondition,
+              // Service and Patient Info in two columns
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // Left Column - Patient Information
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        _buildTimeTrackingGrid(displayData.service),
+                        pw.SizedBox(height: 3),
+                        _buildPatientInfoSection(
+                          displayData.patient,
+                          displayData.service.currentCondition,
+                        ),
+                        _buildClinicalHistorySection(displayData.clinical),
+                        pw.SizedBox(height: 3),
+                        _buildPhysicalExamSection(displayData.vitalSigns),
+                        pw.SizedBox(height: 3),
+                        //Localizacion de lesiones
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(width: 3),
+                  // Right Column - Service Information
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        _buildAdminDetailsTable(displayData.registry),
+                        pw.SizedBox(height: 3),
+                        _buildServiceInfoSection(displayData.service),
+                        pw.SizedBox(height: 3),
+                        _buildManagementSection(displayData.management),
+                        pw.SizedBox(height: 3),
+                        _buildMedicationsSection(displayData.management),
+                        pw.SizedBox(height: 3),
+                        if (displayData.patient.sex.toLowerCase() ==
+                            'femenino') ...[
+                          _buildGynecoObstetricSection(
+                            displayData.gynecoObstetric,
+                          ),
+                          pw.SizedBox(height: 3),
+                        ],
+                        _buildEvaSection(displayData.vitalSigns),
+                        pw.SizedBox(height: 3),
+                        _buildPriorityJustificationSection(
+                          displayData.priority,
+                        ),
+                        pw.SizedBox(height: 3),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              pw.SizedBox(height: 10),
-
-              _buildClinicalHistorySection(displayData.clinical),
-              pw.SizedBox(height: 10),
-
-              _buildPhysicalExamSection(displayData.vitalSigns),
-              pw.SizedBox(height: 10),
-
-              if (displayData.patient.sex.toLowerCase() == 'femenino') ...[
-                _buildGynecoObstetricSection(displayData.gynecoObstetric),
-                pw.SizedBox(height: 10),
-              ],
-
-              _buildEvaSection(displayData.vitalSigns),
-              pw.SizedBox(height: 10),
-
-              _buildManagementSection(displayData.management),
-              pw.SizedBox(height: 10),
-
-              _buildMedicationsSection(displayData.management),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 3),
 
               // Main content in two columns
               pw.Row(
@@ -540,10 +564,6 @@ class PdfGeneratorService {
                             null)
                           pw.SizedBox(height: 6),
                         // Priority Justification
-                        _buildPriorityJustificationSection(
-                          displayData.priority,
-                        ),
-                        pw.SizedBox(height: 6),
                         // Receiving Unit
                         _buildReceivingUnitSection(displayData.reception),
                         pw.SizedBox(height: 6),
@@ -579,9 +599,33 @@ class PdfGeneratorService {
 
   // Helper methods to extract data from different sections
   String _getServiceInfo(UnifiedFrapRecord record, String key) {
-    final serviceInfo =
-        record.getDetailedInfo()['serviceInfo'] as Map<String, dynamic>?;
-    return serviceInfo?[key]?.toString() ?? 'N/A';
+    // Acceder a campos específicos del modelo Frap para registros locales
+    if (record.localRecord != null) {
+      switch (key) {
+        case 'consentimientoSignature':
+          return record.localRecord!.consentimientoSignature ?? '';
+        case 'tipoUrgencia':
+          return record.localRecord!.tipoUrgencia ?? '';
+        case 'urgenciaEspecifique':
+          return record.localRecord!.urgenciaEspecifique ?? '';
+        case 'ubicacion':
+          return record.localRecord!.ubicacion ?? '';
+        case 'tipoServicioEspecifique':
+          return record.localRecord!.tipoServicioEspecifique ?? '';
+        case 'lugarOcurrenciaEspecifique':
+          return record.localRecord!.lugarOcurrenciaEspecifique ?? '';
+        default:
+          // Fallback para otros campos
+          final serviceInfo =
+              record.getDetailedInfo()['serviceInfo'] as Map<String, dynamic>?;
+          return serviceInfo?[key]?.toString() ?? 'N/A';
+      }
+    } else {
+      // Para registros de nube, usar el método genérico
+      final serviceInfo =
+          record.getDetailedInfo()['serviceInfo'] as Map<String, dynamic>?;
+      return serviceInfo?[key]?.toString() ?? 'N/A';
+    }
   }
 
   String _getPatientInfo(UnifiedFrapRecord record, String key) {
@@ -622,8 +666,11 @@ class PdfGeneratorService {
         case 'tipoEntrega':
           return patient.tipoEntrega;
         case 'currentCondition':
-          // Este campo está en clinicalHistory
-          return record.localRecord!.clinicalHistory.currentSymptoms;
+          return patient.currentCondition ?? '';
+        case 'emergencyContact':
+          return patient.emergencyContact ?? '';
+        case 'tipoEntregaOtro':
+          return patient.tipoEntregaOtro ?? '';
         default:
           // Fallback para campos no mapeados
           final patientInfo =

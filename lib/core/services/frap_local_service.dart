@@ -361,6 +361,10 @@ class FrapLocalService {
       gender: (patientInfo['gender'] ?? patientInfo['genero'] ?? '').toString(),
       addressDetails: patientInfo['addressDetails'] ?? '',
       tipoEntrega: patientInfo['tipoEntrega'] ?? '',
+      // Nuevos campos
+      emergencyContact: patientInfo['emergencyContact'],
+      currentCondition: patientInfo['currentCondition'],
+      tipoEntregaOtro: patientInfo['tipoEntregaOtro'],
     );
 
     // Extraer historia clínica
@@ -466,6 +470,14 @@ class FrapLocalService {
       patientReception: frapData.patientReception,
       insumos: insumos,
       personalMedico: personalMedico,
+      // Nuevos campos de servicio
+      consentimientoSignature: frapData.serviceInfo['consentimientoSignature'],
+      tipoUrgencia: frapData.serviceInfo['tipoUrgencia'],
+      urgenciaEspecifique: frapData.serviceInfo['urgenciaEspecifique'],
+      ubicacion: frapData.serviceInfo['ubicacion'],
+      tipoServicioEspecifique: frapData.serviceInfo['tipoServicioEspecifique'],
+      lugarOcurrenciaEspecifique:
+          frapData.serviceInfo['lugarOcurrenciaEspecifique'],
     );
   }
 
@@ -530,7 +542,16 @@ class FrapLocalService {
   // CONVERTIR Frap a FrapData para edición
   FrapData convertFrapToFrapData(Frap frap) {
     return FrapData(
-      serviceInfo: frap.serviceInfo,
+      serviceInfo: {
+        ...frap.serviceInfo,
+        // Nuevos campos de servicio
+        'consentimientoSignature': frap.consentimientoSignature,
+        'tipoUrgencia': frap.tipoUrgencia,
+        'urgenciaEspecifique': frap.urgenciaEspecifique,
+        'ubicacion': frap.ubicacion,
+        'tipoServicioEspecifique': frap.tipoServicioEspecifique,
+        'lugarOcurrenciaEspecifique': frap.lugarOcurrenciaEspecifique,
+      },
       registryInfo: frap.registryInfo,
       patientInfo: {
         'firstName': frap.patient.firstName,
@@ -546,8 +567,8 @@ class FrapLocalService {
         'city': frap.patient.city,
         'insurance': frap.patient.insurance,
         'responsiblePerson': frap.patient.responsiblePerson,
-        'currentCondition': frap.serviceInfo['currentCondition'] ?? '',
-        'emergencyContact': frap.serviceInfo['emergencyContact'] ?? '',
+        'currentCondition': frap.patient.currentCondition ?? '',
+        'emergencyContact': frap.patient.emergencyContact ?? '',
         'address':
             frap.patient.fullAddress, // Mantener también la dirección completa
       },

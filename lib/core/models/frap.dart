@@ -58,6 +58,20 @@ class Frap extends Equatable {
   @HiveField(21)
   final bool isSynced;
 
+  // Nuevos campos para sincronización con diálogos y PDF
+  @HiveField(22)
+  final String? consentimientoSignature; // Firma del consentimiento
+  @HiveField(23)
+  final String? tipoUrgencia; // Clínico, Trauma, Otro
+  @HiveField(24)
+  final String? urgenciaEspecifique; // Especificación de urgencia
+  @HiveField(25)
+  final String? ubicacion; // Ubicación del servicio
+  @HiveField(26)
+  final String? tipoServicioEspecifique; // Especificación de tipo de servicio
+  @HiveField(27)
+  final String? lugarOcurrenciaEspecifique; // Especificación de lugar de ocurrencia
+
   const Frap({
     // Campos existentes
     required this.id,
@@ -83,6 +97,12 @@ class Frap extends Equatable {
     this.personalMedico = const [],
     this.escalasObstetricas,
     this.isSynced = false,
+    this.consentimientoSignature,
+    this.tipoUrgencia,
+    this.urgenciaEspecifique,
+    this.ubicacion,
+    this.tipoServicioEspecifique,
+    this.lugarOcurrenciaEspecifique,
   }) : updatedAt = updatedAt ?? createdAt;
 
   // Método copyWith para crear copias con cambios
@@ -109,6 +129,12 @@ class Frap extends Equatable {
     List<PersonalMedico>? personalMedico,
     EscalasObstetricas? escalasObstetricas,
     bool? isSynced,
+    String? consentimientoSignature,
+    String? tipoUrgencia,
+    String? urgenciaEspecifique,
+    String? ubicacion,
+    String? tipoServicioEspecifique,
+    String? lugarOcurrenciaEspecifique,
   }) {
     return Frap(
       id: id ?? this.id,
@@ -135,6 +161,15 @@ class Frap extends Equatable {
       personalMedico: personalMedico ?? this.personalMedico,
       escalasObstetricas: escalasObstetricas ?? this.escalasObstetricas,
       isSynced: isSynced ?? this.isSynced,
+      consentimientoSignature:
+          consentimientoSignature ?? this.consentimientoSignature,
+      tipoUrgencia: tipoUrgencia ?? this.tipoUrgencia,
+      urgenciaEspecifique: urgenciaEspecifique ?? this.urgenciaEspecifique,
+      ubicacion: ubicacion ?? this.ubicacion,
+      tipoServicioEspecifique:
+          tipoServicioEspecifique ?? this.tipoServicioEspecifique,
+      lugarOcurrenciaEspecifique:
+          lugarOcurrenciaEspecifique ?? this.lugarOcurrenciaEspecifique,
     );
   }
 
@@ -247,6 +282,12 @@ class Frap extends Equatable {
       'insumos': insumos.map((i) => i.toJson()).toList(),
       'personalMedico': personalMedico.map((p) => p.toJson()).toList(),
       'escalasObstetricas': escalasObstetricas?.toJson(),
+      'consentimientoSignature': consentimientoSignature,
+      'tipoUrgencia': tipoUrgencia,
+      'urgenciaEspecifique': urgenciaEspecifique,
+      'ubicacion': ubicacion,
+      'tipoServicioEspecifique': tipoServicioEspecifique,
+      'lugarOcurrenciaEspecifique': lugarOcurrenciaEspecifique,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'isSynced': isSynced,
@@ -277,5 +318,11 @@ class Frap extends Equatable {
     personalMedico,
     escalasObstetricas,
     isSynced,
+    consentimientoSignature,
+    tipoUrgencia,
+    urgenciaEspecifique,
+    ubicacion,
+    tipoServicioEspecifique,
+    lugarOcurrenciaEspecifique,
   ];
 }
