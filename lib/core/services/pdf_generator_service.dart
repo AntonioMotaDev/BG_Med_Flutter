@@ -346,7 +346,7 @@ class PdfGeneratorService {
 
     _valueStyle = pw.TextStyle(
       fontSize: 6,
-      color: PdfColors.grey700,
+      color: PdfColors.black,
       font: _robotoRegular,
     );
 
@@ -406,6 +406,7 @@ class PdfGeneratorService {
             )
             : null;
 
+    // EMPIEZA LA PAGINA GENERADA DEL PDF PREVIEW
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat(
@@ -421,7 +422,7 @@ class PdfGeneratorService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header with title and administrative details
+              // HEADER
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.center,
                 children: [
@@ -433,11 +434,11 @@ class PdfGeneratorService {
               ),
               pw.SizedBox(height: 3),
 
-              // Service and Patient Info in two columns
+              //COMIENZO DE LAS DOS COLUMNAS
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  // Left Column - Patient Information
+                  /////////////////////////// LEFT COLUMN ///////////////////////////
                   pw.Expanded(
                     flex: 1,
                     child: pw.Column(
@@ -453,12 +454,15 @@ class PdfGeneratorService {
                         pw.SizedBox(height: 3),
                         _buildPhysicalExamSection(displayData.vitalSigns),
                         pw.SizedBox(height: 3),
+                        _buildConsentimientoSection(
+                          displayData.consentimientoServicio!,
+                        ),
                         //Localizacion de lesiones
                       ],
                     ),
                   ),
                   pw.SizedBox(width: 3),
-                  // Right Column - Service Information
+                  /////////////////////////// RIGHT COLUMN ///////////////////////////
                   pw.Expanded(
                     flex: 1,
                     child: pw.Column(
@@ -491,103 +495,6 @@ class PdfGeneratorService {
                 ],
               ),
               pw.SizedBox(height: 3),
-
-              // Main content in two columns
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  // Left Column
-                  pw.Expanded(
-                    flex: 1,
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        // Location and Service Type
-                        // (Sección de ubicación y tipo combinada arriba en Información del Servicio)
-                        // Place of Occurrence
-                        _buildPlaceOfOccurrenceSection(displayData.service),
-                        pw.SizedBox(height: 6),
-                        // Current Condition
-                        _buildCurrentConditionSection(displayData.clinical),
-                        pw.SizedBox(height: 6),
-                        // Pathological History
-                        _buildPathologicalHistorySection(displayData.clinical),
-                        pw.SizedBox(height: 6),
-                        // Clinical History
-                        _buildClinicalHistorySection(displayData.clinical),
-                        pw.SizedBox(height: 6),
-                        // Physical Examination (dynamic)
-                        _buildPhysicalExamSection(displayData.vitalSigns),
-                      ],
-                    ),
-                  ),
-                  pw.SizedBox(width: 8),
-                  // Right Column
-                  pw.Expanded(
-                    flex: 1,
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        // SAMPLE Assessment
-                        _buildSampleSection(displayData.sample),
-                        pw.SizedBox(height: 6),
-                        // EVA Scale
-                        _buildEvaSection(displayData.vitalSigns),
-                        pw.SizedBox(height: 6),
-                        // Consentimiento de Servicio
-                        if (displayData.consentimientoServicio?.isNotEmpty ==
-                            true)
-                          _buildConsentimientoSection(
-                            displayData.consentimientoServicio!,
-                          ),
-                        if (displayData.consentimientoServicio?.isNotEmpty ==
-                            true)
-                          pw.SizedBox(height: 6),
-                        // Management
-                        _buildManagementSection(displayData.management),
-                        pw.SizedBox(height: 6),
-                        // Medications
-                        _buildMedicationsSection(displayData.management),
-                        pw.SizedBox(height: 6),
-                        // Gynecological-Obstetric
-                        _buildGynecoObstetricSection(
-                          displayData.gynecoObstetric,
-                        ),
-                        pw.SizedBox(height: 6),
-                        // Escalas Obstétricas
-                        if (displayData.gynecoObstetric.escalasObstetricas !=
-                            null)
-                          _buildEscalasObstetricasSection(
-                            displayData.gynecoObstetric.escalasObstetricas!,
-                          ),
-                        if (displayData.gynecoObstetric.escalasObstetricas !=
-                            null)
-                          pw.SizedBox(height: 6),
-                        // Priority Justification
-                        // Receiving Unit
-                        _buildReceivingUnitSection(displayData.reception),
-                        pw.SizedBox(height: 6),
-                        // Ambulance
-                        _buildAmbulanceSection(displayData.ambulance),
-                        pw.SizedBox(height: 6),
-                        // Patient Reception
-                        _buildPatientReceptionSection(displayData.reception),
-                        pw.SizedBox(height: 6),
-                        // Supplies
-                        if (displayData.management.insumos.isNotEmpty)
-                          _buildInsumosSection(displayData.management.insumos),
-                        if (displayData.management.insumos.isNotEmpty)
-                          pw.SizedBox(height: 6),
-                        // Personal Médico
-                        if (displayData.management.personalMedico.isNotEmpty)
-                          _buildPersonalMedicoSection(
-                            displayData.management.personalMedico,
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ],
           );
         },
@@ -595,37 +502,6 @@ class PdfGeneratorService {
     );
 
     return pdf.save();
-  }
-
-  // Helper methods to extract data from different sections
-  String _getServiceInfo(UnifiedFrapRecord record, String key) {
-    // Acceder a campos específicos del modelo Frap para registros locales
-    if (record.localRecord != null) {
-      switch (key) {
-        case 'consentimientoSignature':
-          return record.localRecord!.consentimientoSignature ?? '';
-        case 'tipoUrgencia':
-          return record.localRecord!.tipoUrgencia ?? '';
-        case 'urgenciaEspecifique':
-          return record.localRecord!.urgenciaEspecifique ?? '';
-        case 'ubicacion':
-          return record.localRecord!.ubicacion ?? '';
-        case 'tipoServicioEspecifique':
-          return record.localRecord!.tipoServicioEspecifique ?? '';
-        case 'lugarOcurrenciaEspecifique':
-          return record.localRecord!.lugarOcurrenciaEspecifique ?? '';
-        default:
-          // Fallback para otros campos
-          final serviceInfo =
-              record.getDetailedInfo()['serviceInfo'] as Map<String, dynamic>?;
-          return serviceInfo?[key]?.toString() ?? 'N/A';
-      }
-    } else {
-      // Para registros de nube, usar el método genérico
-      final serviceInfo =
-          record.getDetailedInfo()['serviceInfo'] as Map<String, dynamic>?;
-      return serviceInfo?[key]?.toString() ?? 'N/A';
-    }
   }
 
   String _getPatientInfo(UnifiedFrapRecord record, String key) {
@@ -1200,16 +1076,6 @@ class PdfGeneratorService {
     PatientDisplayData patient,
     String currentCondition,
   ) {
-    // _log('Building PDF patient info section');
-    // _log('Patient fullName: ${patient.fullName}');
-    // _log('Patient address: ${patient.address}');
-    // _log('Patient age: ${patient.age}');
-    // _log('Patient sex: ${patient.sex}');
-    // _log('Patient gender: ${patient.gender}');
-    // _log('Patient phone: ${patient.phone}');
-    // _log('Patient insurance: ${patient.insurance}');
-    // _log('Patient responsiblePerson: ${patient.responsiblePerson}');
-
     return pw.Container(
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 1),
@@ -1442,50 +1308,6 @@ class PdfGeneratorService {
                 ),
                 pw.SizedBox(height: 2),
                 pw.Text(currentCondition, style: pw.TextStyle(fontSize: 8)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Build registry information section
-  pw.Widget _buildRegistryInfoSection(RegistryDisplayData registry) {
-    return pw.Container(
-      decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: PdfColors.black, width: 1),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.all(5),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.grey200,
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-              ),
-            ),
-            child: pw.Text(
-              'INFORMACIÓN DEL REGISTRO',
-              style: pw.TextStyle(
-                fontSize: 12,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.black,
-              ),
-            ),
-          ),
-          pw.Padding(
-            padding: const pw.EdgeInsets.all(8),
-            child: pw.Column(
-              children: [
-                _buildDetailRow('Convenio', registry.convenio),
-                _buildDetailRow('Folio', registry.folio),
-                _buildDetailRow('Episodio', registry.episodio),
-                _buildDetailRow('Fecha', registry.fecha),
-                _buildDetailRow('Solicitado por', registry.solicitadoPor),
               ],
             ),
           ),
@@ -2151,93 +1973,109 @@ class PdfGeneratorService {
 
   // Build management section
   pw.Widget _buildManagementSection(ManagementDisplayData management) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'MANEJO:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
+    // Lista de opciones y sus claves en el mapa
+    final options = [
+      {'label': 'Vía aérea', 'key': 'viaAerea'},
+      {'label': 'Canalización', 'key': 'canalizacion'},
+      {'label': 'Empaquetamiento', 'key': 'empaquetamiento'},
+      {'label': 'Inmovilización', 'key': 'inmovilizacion'},
+      {'label': 'Monitor', 'key': 'monitor'},
+      {'label': 'RCP Básica', 'key': 'rcpBasica'},
+      {'label': 'MAST O PNA', 'key': 'mastPna'},
+      {'label': 'Collarín Cervical', 'key': 'collarinCervical'},
+      {'label': 'Desfibrilación', 'key': 'desfibrilacion'},
+      {'label': 'Apoyo Vent.', 'key': 'apoyoVent'},
+      {'label': 'Oxígeno', 'key': 'oxigeno'},
+    ];
+
+    // Filtrar solo las opciones seleccionadas
+    final selectedOptions =
+        options.where((opt) {
+          final key = opt['key']!;
+          return management.procedures[key] == 'Sí';
+        }).toList();
+
+    // Construir celdas para cada opción seleccionada
+    final selectedCells = <pw.Widget>[];
+    for (var opt in selectedOptions) {
+      if (opt['key'] == 'oxigeno') {
+        selectedCells.add(
+          pw.Container(
+            padding: pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey600, width: 0.5),
+              color: PdfColors.white,
+            ),
+            child: pw.Row(
+              children: [
+                _buildCheckboxOption(opt['label']!, true),
+                pw.SizedBox(width: 6),
+                pw.Text(
+                  'Lt/min: ${management.oxigenoLitros}',
+                  style: pw.TextStyle(fontSize: 8),
+                ),
+              ],
+            ),
           ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'Vía aérea',
-              management.procedures['viaAerea'] == 'Sí',
+        );
+      } else {
+        selectedCells.add(
+          pw.Container(
+            padding: pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey600, width: 0.5),
+              color: PdfColors.white,
             ),
-            _buildCheckboxOption(
-              'Canalización',
-              management.procedures['canalizacion'] == 'Sí',
-            ),
-            _buildCheckboxOption(
-              'Empaquetamiento',
-              management.procedures['empaquetamiento'] == 'Sí',
-            ),
-          ],
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'Inmovilización',
-              management.procedures['inmovilizacion'] == 'Sí',
-            ),
-            _buildCheckboxOption(
-              'Monitor',
-              management.procedures['monitor'] == 'Sí',
-            ),
-            _buildCheckboxOption(
-              'RCP Básica',
-              management.procedures['rcpBasica'] == 'Sí',
-            ),
-          ],
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'MAST O PNA',
-              management.procedures['mastPna'] == 'Sí',
-            ),
-            _buildCheckboxOption(
-              'Collarín Cervical',
-              management.procedures['collarinCervical'] == 'Sí',
-            ),
-            _buildCheckboxOption(
-              'Desfibrilación',
-              management.procedures['desfibrilacion'] == 'Sí',
-            ),
-          ],
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption(
-              'Apoyo Vent.',
-              management.procedures['apoyoVent'] == 'Sí',
-            ),
-            _buildCheckboxOption(
-              'Oxígeno',
-              management.procedures['oxigeno'] == 'Sí',
-            ),
-            pw.Expanded(
-              child: pw.Text(
-                'Lt/min: ${management.oxigenoLitros}',
-                style: pw.TextStyle(fontSize: 8),
+            child: _buildCheckboxOption(opt['label']!, true),
+          ),
+        );
+      }
+    }
+
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Container(
+            width: double.infinity,
+            padding: pw.EdgeInsets.all(4),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey300,
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
               ),
             ),
-          ],
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Otro', false),
-            pw.Expanded(
-              child: pw.Text('Especifique:', style: pw.TextStyle(fontSize: 8)),
+            child: pw.Text(
+              'MANEJO',
+              style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.black,
+              ),
             ),
-          ],
-        ),
-      ],
+          ),
+          pw.Padding(
+            padding: pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child:
+                selectedCells.isNotEmpty
+                    ? pw.Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: selectedCells,
+                    )
+                    : pw.Text(
+                      'No se seleccionó ningún procedimiento.',
+                      style: pw.TextStyle(
+                        fontSize: 8,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2273,228 +2111,366 @@ class PdfGeneratorService {
     );
   }
 
-  // Build gynecological-obstetric section
+  // Build gynecological-obstetric section with patient info style layout
   pw.Widget _buildGynecoObstetricSection(
     GynecoObstetricDisplayData gynecoObstetric,
   ) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'URGENCIAS GINECO-OBSTÉTRICAS:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        children: [
+          // Header
+          pw.Container(
+            width: double.infinity,
+            padding: pw.EdgeInsets.all(4),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey300,
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              ),
+            ),
+            child: pw.Center(
+              child: pw.Text(
+                'URGENCIAS GINECO-OBSTÉTRICAS',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
           ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Parto', false),
-            _buildCheckboxOption('Aborto', false),
-            _buildCheckboxOption('Hx. Vaginal', false),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'F.U.M.:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  gynecoObstetric.fum,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
+
+          // Primera fila: Parto | Aborto | Hx. Vaginal
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
               ),
             ),
-            pw.SizedBox(width: 10),
-            pw.Text(
-              'Semanas de Gestación:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Row(
+                      children: [
+                        _buildCheckboxOption('Parto', false),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption('Aborto', false),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption('Hx. Vaginal', false),
+                      ],
+                    ),
                   ),
                 ),
-                child: pw.Text(
-                  gynecoObstetric.semanasGestacion,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
+              ],
+            ),
+          ),
+
+          // Segunda fila: FUM | Semanas de Gestación
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
               ),
             ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Ruidos Cardiacos Fetales:',
-          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Perceptible', false),
-            _buildCheckboxOption('No Perceptible', false),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Expulsión de Placenta:',
-          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Si', false),
-            _buildCheckboxOption('No', false),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Gesta:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+            child: pw.Row(
+              children: [
+                // FUM
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('F.U.M.:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          gynecoObstetric.fum,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: pw.Text(
-                  gynecoObstetric.gesta,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-            pw.SizedBox(width: 10),
-            pw.Text(
-              'Partos:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+                // Semanas de Gestación
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Semanas de Gestación:',
+                          style: pw.TextStyle(fontSize: 6),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          gynecoObstetric.semanasGestacion,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: pw.Text(
-                  gynecoObstetric.partos,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
+              ],
+            ),
+          ),
+
+          // Tercera fila: Ruidos Cardiacos Fetales (checkboxes)
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
               ),
             ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Cesareas:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Row(
+                      children: [
+                        pw.Text(
+                          'Ruidos Cardiacos Fetales:',
+                          style: pw.TextStyle(fontSize: 6),
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Perceptible',
+                          gynecoObstetric.ruidosCardiacosFetales == true,
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'No Perceptible',
+                          gynecoObstetric.ruidosCardiacosFetales == false,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: pw.Text(
-                  gynecoObstetric.cesareas,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
+              ],
+            ),
+          ),
+
+          // Cuarta fila: Expulsión de Placenta (checkboxes)
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
               ),
             ),
-            pw.SizedBox(width: 10),
-            pw.Text(
-              'Hora:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Row(
+                      children: [
+                        pw.Text(
+                          'Expulsión de Placenta:',
+                          style: pw.TextStyle(fontSize: 6),
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Sí',
+                          gynecoObstetric.expulsionPlacenta == true,
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'No',
+                          gynecoObstetric.expulsionPlacenta == false,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: pw.Text(
-                  gynecoObstetric.hora,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
+              ],
+            ),
+          ),
+
+          // Quinta fila: Gesta | Partos
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
               ),
             ),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Abortos:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+            child: pw.Row(
+              children: [
+                // Gesta
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Gesta:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          gynecoObstetric.gesta,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: pw.Text(
-                  gynecoObstetric.abortos,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
-              ),
-            ),
-            pw.SizedBox(width: 10),
-            pw.Text(
-              'Método Anticonceptivo:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+                // Partos
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Partos:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          gynecoObstetric.partos,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: pw.Text(
-                  gynecoObstetric.metodosAnticonceptivos,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
+              ],
+            ),
+          ),
+
+          // Sexta fila: Cesáreas | Hora
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.black, width: 0.5),
               ),
             ),
-          ],
-        ),
-      ],
+            child: pw.Row(
+              children: [
+                // Cesáreas
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Cesáreas:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          gynecoObstetric.cesareas,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Hora
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Hora:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          gynecoObstetric.hora,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Séptima fila: Abortos | Método Anticonceptivo
+          pw.Container(
+            child: pw.Row(
+              children: [
+                // Abortos
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border(
+                        right: pw.BorderSide(
+                          color: PdfColors.black,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Abortos:', style: pw.TextStyle(fontSize: 6)),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          gynecoObstetric.abortos,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Método Anticonceptivo
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Container(
+                    padding: pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Método Anticonceptivo:',
+                          style: pw.TextStyle(fontSize: 6),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          gynecoObstetric.metodosAnticonceptivos,
+                          style: pw.TextStyle(fontSize: 8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2614,125 +2590,242 @@ class PdfGeneratorService {
     );
   }
 
-  // Build priority justification section
+  // Build priority justification section with
   pw.Widget _buildPriorityJustificationSection(PriorityDisplayData priority) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'JUSTIFICACIÓN DE PRIORIDAD:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
-          ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Rojo', priority.priority == 'Rojo'),
-            _buildCheckboxOption('Amarillo', priority.priority == 'Amarillo'),
-            _buildCheckboxOption('Verde', priority.priority == 'Verde'),
-            _buildCheckboxOption('Negro', priority.priority == 'Negro'),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Pupilas:',
-          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Iguales', priority.pupils == 'Iguales'),
-            _buildCheckboxOption('Midriasis', priority.pupils == 'Midriasis'),
-            _buildCheckboxOption('Miosis', priority.pupils == 'Miosis'),
-          ],
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Anisocoria', priority.pupils == 'Anisocoria'),
-            _buildCheckboxOption('Arreflexia', priority.pupils == 'Arreflexia'),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Color Piel:',
-          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Normal', priority.skinColor == 'Normal'),
-            _buildCheckboxOption('Cianosis', priority.skinColor == 'Cianosis'),
-            _buildCheckboxOption('Marmórea', priority.skinColor == 'Marmórea'),
-            _buildCheckboxOption('Pálida', priority.skinColor == 'Pálida'),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Piel:',
-          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Seca', priority.skin == 'Seca'),
-            _buildCheckboxOption('Húmeda', priority.skin == 'Húmeda'),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Temperatura:',
-          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Normal', priority.temperature == 'Normal'),
-            _buildCheckboxOption(
-              'Caliente',
-              priority.temperature == 'Caliente',
-            ),
-            _buildCheckboxOption('Fría', priority.temperature == 'Fría'),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(
-          'Influenciado por:',
-          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.Row(
-          children: [
-            _buildCheckboxOption('Alcohol', priority.influence == 'Alcohol'),
-            _buildCheckboxOption(
-              'Otras drogas',
-              priority.influence == 'Otras drogas',
-            ),
-            _buildCheckboxOption('Otro', priority.influence == 'Otro'),
-          ],
-        ),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          children: [
-            pw.Text(
-              'Especifique:',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(width: 5),
-            pw.Expanded(
-              child: pw.Container(
-                height: 15,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(
-                    bottom: pw.BorderSide(color: PdfColors.black, width: 1),
-                  ),
-                ),
-                child: pw.Text(
-                  priority.especifique,
-                  style: pw.TextStyle(fontSize: 8),
-                ),
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('JUSTIFICACIÓN DE PRIORIDAD', style: _sectionTitleStyle),
+          pw.SizedBox(height: 5),
+          pw.Table(
+            border: pw.TableBorder(
+              horizontalInside: pw.BorderSide(
+                color: PdfColors.grey,
+                width: 0.5,
               ),
             ),
-          ],
-        ),
-      ],
+            columnWidths: {
+              0: const pw.FlexColumnWidth(2),
+              1: const pw.FlexColumnWidth(8),
+            },
+            children: [
+              pw.TableRow(
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Text('Prioridad:', style: _labelStyle),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Row(
+                      children: [
+                        _buildCheckboxOption(
+                          'Rojo',
+                          priority.priority == 'Rojo',
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Amarillo',
+                          priority.priority == 'Amarillo',
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Verde',
+                          priority.priority == 'Verde',
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Negro',
+                          priority.priority == 'Negro',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.TableRow(
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Text('Pupilas:', style: _labelStyle),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Wrap(
+                      spacing: 5,
+                      runSpacing: 2,
+                      children: [
+                        _buildCheckboxOption(
+                          'Iguales',
+                          priority.pupils == 'Iguales',
+                        ),
+                        _buildCheckboxOption(
+                          'Midriasis',
+                          priority.pupils == 'Midriasis',
+                        ),
+                        _buildCheckboxOption(
+                          'Miosis',
+                          priority.pupils == 'Miosis',
+                        ),
+                        _buildCheckboxOption(
+                          'Anisocoria',
+                          priority.pupils == 'Anisocoria',
+                        ),
+                        _buildCheckboxOption(
+                          'Arreflexia',
+                          priority.pupils == 'Arreflexia',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.TableRow(
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Text('Color Piel:', style: _labelStyle),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Wrap(
+                      spacing: 5,
+                      runSpacing: 2,
+                      children: [
+                        _buildCheckboxOption(
+                          'Normal',
+                          priority.skinColor == 'Normal',
+                        ),
+                        _buildCheckboxOption(
+                          'Cianosis',
+                          priority.skinColor == 'Cianosis',
+                        ),
+                        _buildCheckboxOption(
+                          'Marmórea',
+                          priority.skinColor == 'Marmórea',
+                        ),
+                        _buildCheckboxOption(
+                          'Pálida',
+                          priority.skinColor == 'Pálida',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.TableRow(
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Text('Piel:', style: _labelStyle),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Row(
+                      children: [
+                        _buildCheckboxOption('Seca', priority.skin == 'Seca'),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Húmeda',
+                          priority.skin == 'Húmeda',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.TableRow(
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Text('Temperatura:', style: _labelStyle),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Row(
+                      children: [
+                        _buildCheckboxOption(
+                          'Normal',
+                          priority.temperature == 'Normal',
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Caliente',
+                          priority.temperature == 'Caliente',
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Fría',
+                          priority.temperature == 'Fría',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.TableRow(
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Text('Influenciado por:', style: _labelStyle),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Row(
+                      children: [
+                        _buildCheckboxOption(
+                          'Alcohol',
+                          priority.influence == 'Alcohol',
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Otras drogas',
+                          priority.influence == 'Otras drogas',
+                        ),
+                        pw.SizedBox(width: 5),
+                        _buildCheckboxOption(
+                          'Otro',
+                          priority.influence == 'Otro',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.TableRow(
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Text('Especifique:', style: _labelStyle),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Container(
+                      height: 15,
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border(
+                          bottom: pw.BorderSide(
+                            color: PdfColors.black,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      alignment: pw.Alignment.centerLeft,
+                      child: pw.Text(priority.especifique, style: _valueStyle),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -3328,7 +3421,7 @@ class PdfGeneratorService {
       episodio: registryInfo['episodio']?.toString() ?? 'N/A',
       solicitadoPor: registryInfo['solicitadoPor']?.toString() ?? 'N/A',
       folio: registryInfo['folio']?.toString() ?? 'N/A',
-      fecha: registryInfo['fecha']?.toString() ?? 'N/A',
+      fecha: (registryInfo['fecha']?.toString()?.split('T')?.first ?? 'N/A'),
     );
   }
 
@@ -3493,7 +3586,7 @@ class PdfGeneratorService {
   pw.Widget _buildEvaSection(VitalSignsDisplayData vitalSigns) {
     return pw.Container(
       width: double.infinity,
-      padding: const pw.EdgeInsets.all(8),
+      padding: const pw.EdgeInsets.all(3),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 1),
       ),
@@ -3501,7 +3594,7 @@ class PdfGeneratorService {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text('ESCALA EVA (DOLOR)', style: _sectionTitleStyle),
-          pw.SizedBox(height: 5),
+          pw.SizedBox(height: 3),
           pw.Text('Nivel de dolor: ${vitalSigns.eva}/10', style: _valueStyle),
           pw.Text('LLC: ${vitalSigns.llc} segundos', style: _valueStyle),
           pw.Text('Glucosa: ${vitalSigns.glucosa} mg/dl', style: _valueStyle),
@@ -3730,15 +3823,15 @@ class PdfGeneratorService {
 
   pw.Widget _buildLabeledCell(String label, String value) {
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 2),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Row(
             children: [
               pw.Text(label, style: _labelStyle),
-              pw.SizedBox(width: 3),
-              pw.Text(value, style: pw.TextStyle(fontSize: 8)),
+              pw.SizedBox(width: 2),
+              pw.Text(value, style: pw.TextStyle(fontSize: 6)),
             ],
           ),
         ],
@@ -3752,11 +3845,20 @@ class PdfGeneratorService {
       children: [
         pw.TableRow(
           children: [
-            _buildLabeledCell('Convenio', registry.convenio),
-            _buildLabeledCell('Episodio', registry.episodio),
-            _buildLabeledCell('Solicitado por', registry.solicitadoPor),
-            _buildLabeledCell('Folio', registry.folio),
-            _buildLabeledCell('Fecha', registry.fecha),
+            _buildLabeledCell('Convenio', ''),
+            _buildLabeledCell('Episodio', ''),
+            _buildLabeledCell('Solicitado por', ''),
+            _buildLabeledCell('Folio', ''),
+            _buildLabeledCell('Fecha', ''),
+          ],
+        ),
+        pw.TableRow(
+          children: [
+            _buildLabeledCell('', registry.convenio),
+            _buildLabeledCell('', registry.episodio),
+            _buildLabeledCell('', registry.solicitadoPor),
+            _buildLabeledCell('', registry.folio),
+            _buildLabeledCell('', registry.fecha),
           ],
         ),
       ],
