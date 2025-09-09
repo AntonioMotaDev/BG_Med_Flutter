@@ -450,13 +450,15 @@ class PdfGeneratorService {
                           displayData.patient,
                           displayData.service.currentCondition,
                         ),
+                        _buildConsentimientoSection(
+                          displayData.consentimientoServicio!,
+                        ),
                         _buildClinicalHistorySection(displayData.clinical),
                         pw.SizedBox(height: 3),
                         _buildPhysicalExamSection(displayData.vitalSigns),
                         pw.SizedBox(height: 3),
-                        _buildConsentimientoSection(
-                          displayData.consentimientoServicio!,
-                        ),
+                        pw.SizedBox(height: 3),
+                        _buildPatientReceptionSection(displayData.reception),
                         //Localizacion de lesiones
                       ],
                     ),
@@ -489,6 +491,12 @@ class PdfGeneratorService {
                           displayData.priority,
                         ),
                         pw.SizedBox(height: 3),
+                        _buildReceivingUnitSection(displayData.reception),
+                        pw.SizedBox(height: 3),
+                        _buildAmbulanceSection(displayData.ambulance),
+                        pw.SizedBox(height: 3),
+                        // _buildRefusalOfCareSection(record),
+                        // pw.SizedBox(height: 3),
                       ],
                     ),
                   ),
@@ -2940,46 +2948,52 @@ class PdfGeneratorService {
   pw.Widget _buildPatientReceptionSection(ReceptionDisplayData reception) {
     return pw.Container(
       width: double.infinity,
-      padding: const pw.EdgeInsets.all(8),
+      padding: const pw.EdgeInsets.all(6),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('RECEPCIÓN DEL PACIENTE', style: _sectionTitleStyle),
-          pw.SizedBox(height: 5),
           pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text('Médico que recibe:', style: _labelStyle),
-              pw.SizedBox(width: 5),
               pw.Expanded(
-                child: pw.Container(
-                  height: 15,
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border(
-                      bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+                flex: 2,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'RECEPCIÓN DEL PACIENTE',
+                      style: _sectionTitleStyle,
                     ),
-                  ),
-                  child: pw.Text(reception.receivingDoctor, style: _valueStyle),
+                    pw.SizedBox(height: 5),
+                    pw.Text('Médico que recibe:', style: _valueStyle),
+                    pw.SizedBox(height: 5),
+                    pw.Text(reception.receivingDoctor, style: _valueStyle),
+                  ],
                 ),
               ),
-            ],
-          ),
-          pw.SizedBox(height: 10),
-          pw.Text('Nombre y firma:', style: _labelStyle),
-          pw.SizedBox(height: 3),
-          pw.Container(
-            height: 30,
-            decoration: pw.BoxDecoration(
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColors.black, width: 1),
+              pw.SizedBox(width: 20),
+              pw.Container(
+                width: 120,
+                height: 40,
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey400),
+                ),
+                child:
+                    _getImageFromBase64(reception.doctorSignature) != null
+                        ? pw.Image(
+                          _getImageFromBase64(reception.doctorSignature)!,
+                        )
+                        : pw.Center(
+                          child: pw.Text(
+                            'Firma no disponible',
+                            style: _valueStyle,
+                          ),
+                        ),
               ),
-            ),
-            child:
-                _getImageFromBase64(reception.doctorSignature) != null
-                    ? pw.Image(_getImageFromBase64(reception.doctorSignature)!)
-                    : pw.Container(),
+            ],
           ),
         ],
       ),
@@ -3514,31 +3528,51 @@ class PdfGeneratorService {
   pw.Widget _buildConsentimientoSection(String signatureData) {
     return pw.Container(
       width: double.infinity,
-      padding: const pw.EdgeInsets.all(8),
+      padding: const pw.EdgeInsets.all(6),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('CONSENTIMIENTO DE SERVICIO', style: _sectionTitleStyle),
-          pw.SizedBox(height: 5),
-          pw.Text(
-            'He recibido atención médica prehospitalaria y autorizo el traslado a la unidad médica correspondiente.',
-            style: _valueStyle,
-          ),
-          pw.SizedBox(height: 10),
-          pw.Container(
-            height: 40,
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: PdfColors.grey400),
-            ),
-            child:
-                _getImageFromBase64(signatureData) != null
-                    ? pw.Image(_getImageFromBase64(signatureData)!)
-                    : pw.Center(
-                      child: pw.Text('Firma no disponible', style: _valueStyle),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Expanded(
+                flex: 2,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'CONSENTIMIENTO DE SERVICIO',
+                      style: _sectionTitleStyle,
                     ),
+                    pw.SizedBox(height: 5),
+                    pw.Text(
+                      'He recibido atención médica prehospitalaria y autorizo el traslado a la unidad médica correspondiente.',
+                      style: _valueStyle,
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 20),
+              pw.Container(
+                width: 120,
+                height: 40,
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey400),
+                ),
+                child:
+                    _getImageFromBase64(signatureData) != null
+                        ? pw.Image(_getImageFromBase64(signatureData)!)
+                        : pw.Center(
+                          child: pw.Text(
+                            'Firma no disponible',
+                            style: _valueStyle,
+                          ),
+                        ),
+              ),
+            ],
           ),
         ],
       ),
