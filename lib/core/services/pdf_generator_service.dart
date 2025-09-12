@@ -21,6 +21,7 @@ class PatientDisplayData {
   final String emergencyContact;
   final String addressDetails;
   final String tipoEntrega;
+  final String currentCondition;
 
   PatientDisplayData({
     required this.fullName,
@@ -34,6 +35,7 @@ class PatientDisplayData {
     required this.emergencyContact,
     required this.addressDetails,
     required this.tipoEntrega,
+    required this.currentCondition,
   });
 }
 
@@ -131,6 +133,7 @@ class ClinicalDisplayData {
   });
 }
 
+// Este contiene datos que no son de la seccion de management
 class ManagementDisplayData {
   final Map<String, String> procedures;
   final String oxigenoLitros;
@@ -147,6 +150,7 @@ class ManagementDisplayData {
   });
 }
 
+// Este contiene datos que no son de la seccion de Ambulance, se deberia llamar ReceptionUnit
 class AmbulanceDisplayData {
   final String numeroAmbulancia;
   final String tipoAmbulancia;
@@ -164,6 +168,7 @@ class AmbulanceDisplayData {
 }
 
 class GynecoObstetricDisplayData {
+  final String urgencia;
   final String fum;
   final String semanasGestacion;
   final String gesta;
@@ -177,6 +182,7 @@ class GynecoObstetricDisplayData {
   final Map<String, dynamic>? escalasObstetricas;
 
   GynecoObstetricDisplayData({
+    required this.urgencia,
     required this.fum,
     required this.semanasGestacion,
     required this.gesta,
@@ -457,8 +463,6 @@ class PdfGeneratorService {
                         pw.SizedBox(height: 3),
                         _buildPhysicalExamSection(displayData.vitalSigns),
                         pw.SizedBox(height: 3),
-                        pw.SizedBox(height: 3),
-                        _buildPatientReceptionSection(displayData.reception),
                         //Localizacion de lesiones
                       ],
                     ),
@@ -497,6 +501,7 @@ class PdfGeneratorService {
                         pw.SizedBox(height: 3),
                         // _buildRefusalOfCareSection(record),
                         // pw.SizedBox(height: 3),
+                        _buildPatientReceptionSection(displayData.reception),
                       ],
                     ),
                   ),
@@ -2602,7 +2607,7 @@ class PdfGeneratorService {
   pw.Widget _buildPriorityJustificationSection(PriorityDisplayData priority) {
     return pw.Container(
       width: double.infinity,
-      padding: const pw.EdgeInsets.all(8),
+      padding: const pw.EdgeInsets.all(4),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 1),
       ),
@@ -3149,6 +3154,7 @@ class PdfGeneratorService {
         emergencyContact: 'N/A', // Not available in Patient model
         addressDetails: patient.addressDetails,
         tipoEntrega: patient.tipoEntrega,
+        currentCondition: patient.currentCondition ?? 'N/A',
       );
     } else {
       _log('Using cloud patient data');
@@ -3169,6 +3175,7 @@ class PdfGeneratorService {
         emergencyContact: patientInfo['emergencyContact']?.toString() ?? 'N/A',
         addressDetails: patientInfo['addressDetails']?.toString() ?? 'N/A',
         tipoEntrega: patientInfo['tipoEntrega']?.toString() ?? 'N/A',
+        currentCondition: patientInfo['currentCondition']?.toString() ?? 'N/A',
       );
     }
   }
@@ -3391,6 +3398,7 @@ class PdfGeneratorService {
     final escalas = _getEscalasObstetricas(record);
 
     return GynecoObstetricDisplayData(
+      urgencia: gynecoObstetric['urgencia']?.toString() ?? 'N/A',
       fum: gynecoObstetric['fum']?.toString() ?? 'N/A',
       semanasGestacion:
           gynecoObstetric['semanasGestacion']?.toString() ?? 'N/A',

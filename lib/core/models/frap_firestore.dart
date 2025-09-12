@@ -346,7 +346,7 @@ class FrapFirestore extends Equatable {
   // Obtener porcentaje de completitud
   double get completionPercentage {
     int totalSections = 10;
-    int completedSections = 1;
+    int completedSections = 0;
 
     if (serviceInfo.isNotEmpty) completedSections++;
     if (registryInfo.isNotEmpty) completedSections++;
@@ -386,6 +386,6 @@ class FrapFirestore extends Equatable {
 
   @override
   String toString() {
-    return 'FrapFirestore(id: $id, patient: $patientName, age: $patientAge, completion: ${completionPercentage.toStringAsFixed(1)}%)';
+    return 'FrapFirestore(id: $id, patient: $patientName, age: $patientAge, sex: $patientSex, gender: $patientGender, addressDetails: $patientAddressDetails, tipoEntrega: $patientTipoEntrega, completion: ${completionPercentage.toStringAsFixed(1)}%)';
   }
 }
