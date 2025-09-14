@@ -16,7 +16,7 @@ class FrapData {
   final Map<String, dynamic> injuryLocation;
   final Map<String, dynamic> receivingUnit;
   final Map<String, dynamic> patientReception;
-  final Map<String, dynamic> insumos;
+  final List<Map<String, dynamic>> insumos;
 
   const FrapData({
     this.serviceInfo = const {},
@@ -33,7 +33,7 @@ class FrapData {
     this.injuryLocation = const {},
     this.receivingUnit = const {},
     this.patientReception = const {},
-    this.insumos = const {},
+    this.insumos = const [],
   });
 
   FrapData copyWith({
@@ -51,7 +51,7 @@ class FrapData {
     Map<String, dynamic>? injuryLocation,
     Map<String, dynamic>? receivingUnit,
     Map<String, dynamic>? patientReception,
-    Map<String, dynamic>? insumos,
+    List<Map<String, dynamic>>? insumos,
   }) {
     return FrapData(
       serviceInfo: serviceInfo ?? this.serviceInfo,
@@ -104,7 +104,7 @@ class FrapData {
       case 'patient_reception':
         return patientReception;
       case 'insumos':
-        return insumos;
+        return {'insumos': insumos};
       default:
         return {};
     }
@@ -189,7 +189,7 @@ class FrapDataNotifier extends StateNotifier<FrapData> {
         );
         break;
       case 'insumos':
-        state = state.copyWith(insumos: {...state.insumos, ...data});
+        state = state.copyWith(insumos: [...state.insumos, ...data['insumos']]);
         break;
     }
   }

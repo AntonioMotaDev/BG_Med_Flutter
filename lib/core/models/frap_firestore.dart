@@ -49,6 +49,9 @@ class FrapFirestore extends Equatable {
   // Recepción del Paciente
   final Map<String, dynamic> patientReception;
 
+  // Insumos
+  final List<Map<String, dynamic>> insumos;
+
   const FrapFirestore({
     this.id,
     required this.userId,
@@ -68,6 +71,7 @@ class FrapFirestore extends Equatable {
     this.injuryLocation = const {},
     this.receivingUnit = const {},
     this.patientReception = const {},
+    this.insumos = const [],
   });
 
   // Factory constructor desde Firestore
@@ -95,6 +99,14 @@ class FrapFirestore extends Equatable {
       return {};
     }
 
+    List<Map<String, dynamic>> parseList(dynamic listData) {
+      if (listData == null) return [];
+      if (listData is List<dynamic>) {
+        return listData.map((e) => e as Map<String, dynamic>).toList();
+      }
+      return [];
+    }
+
     return FrapFirestore(
       id: doc.id,
       userId: data['userId'] ?? '',
@@ -114,6 +126,7 @@ class FrapFirestore extends Equatable {
       injuryLocation: parseMap(data['injuryLocation']),
       receivingUnit: parseMap(data['receivingUnit']),
       patientReception: parseMap(data['patientReception']),
+      insumos: parseList(data['insumos']),
     );
   }
 
@@ -142,6 +155,14 @@ class FrapFirestore extends Equatable {
       return {};
     }
 
+    List<Map<String, dynamic>> parseList(dynamic listData) {
+      if (listData == null) return [];
+      if (listData is List<dynamic>) {
+        return listData.map((e) => e as Map<String, dynamic>).toList();
+      }
+      return [];
+    }
+
     return FrapFirestore(
       id: id,
       userId: data['userId'] ?? '',
@@ -161,6 +182,7 @@ class FrapFirestore extends Equatable {
       injuryLocation: parseMap(data['injuryLocation']),
       receivingUnit: parseMap(data['receivingUnit']),
       patientReception: parseMap(data['patientReception']),
+      insumos: parseList(data['insumos']),
     );
   }
 
@@ -184,6 +206,7 @@ class FrapFirestore extends Equatable {
       'injuryLocation': injuryLocation,
       'receivingUnit': receivingUnit,
       'patientReception': patientReception,
+      'insumos': insumos,
     };
   }
 
@@ -208,6 +231,7 @@ class FrapFirestore extends Equatable {
       'injuryLocation': injuryLocation,
       'receivingUnit': receivingUnit,
       'patientReception': patientReception,
+      'insumos': insumos,
     };
   }
 
@@ -231,6 +255,7 @@ class FrapFirestore extends Equatable {
     Map<String, dynamic>? injuryLocation,
     Map<String, dynamic>? receivingUnit,
     Map<String, dynamic>? patientReception,
+    List<Map<String, dynamic>>? insumos,
   }) {
     return FrapFirestore(
       id: id ?? this.id,
@@ -252,6 +277,7 @@ class FrapFirestore extends Equatable {
       injuryLocation: injuryLocation ?? this.injuryLocation,
       receivingUnit: receivingUnit ?? this.receivingUnit,
       patientReception: patientReception ?? this.patientReception,
+      insumos: insumos ?? this.insumos,
     );
   }
 
@@ -272,6 +298,7 @@ class FrapFirestore extends Equatable {
     Map<String, dynamic>? injuryLocation,
     Map<String, dynamic>? receivingUnit,
     Map<String, dynamic>? patientReception,
+    List<Map<String, dynamic>>? insumos,
   }) {
     final now = DateTime.now();
     return FrapFirestore(
@@ -292,6 +319,7 @@ class FrapFirestore extends Equatable {
       injuryLocation: injuryLocation ?? {},
       receivingUnit: receivingUnit ?? {},
       patientReception: patientReception ?? {},
+      insumos: insumos ?? [],
     );
   }
 
@@ -382,6 +410,7 @@ class FrapFirestore extends Equatable {
     injuryLocation,
     receivingUnit,
     patientReception,
+    insumos,
   ];
 
   @override

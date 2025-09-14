@@ -1233,12 +1233,9 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _interiorNumberController.text = patient.interiorNumber ?? '';
       _neighborhoodController.text = patient.neighborhood;
       _cityController.text = patient.city;
-      _addressDetailsController.text =
-          ''; // Campo no disponible en PatientFirestore
+      _addressDetailsController.text = patient.addressDetails ?? '';
       _insuranceController.text = patient.insurance;
       _responsiblePersonController.text = patient.responsiblePerson ?? '';
-
-      // Nuevos campos
       _tipoEntregaSeleccionado = '';
       _tipoEntregaOtroController.text = '';
       _generoSeleccionado = '';
@@ -1272,8 +1269,6 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
       _currentConditionController.clear();
       _emergencyContactController.clear();
       _responsiblePersonController.clear();
-
-      // Limpiar nuevos campos
       _tipoEntregaSeleccionado = '';
       _tipoEntregaOtroController.clear();
       _generoSeleccionado = '';
@@ -1421,6 +1416,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
         maternalLastName: _maternalLastNameController.text.trim(),
         age: int.tryParse(_ageController.text.trim()) ?? 0,
         sex: _sexSelected,
+        gender: _generoSeleccionado,
         phone: _phoneController.text.trim(),
         street: _streetController.text.trim(),
         exteriorNumber: _exteriorNumberController.text.trim(),
@@ -1435,6 +1431,7 @@ class _PatientInfoFormDialogState extends ConsumerState<PatientInfoFormDialog> {
             _responsiblePersonController.text.trim().isEmpty
                 ? null
                 : _responsiblePersonController.text.trim(),
+        addressDetails: _addressDetailsController.text.trim(),
       );
 
       await ref

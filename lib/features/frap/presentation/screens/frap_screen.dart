@@ -799,7 +799,7 @@ class _FrapScreenState extends ConsumerState<FrapScreen> {
             },
             initialData:
                 ref.read(frapDataProvider).insumos.isNotEmpty
-                    ? ref.read(frapDataProvider).insumos
+                    ? {'insumosList': ref.read(frapDataProvider).insumos}
                     : null,
           ),
     );

@@ -517,23 +517,18 @@ class FrapUnifiedService {
 
   // Convertir insumos desde datos de la nube
   List<Insumo> _convertInsumosFromCloud(FrapFirestore cloud) {
-    // Buscar insumos en diferentes ubicaciones posibles
-    final insumosData =
-        cloud.serviceInfo['insumos'] ?? cloud.management['insumos'] ?? [];
+    final insumosData = cloud.insumos;
 
-    if (insumosData is List) {
-      final validation = FrapDataValidator.validateInsumosData(insumosData);
-      if (validation.isValid && validation.cleanedData != null) {
-        final cleanedInsumos = validation.cleanedData!['insumos'] as List;
-        return cleanedInsumos.map((insumoData) {
-          return Insumo(
-            cantidad: insumoData['cantidad'] ?? 0,
-            articulo: insumoData['articulo'] ?? '',
-          );
-        }).toList();
-      }
+    final validation = FrapDataValidator.validateInsumosData(insumosData);
+    if (validation.isValid && validation.cleanedData != null) {
+      final cleanedInsumos = validation.cleanedData!['insumos'] as List;
+      return cleanedInsumos.map((insumoData) {
+        return Insumo(
+          cantidad: insumoData['cantidad'] ?? 0,
+          articulo: insumoData['articulo'] ?? '',
+        );
+      }).toList();
     }
-
     return [];
   }
 

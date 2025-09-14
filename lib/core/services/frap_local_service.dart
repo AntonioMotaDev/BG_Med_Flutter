@@ -102,22 +102,11 @@ class FrapLocalService {
   // OBTENER todos los registros FRAP locales
   Future<List<Frap>> getAllFrapRecords() async {
     try {
-      print('Obteniendo registros locales de Hive...');
-      print('Caja de Hive disponible: ${_frapBox?.isOpen}');
-      print('Número de registros en la caja: ${_frapBox?.length}');
-
       final box = await _getFrapBox;
       final records = box.values.toList();
-      print('Registros obtenidos de la caja: ${records.length}');
 
       // Ordenar por fecha de creación descendente
       records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      print('Registros ordenados: ${records.length}');
-      for (int i = 0; i < records.length; i++) {
-        final record = records[i];
-        print('Registro $i: ${record.patient.fullName} - ${record.createdAt}');
-      }
 
       return records;
     } catch (e) {
@@ -323,28 +312,16 @@ class FrapLocalService {
     final interiorNumber = patientInfo['interiorNumber'] ?? '';
     final neighborhood = patientInfo['neighborhood'] ?? '';
     final city = patientInfo['city'] ?? '';
+    final addressDetails = patientInfo['addressDetails'] ?? '';
 
-    String fullAddress = '';
-    if (street.isNotEmpty) {
-      fullAddress = street;
-      if (exteriorNumber.isNotEmpty) {
-        fullAddress += ' $exteriorNumber';
-      }
-      if (interiorNumber != null && interiorNumber.isNotEmpty) {
-        fullAddress += ', Int. $interiorNumber';
-      }
-      if (neighborhood.isNotEmpty) {
-        fullAddress += ', $neighborhood';
-      }
-      if (city.isNotEmpty) {
-        fullAddress += ', $city';
-      }
-    }
+    String fullAddress =
+        '$street $exteriorNumber $interiorNumber $neighborhood $city $addressDetails';
 
     final patient = Patient(
       name: fullName.isNotEmpty ? fullName : 'Sin nombre',
       age: patientInfo['age'] ?? 0,
-      sex: patientInfo['sex'] ?? '', // Cambiado de gender a sex
+      sex: patientInfo['sex'] ?? '',
+      gender: (patientInfo['gender'] ?? '').toString(),
       address: fullAddress,
       firstName: firstName,
       paternalLastName: paternalLastName,
@@ -357,11 +334,8 @@ class FrapLocalService {
       city: city,
       insurance: patientInfo['insurance'] ?? '',
       responsiblePerson: patientInfo['responsiblePerson'],
-      // Mapear genero -> gender si viene del dialog
-      gender: (patientInfo['gender'] ?? patientInfo['genero'] ?? '').toString(),
       addressDetails: patientInfo['addressDetails'] ?? '',
       tipoEntrega: patientInfo['tipoEntrega'] ?? '',
-      // Nuevos campos
       emergencyContact: patientInfo['emergencyContact'],
       currentCondition: patientInfo['currentCondition'],
       tipoEntregaOtro: patientInfo['tipoEntregaOtro'],
@@ -399,19 +373,16 @@ class FrapLocalService {
       mergedServiceInfo['emergencyContact'] = emergencyContact;
     }
 
-    // Construir listas de Insumo y PersonalMedico desde provider state si existen
     final List<Insumo> insumos = <Insumo>[];
     if (frapData.insumos.isNotEmpty) {
-      final list = frapData.insumos['insumosList'] as List<dynamic>?;
-      if (list != null) {
-        for (final item in list) {
-          if (item is Map) {
-            final cantidad = int.tryParse(item['cantidad'].toString()) ?? 0;
-            final articulo = (item['articulo'] ?? '').toString();
-            if (cantidad > 0 && articulo.isNotEmpty) {
-              insumos.add(Insumo(cantidad: cantidad, articulo: articulo));
-            }
-          }
+      for (final item in frapData.insumos) {
+        final cantidad =
+            (item['cantidad'] is int)
+                ? item['cantidad'] as int
+                : int.tryParse(item['cantidad'].toString()) ?? 0;
+        final articulo = (item['articulo'] ?? '').toString();
+        if (cantidad > 0 && articulo.isNotEmpty) {
+          insumos.add(Insumo(cantidad: cantidad, articulo: articulo));
         }
       }
     }
@@ -470,7 +441,6 @@ class FrapLocalService {
       patientReception: frapData.patientReception,
       insumos: insumos,
       personalMedico: personalMedico,
-      // Nuevos campos de servicio
       consentimientoSignature: frapData.serviceInfo['consentimientoSignature'],
       tipoUrgencia: frapData.serviceInfo['tipoUrgencia'],
       urgenciaEspecifique: frapData.serviceInfo['urgenciaEspecifique'],
@@ -488,7 +458,8 @@ class FrapLocalService {
       'patient': {
         'name': frap.patient.name,
         'age': frap.patient.age,
-        'sex': frap.patient.sex, // Cambiado de gender a sex
+        'sex': frap.patient.sex,
+        'gender': frap.patient.gender,
         'address': frap.patient.address,
       },
       'clinicalHistory': {
@@ -504,6 +475,15 @@ class FrapLocalService {
         'abdomen': frap.physicalExam.abdomen,
         'extremities': frap.physicalExam.extremities,
       },
+      'insumos':
+          frap.insumos
+              .map(
+                (insumo) => {
+                  'cantidad': insumo.cantidad,
+                  'articulo': insumo.articulo,
+                },
+              )
+              .toList(),
       'createdAt': frap.createdAt.toIso8601String(),
     };
   }
@@ -513,6 +493,17 @@ class FrapLocalService {
     final patientData = map['patient'] as Map<String, dynamic>;
     final clinicalHistoryData = map['clinicalHistory'] as Map<String, dynamic>;
     final physicalExamData = map['physicalExam'] as Map<String, dynamic>;
+    final insumosData = map['insumos'] as List<dynamic>? ?? [];
+
+    // Convertir insumos
+    final List<Insumo> insumos =
+        insumosData.map((item) {
+          final insumoMap = item as Map<String, dynamic>;
+          return Insumo(
+            cantidad: insumoMap['cantidad'] as int,
+            articulo: insumoMap['articulo'] as String,
+          );
+        }).toList();
 
     return Frap(
       id: map['id'] as String,
@@ -520,6 +511,7 @@ class FrapLocalService {
         name: patientData['name'] as String,
         age: patientData['age'] as int,
         sex: patientData['sex'] as String,
+        gender: patientData['gender'] as String,
         address: patientData['address'] as String,
       ),
       clinicalHistory: ClinicalHistory(
@@ -535,6 +527,7 @@ class FrapLocalService {
         abdomen: physicalExamData['abdomen'] as String,
         extremities: physicalExamData['extremities'] as String,
       ),
+      insumos: insumos,
       createdAt: DateTime.parse(map['createdAt'] as String),
     );
   }
@@ -544,7 +537,6 @@ class FrapLocalService {
     return FrapData(
       serviceInfo: {
         ...frap.serviceInfo,
-        // Nuevos campos de servicio
         'consentimientoSignature': frap.consentimientoSignature,
         'tipoUrgencia': frap.tipoUrgencia,
         'urgenciaEspecifique': frap.urgenciaEspecifique,
@@ -558,19 +550,20 @@ class FrapLocalService {
         'paternalLastName': frap.patient.paternalLastName,
         'maternalLastName': frap.patient.maternalLastName,
         'age': frap.patient.age,
-        'sex': frap.patient.sex, // Cambiado de gender a sex
+        'sex': frap.patient.sex,
+        'gender': frap.patient.gender,
         'phone': frap.patient.phone,
         'street': frap.patient.street,
         'exteriorNumber': frap.patient.exteriorNumber,
         'interiorNumber': frap.patient.interiorNumber,
         'neighborhood': frap.patient.neighborhood,
         'city': frap.patient.city,
+        'addressDetails': frap.patient.addressDetails,
         'insurance': frap.patient.insurance,
         'responsiblePerson': frap.patient.responsiblePerson,
         'currentCondition': frap.patient.currentCondition ?? '',
         'emergencyContact': frap.patient.emergencyContact ?? '',
-        'address':
-            frap.patient.fullAddress, // Mantener también la dirección completa
+        'address': frap.patient.fullAddress,
       },
       management: frap.management,
       medications:
@@ -608,6 +601,15 @@ class FrapLocalService {
       injuryLocation: frap.injuryLocation,
       receivingUnit: frap.receivingUnit,
       patientReception: frap.patientReception,
+      insumos:
+          frap.insumos
+              .map(
+                (insumo) => {
+                  'cantidad': insumo.cantidad,
+                  'articulo': insumo.articulo,
+                },
+              )
+              .toList(),
     );
   }
 
