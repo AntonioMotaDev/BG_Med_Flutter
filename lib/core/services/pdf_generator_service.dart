@@ -407,27 +407,31 @@ class PdfGeneratorService {
       _log('Error loading silhouette image: $e');
     }
 
-    // Preload injury image if there are injuries
-    pw.MemoryImage? injuryImage;
+    // Crear imagen combinada con silueta y lesiones
+    pw.MemoryImage? combinedImage;
     final injuryLocation =
         record.getDetailedInfo()['injuryLocation'] as Map<String, dynamic>?;
     final drawnInjuries = injuryLocation?['drawnInjuries'] as List<dynamic>?;
     if (drawnInjuries != null && drawnInjuries.isNotEmpty) {
       try {
-        injuryImage = await _buildInjuryImage(drawnInjuries);
+        combinedImage = await _createCombinedSilhouetteImage(
+          'assets/images/silueta_humana.jpeg',
+          drawnInjuries,
+          injuryLocationMap: injuryLocation,
+        );
       } catch (e) {
-        _log('Error creating injury image: $e');
+        _log('Error creating combined image: $e');
       }
     }
 
     // Build unified display data
     final displayData = _buildDisplayData(record);
-    print('--------------------------------');
-    print(
-      'Datos de localizacion de lesiones: ${record.getDetailedInfo()['injuryLocation']}',
-    );
-    print('--------------------------------');
-    _log('Display data built successfully');
+    // print('--------------------------------');
+    // print(
+    //   'Datos de localizacion de lesiones: ${record.getDetailedInfo()['injuryLocation']}',
+    // );
+    // print('--------------------------------');
+    // _log('Display data built successfully');
 
     final pdf = pw.Document(
       title: 'Registro de Atención Prehospitalaria',
@@ -500,7 +504,7 @@ class PdfGeneratorService {
                         _buildInjuryLocationSectionSync(
                           record,
                           silhouetteImage,
-                          injuryImage,
+                          combinedImage,
                         ),
                       ],
                     ),
@@ -756,52 +760,6 @@ class PdfGeneratorService {
     }
   }
 
-  // Método para obtener datos de signos vitales dinámicos
-  Map<String, String> _getVitalSignsData(
-    UnifiedFrapRecord record,
-    String vitalSign,
-  ) {
-    if (record.localRecord != null) {
-      return record.localRecord!.physicalExam.vitalSignsData[vitalSign] ?? {};
-    }
-    // Fallback a datos de nube via detailedInfo
-    final physicalExam =
-        record.getDetailedInfo()['physicalExam'] as Map<String, dynamic>?;
-    final data = physicalExam?[vitalSign];
-    if (data is Map) {
-      return data.map((k, v) => MapEntry(k.toString(), v?.toString() ?? ''));
-    }
-    return {};
-  }
-
-  // Método para obtener columnas de tiempo
-  List<String> _getTimeColumns(UnifiedFrapRecord record) {
-    if (record.localRecord != null) {
-      return record.localRecord!.physicalExam.timeColumns;
-    }
-    final physicalExam =
-        record.getDetailedInfo()['physicalExam'] as Map<String, dynamic>?;
-    final tc = physicalExam?['timeColumns'];
-    if (tc is List) {
-      return tc.map((e) => e.toString()).toList();
-    }
-    return [];
-  }
-
-  String _getPriorityJustification(UnifiedFrapRecord record, String key) {
-    final priorityJustification =
-        record.getDetailedInfo()['priorityJustification']
-            as Map<String, dynamic>?;
-    return priorityJustification?[key]?.toString() ?? 'N/A';
-  }
-
-  String _getInjuryLocation(UnifiedFrapRecord record, String key) {
-    final injuryLocation =
-        record.getDetailedInfo()['injuryLocation'] as Map<String, dynamic>?;
-    final value = injuryLocation?[key];
-    return value?.toString() ?? 'N/A';
-  }
-
   String _getReceivingUnit(UnifiedFrapRecord record, String key) {
     final receivingUnit =
         record.getDetailedInfo()['receivingUnit'] as Map<String, dynamic>?;
@@ -956,7 +914,7 @@ class PdfGeneratorService {
     );
   }
 
-  // Build time tracking grid similar to the image
+  // Build time tracking grid
   pw.Widget _buildTimeTrackingGrid(ServiceDisplayData service) {
     return pw.Container(
       decoration: pw.BoxDecoration(
@@ -1715,308 +1673,123 @@ class PdfGeneratorService {
   pw.Widget _buildInjuryLocationSectionSync(
     UnifiedFrapRecord record,
     pw.MemoryImage? silhouetteImage,
-    pw.MemoryImage? injuryImage,
+    pw.MemoryImage? combinedImage,
   ) {
     final injuryLocation =
         record.getDetailedInfo()['injuryLocation'] as Map<String, dynamic>?;
     final drawnInjuries = injuryLocation?['drawnInjuries'] as List<dynamic>?;
     final notes = injuryLocation?['notes'] as String?;
 
-    // Debug: Log injury data
-    print('=== INJURY LOCATION DEBUG ===');
-    print('injuryLocation: $injuryLocation');
-    print('drawnInjuries: $drawnInjuries');
-    print('drawnInjuries length: ${drawnInjuries?.length ?? 0}');
-    if (drawnInjuries != null && drawnInjuries.isNotEmpty) {
-      for (int i = 0; i < drawnInjuries.length; i++) {
-        final injury = drawnInjuries[i] as Map<String, dynamic>;
-        print('Injury $i: $injury');
-        final points = injury['points'] as List<dynamic>?;
-        print('Points for injury $i: $points');
-      }
+    // Calcular tamaño de imagen combinada
+    double targetHeight = 120.0;
+    double originalWidth = 436.0;
+    double originalHeight = 845.8;
+    if (injuryLocation != null && injuryLocation['originalImageSize'] != null) {
+      final size = injuryLocation['originalImageSize'];
+      originalWidth = size['width']?.toDouble() ?? originalWidth;
+      originalHeight = size['height']?.toDouble() ?? originalHeight;
     }
-    print('=============================');
+    double aspectRatio = originalWidth / originalHeight;
+    double targetWidth = targetHeight * aspectRatio;
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-          'LOCALIZACIÓN DE LESIONES:',
-          style: pw.TextStyle(
-            fontSize: 10,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
+        pw.Container(
+          height: targetHeight,
+          width: targetWidth,
+          alignment: pw.Alignment.center,
+          decoration: pw.BoxDecoration(
+            color: PdfColors.white,
+            borderRadius: pw.BorderRadius.circular(8),
+            border: pw.Border.all(color: PdfColors.grey300),
           ),
+          child:
+              combinedImage != null
+                  ? pw.Image(
+                    combinedImage,
+                    width: targetWidth,
+                    height: targetHeight,
+                    fit: pw.BoxFit.contain,
+                  )
+                  : pw.Text('Sin imagen de lesiones'),
         ),
-        pw.SizedBox(height: 5),
-
-        // Contenido principal
-        if (drawnInjuries != null && drawnInjuries.isNotEmpty) ...[
-          // Mapa corporal con lesiones
-          pw.Container(
-            height: 200,
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: PdfColors.grey400, width: 1),
-              borderRadius: pw.BorderRadius.circular(4),
-            ),
-            child: pw.Stack(
-              children: [
-                // Fondo blanco
-                pw.Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: PdfColors.white,
-                ),
-                // Silueta humana
-                pw.Center(
-                  child: pw.Container(
-                    width: 120,
-                    height: 180,
-                    child:
-                        silhouetteImage != null
-                            ? pw.Image(silhouetteImage, fit: pw.BoxFit.contain)
-                            : pw.Center(
-                              child: pw.Text(
-                                'Silueta Humana',
-                                style: pw.TextStyle(
-                                  fontSize: 8,
-                                  color: PdfColors.grey600,
-                                ),
-                              ),
-                            ),
-                  ),
-                ),
-                // Imagen con lesiones dibujadas
-                if (injuryImage != null)
-                  pw.Positioned.fill(
-                    child: pw.Image(injuryImage, fit: pw.BoxFit.contain),
-                  ),
-              ],
-            ),
+        if (notes != null && notes.trim().isNotEmpty)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 8),
+            child: pw.Text('Notas: $notes', style: _valueStyle),
           ),
-
-          // Información de lesiones
-          pw.Row(
-            children: [
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'Lesiones registradas:',
-                      style: pw.TextStyle(
-                        fontSize: 8,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.black,
-                      ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    ...drawnInjuries.asMap().entries.map((entry) {
-                      final injury = entry.value as Map<String, dynamic>;
-                      final injuryType = injury['injuryType'] as int;
-                      final typeName = _getInjuryTypeName(injuryType);
-                      final number = entry.key + 1;
-
-                      return pw.Padding(
-                        padding: const pw.EdgeInsets.only(bottom: 2),
-                        child: pw.Text(
-                          '$number. $typeName',
-                          style: pw.TextStyle(
-                            fontSize: 7,
-                            color: PdfColors.black,
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-              pw.SizedBox(width: 10),
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'Leyenda:',
-                      style: pw.TextStyle(
-                        fontSize: 8,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.black,
-                      ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    _buildInjuryLegend(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ] else ...[
-          // Sin lesiones registradas
-          pw.Container(
-            height: 100,
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: PdfColors.grey300, width: 1),
-              borderRadius: pw.BorderRadius.circular(4),
-            ),
-            child: pw.Center(
-              child: pw.Text(
-                'No se han registrado lesiones',
-                style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
-              ),
-            ),
-          ),
-        ],
-
-        // Notas adicionales
-        if (notes != null && notes.trim().isNotEmpty) ...[
-          pw.SizedBox(height: 8),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(6),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.grey50,
-              borderRadius: pw.BorderRadius.circular(4),
-              border: pw.Border.all(color: PdfColors.grey200, width: 0.5),
-            ),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  'Notas adicionales:',
-                  style: pw.TextStyle(
-                    fontSize: 8,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.black,
-                  ),
-                ),
-                pw.SizedBox(height: 2),
-                pw.Text(
-                  notes,
-                  style: pw.TextStyle(fontSize: 7, color: PdfColors.black),
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }
 
-  // Construir imagen con lesiones dibujadas
-  Future<pw.MemoryImage> _buildInjuryImage(List<dynamic> drawnInjuries) async {
-    // Calcular el tamaño de la imagen basado en todas las coordenadas
-    double minX = double.infinity;
-    double maxX = double.negativeInfinity;
-    double minY = double.infinity;
-    double maxY = double.negativeInfinity;
-
-    for (final injury in drawnInjuries) {
-      final points = injury['points'] as List<dynamic>;
-      for (final point in points) {
-        final x = (point['dx'] as num).toDouble();
-        final y = (point['dy'] as num).toDouble();
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
+  // Construir imagen combinada con silueta y lesiones
+  Future<pw.MemoryImage> _createCombinedSilhouetteImage(
+    String silhouettePath,
+    List<dynamic> drawnInjuries, {
+    Map<String, dynamic>? injuryLocationMap,
+  }) async {
+    // 1. Obtener tamaño original de la silueta
+    double width = 436.0;
+    double height = 845.8;
+    if (injuryLocationMap != null &&
+        injuryLocationMap['originalImageSize'] != null) {
+      width =
+          (injuryLocationMap['originalImageSize']['width'] as num?)
+              ?.toDouble() ??
+          436.0;
+      height =
+          (injuryLocationMap['originalImageSize']['height'] as num?)
+              ?.toDouble() ??
+          845.8;
     }
 
-    // Agregar padding
-    const padding = 20.0;
-    final imageWidth = (maxX - minX + padding * 2).ceil();
-    final imageHeight = (maxY - minY + padding * 2).ceil();
-
-    print('Creating injury image: ${imageWidth}x${imageHeight}');
-    print('Bounds: x=$minX-$maxX, y=$minY-$maxY');
-
-    // Crear imagen con fondo transparente
-    final imageData = await _createInjuryImageData(
-      imageWidth,
-      imageHeight,
-      drawnInjuries,
-      minX - padding,
-      minY - padding,
+    // 2. Cargar imagen de silueta
+    final silhouetteBytes = await rootBundle.load(silhouettePath);
+    final codec = await ui.instantiateImageCodec(
+      silhouetteBytes.buffer.asUint8List(),
     );
-    final image = pw.MemoryImage(imageData);
+    final frame = await codec.getNextFrame();
+    final silhouetteImage = frame.image;
 
-    return image;
-  }
-
-  // Crear datos de imagen con lesiones dibujadas
-  Future<Uint8List> _createInjuryImageData(
-    int width,
-    int height,
-    List<dynamic> drawnInjuries,
-    double offsetX,
-    double offsetY,
-  ) async {
-    // Crear un canvas para dibujar
+    // 3. Crear canvas del tamaño original
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
-    // Fondo transparente
-    canvas.drawColor(Colors.transparent, BlendMode.clear);
+    // 4. Dibujar silueta como fondo
+    final dstRect = Rect.fromLTWH(0, 0, width, height);
+    canvas.drawImageRect(
+      silhouetteImage,
+      Rect.fromLTWH(
+        0,
+        0,
+        silhouetteImage.width.toDouble(),
+        silhouetteImage.height.toDouble(),
+      ),
+      dstRect,
+      Paint(),
+    );
 
-    // Dibujar cada lesión
-    for (int i = 0; i < drawnInjuries.length; i++) {
-      final injury = drawnInjuries[i] as Map<String, dynamic>;
-      final points = injury['points'] as List<dynamic>;
-      final injuryType = injury['injuryType'] as int;
-
+    // 5. Dibujar los puntos en coordenadas originales
+    for (final injury in drawnInjuries) {
+      final points = injury['points'] as List<dynamic>? ?? [];
+      final injuryType = injury['injuryType'] as int? ?? 0;
       final color = _getInjuryTypeFlutterColor(injuryType);
-      final paint =
-          Paint()
-            ..color = color
-            ..style = PaintingStyle.fill;
-
-      final strokePaint =
-          Paint()
-            ..color = Colors.black
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2;
-
-      // Dibujar puntos de la lesión
-      for (int j = 0; j < points.length; j++) {
-        final point = points[j];
-        final x = (point['dx'] as num).toDouble() - offsetX;
-        final y = (point['dy'] as num).toDouble() - offsetY;
-
-        final isFirstPoint = j == 0;
-        final radius = isFirstPoint ? 10.0 : 5.0;
-
-        // Dibujar círculo
-        canvas.drawCircle(Offset(x, y), radius, paint);
-        canvas.drawCircle(Offset(x, y), radius, strokePaint);
-
-        // Dibujar número en el primer punto
-        if (isFirstPoint) {
-          final textPainter = TextPainter(
-            text: TextSpan(
-              text: '${i + 1}',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            textDirection: TextDirection.ltr,
-          );
-          textPainter.layout();
-          textPainter.paint(
-            canvas,
-            Offset(x - textPainter.width / 2, y - textPainter.height / 2),
-          );
-        }
+      for (final point in points) {
+        final dx = (point['dx'] as num?)?.toDouble() ?? 0.0;
+        final dy = (point['dy'] as num?)?.toDouble() ?? 0.0;
+        canvas.drawCircle(Offset(dx, dy), 8, Paint()..color = color);
       }
     }
 
-    // Convertir a imagen
+    // 6. Convertir a imagen
     final picture = recorder.endRecording();
-    final image = picture.toImageSync(width, height);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final combinedImage = await picture.toImage(width.toInt(), height.toInt());
+    final byteData = await combinedImage.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
 
-    return byteData!.buffer.asUint8List();
+    return pw.MemoryImage(byteData!.buffer.asUint8List());
   }
 
   // Obtener color Flutter para tipo de lesión
@@ -2045,99 +1818,6 @@ class PdfGeneratorService {
       default:
         return Colors.red;
     }
-  }
-
-  // Construir el path de una lesión (método anterior - ahora no se usa)
-  pw.Widget _buildInjuryPath(
-    List<Map<String, dynamic>> pointsData,
-    int injuryType,
-    int index,
-  ) {
-    if (pointsData.isEmpty) {
-      print('No points data for injury $index');
-      return pw.SizedBox.shrink();
-    }
-
-    final color = _getInjuryTypeColor(injuryType);
-    final number = index + 1;
-
-    print(
-      'Building injury path for injury $index with ${pointsData.length} points',
-    );
-    print('Injury type: $injuryType, Color: $color');
-
-    // Calcular el rango de coordenadas para escalar
-    final allX = pointsData.map((p) => (p['dx'] as num).toDouble()).toList();
-    final allY = pointsData.map((p) => (p['dy'] as num).toDouble()).toList();
-
-    final minX = allX.reduce((a, b) => a < b ? a : b);
-    final maxX = allX.reduce((a, b) => a > b ? a : b);
-    final minY = allY.reduce((a, b) => a < b ? a : b);
-    final maxY = allY.reduce((a, b) => a > b ? a : b);
-
-    print('Original bounds: x=$minX-$maxX, y=$minY-$maxY');
-
-    // Dimensiones del contenedor de la imagen (120x180)
-    const containerWidth = 120.0;
-    const containerHeight = 180.0;
-
-    // Función para escalar coordenadas
-    double scaleX(double x) {
-      if (maxX == minX) return containerWidth / 2;
-      return ((x - minX) / (maxX - minX)) * containerWidth;
-    }
-
-    double scaleY(double y) {
-      if (maxY == minY) return containerHeight / 2;
-      return ((y - minY) / (maxY - minY)) * containerHeight;
-    }
-
-    return pw.Stack(
-      children: [
-        // Dibujar puntos de la lesión
-        ...pointsData.asMap().entries.map((entry) {
-          final point = entry.value;
-          final isFirstPoint = entry.key == 0;
-          final originalX = (point['dx'] as num).toDouble();
-          final originalY = (point['dy'] as num).toDouble();
-
-          // Escalar coordenadas
-          final x = scaleX(originalX);
-          final y = scaleY(originalY);
-
-          print(
-            'Point ${entry.key}: original($originalX, $originalY) -> scaled($x, $y), isFirst=$isFirstPoint',
-          );
-
-          return pw.Positioned(
-            left: x - (isFirstPoint ? 10 : 5),
-            top: y - (isFirstPoint ? 10 : 5),
-            child: pw.Container(
-              width: isFirstPoint ? 20 : 10,
-              height: isFirstPoint ? 20 : 10,
-              decoration: pw.BoxDecoration(
-                color: color,
-                shape: pw.BoxShape.circle,
-                border: pw.Border.all(color: PdfColors.black, width: 2),
-              ),
-              child:
-                  isFirstPoint
-                      ? pw.Center(
-                        child: pw.Text(
-                          '$number',
-                          style: pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 10,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      )
-                      : null,
-            ),
-          );
-        }),
-      ],
-    );
   }
 
   // Construir leyenda de tipos de lesiones
@@ -2170,34 +1850,6 @@ class PdfGeneratorService {
               )
               .toList(),
     );
-  }
-
-  // Obtener color del tipo de lesión
-  PdfColor _getInjuryTypeColor(int injuryType) {
-    switch (injuryType) {
-      case 0:
-        return PdfColors.red; // Hemorragia
-      case 1:
-        return PdfColors.brown; // Herida
-      case 2:
-        return PdfColors.purple; // Contusión
-      case 3:
-        return PdfColors.orange; // Fractura
-      case 4:
-        return PdfColors.yellow; // Luxación
-      case 5:
-        return PdfColors.pink; // Objeto extraño
-      case 6:
-        return PdfColors.deepOrange; // Quemadura
-      case 7:
-        return PdfColors.green; // Picadura
-      case 8:
-        return PdfColors.indigo; // Edema
-      case 9:
-        return PdfColors.grey; // Otro
-      default:
-        return PdfColors.black;
-    }
   }
 
   // Obtener nombre del tipo de lesión
